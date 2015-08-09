@@ -1,11 +1,14 @@
 ﻿{
-	"version": "1.0.0-*",
-	"description": "Json RPC router",
+	"title": "JsonRpc Router",
+	"version": "1.0.0-beta6-2",
+	"description": "A DNX IRouter implementation for Json Rpc requests for Microsoft.AspNet.Routing.",
+	"summary": "A DNX Json RPC router",
 	"authors": [ "Gekctek" ],
 	"tags": [ "JsonRpc Rpc AspNet" ],
 	"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
-	"licenseUrl": "http://www.gnu.org/licenses/gpl-2.0.txt",
-	
+	"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
+	"releaseNotes": "Initial",
+
 	"dependencies": {
 		"Microsoft.AspNet.Routing": "1.0.0-beta6",
 		"Newtonsoft.Json": "7.0.1"
