@@ -42,25 +42,8 @@ namespace JsonRpc.Router
 				return;
 			}
 
-			// Replacing the route data allows any code running here to dirty the route values or data-tokens
-			// without affecting something upstream.
-			RouteData oldRouteData = context.RouteData;
-			RouteData newRouteData = new RouteData(oldRouteData);
-
-			try
-			{
-				context.RouteData = newRouteData;
-
-				await InvokeRequest(context, request, section);
-				context.IsHandled = true;
-			}
-			finally
-			{
-				if (!context.IsHandled)
-				{
-					context.RouteData = oldRouteData;
-				}
-			}
+			await InvokeRequest(context, request, section);
+			context.IsHandled = true;
 		}
 
 		private bool TryGetRpcRequest(RouteContext context, out RpcRequest rpcRequest)
