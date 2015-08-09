@@ -1,7 +1,5 @@
 ﻿using JsonRpc.Router;
-using Microsoft.AspNet.Http;
 using System;
-using System.Collections.Generic;
 
 namespace Microsoft.AspNet.Builder
 {
