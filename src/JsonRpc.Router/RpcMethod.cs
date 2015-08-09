@@ -7,17 +7,17 @@ namespace JsonRpc.Router
 {
 	internal class RpcMethod
 	{
-		public string GroupName { get; }
+		public string Section { get; }
 		public string Method => this.MethodInfo.Name;
 		private MethodInfo MethodInfo { get; }
 		private Type Type { get; }
 
 		private ParameterInfo[] ParameterInfoList { get; set; }
 
-		public RpcMethod(Type type, string groupName, MethodInfo methodInfo)
+		public RpcMethod(Type type, string section, MethodInfo methodInfo)
 		{
 			this.Type = type;
-			this.GroupName = groupName;
+			this.Section = section;
 			this.MethodInfo = methodInfo;
 		}
 

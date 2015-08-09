@@ -30,8 +30,8 @@ namespace JsonRpc.Router
 
 		public async Task RouteAsync(RouteContext context)
 		{
-			string groupName;
-			if (!this.IsCorrectRoute(context, out groupName))
+			string section;
+			if (!this.IsCorrectRoute(context, out section))
 			{
 				return;
 			}
@@ -51,7 +51,7 @@ namespace JsonRpc.Router
 			{
 				context.RouteData = newRouteData;
 
-				await InvokeRequest(context, request, groupName);
+				await InvokeRequest(context, request, section);
 				context.IsHandled = true;
 			}
 			finally
@@ -96,31 +96,31 @@ namespace JsonRpc.Router
 			return true;
 		}
 
-		private bool IsCorrectRoute(RouteContext context, out string groupName)
+		private bool IsCorrectRoute(RouteContext context, out string section)
 		{
 			PathString remainingPath;
 			bool isRpcRoute = context.HttpContext.Request.Path.StartsWithSegments(this.Configuration.RoutePrefix, out remainingPath);
 			if (!isRpcRoute)
 			{
-				groupName = null;
+				section = null;
 				return false;
 			}
 			string[] pathComponents = remainingPath.Value?.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
 			if (pathComponents == null || !pathComponents.Any())
 			{
-				groupName = null;
+				section = null;
 				return false;
 			}
-			groupName = pathComponents.First();
-			if (string.IsNullOrWhiteSpace(groupName))
+			section = pathComponents.First();
+			if (string.IsNullOrWhiteSpace(section))
 			{
-				groupName = null;
+				section = null;
 				return false;
 			}
 			return true;
 		}
 
-		private async Task InvokeRequest(RouteContext context, RpcRequest request, string groupName)
+		private async Task InvokeRequest(RouteContext context, RpcRequest request, string section)
 		{
 			if (request == null)
 			{
@@ -130,22 +130,20 @@ namespace JsonRpc.Router
 			{
 				throw new InvalidRpcRequestException("Request must be jsonrpc version '2.0'");
 			}
+			RpcResponseBase rpcResponse;
 			try
 			{
 				object[] parameterList;
-				RpcMethod rpcMethod = this.GetMatchingMethod(groupName, request, out parameterList);
+				RpcMethod rpcMethod = this.GetMatchingMethod(section, request, out parameterList);
 
 				object result = rpcMethod.Invoke(parameterList);
 
-				RpcResultResponse rpcResponse = new RpcResultResponse(request.Id, result);
-				await this.SetResponse(context, rpcResponse);
+				rpcResponse = new RpcResultResponse(request.Id, result);
 			}
 			catch (RpcException ex)
 			{
 				RpcError error = new RpcError(ex);
-				RpcErrorResponse rpcErrorResponse = new RpcErrorResponse(request.Id, error);
-				await this.SetResponse(context, rpcErrorResponse);
-				return;
+				rpcResponse = new RpcErrorResponse(request.Id, error);
 			}
 #if DEBUG
 			catch (Exception ex)
@@ -159,16 +157,19 @@ namespace JsonRpc.Router
 				int code = -32603;
 				object data = null;
 				RpcError error = new RpcError(code, message, data);
-				RpcErrorResponse rpcErrorResponse = new RpcErrorResponse(request.Id, error);
-				await this.SetResponse(context, rpcErrorResponse);
-				return;
+				rpcResponse = new RpcErrorResponse(request.Id, error);
+			}
+			if (request.Id != null)
+			{
+				//Only set a response if there is an id
+				await this.SetResponse(context, rpcResponse);
 			}
 		}
-		private RpcMethod GetMatchingMethod(string groupName, RpcRequest request, out object[] parameterList)
+		private RpcMethod GetMatchingMethod(string section, RpcRequest request, out object[] parameterList)
 		{
-			if (string.IsNullOrWhiteSpace(groupName))
+			if (string.IsNullOrWhiteSpace(section))
 			{
-				throw new ArgumentNullException(nameof(groupName));
+				throw new ArgumentNullException(nameof(section));
 			}
 			if (request == null)
 			{
@@ -177,7 +178,7 @@ namespace JsonRpc.Router
 			List<RpcMethod> methods = this.GetRpcMethods();
 
 			methods = methods
-				.Where(m => string.Equals(m.GroupName, groupName, StringComparison.OrdinalIgnoreCase))
+				.Where(m => string.Equals(m.Section, section, StringComparison.OrdinalIgnoreCase))
 				.Where(m => string.Equals(m.Method, request.Method, StringComparison.OrdinalIgnoreCase))
 				.ToList();
 
