@@ -1,14 +1,14 @@
 ﻿{
 	"version": "1.0.0-*",
-	"description": "JsonRpc.Mvc Class Library",
+	"description": "Json RPC router",
 	"authors": [ "Gekctek" ],
-	"tags": [ "" ],
-	"projectUrl": "",
-	"licenseUrl": "",
+	"tags": [ "JsonRpc Rpc AspNet" ],
+	"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
+	"licenseUrl": "http://www.gnu.org/licenses/gpl-2.0.txt",
 	
 	"dependencies": {
 		"Microsoft.AspNet.Routing": "1.0.0-beta6",
-		"Newtonsoft.Json": "6.0.8"
+		"Newtonsoft.Json": "7.0.1"
 	},
 
 	"frameworks": {
