@@ -1,10 +1,7 @@
 ﻿using Microsoft.AspNet.Builder;
 using Microsoft.AspNet.Hosting;
-using Microsoft.AspNet.Routing;
 using Microsoft.Framework.DependencyInjection;
-using System.Collections.Generic;
-using System;
-using JsonRpc.Router.Sample.Controllers;
+using JsonRpc.Router.Sample.RpcSections;
 
 namespace JsonRpc.Router.Sample
 {
@@ -23,12 +20,11 @@ namespace JsonRpc.Router.Sample
 		// Configure is called after ConfigureServices is called.
 		public void Configure(IApplicationBuilder app, IHostingEnvironment env)
 		{
-			app.UseJsonRpc(this.ConfigureRouter);
-		}
-
-		private void ConfigureRouter(RpcRouterConfiguration configuration)
-		{
-			configuration.RegisterRpcGroup<RandomRpcController>("Test");
+			app.UseJsonRpc(config =>
+			{
+				config.RegisterClassToRpcSection<StringRpcSection>("Strings");
+				config.RegisterClassToRpcSection<CommandRpcSection>("Commands");
+			});
 		}
 	}
 }
