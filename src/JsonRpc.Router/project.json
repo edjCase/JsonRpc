@@ -1,0 +1,25 @@
+﻿{
+	"version": "1.0.0-*",
+	"description": "JsonRpc.Mvc Class Library",
+	"authors": [ "Gekctek" ],
+	"tags": [ "" ],
+	"projectUrl": "",
+	"licenseUrl": "",
+	
+	"dependencies": {
+		"Microsoft.AspNet.Routing": "1.0.0-beta6",
+		"Newtonsoft.Json": "6.0.8"
+	},
+
+	"frameworks": {
+		"dnx451": { },
+		"dnxcore50": {
+			"dependencies": {
+				"System.Collections": "4.0.10",
+				"System.Runtime": "4.0.20",
+				"System.Threading": "4.0.10",
+				"Microsoft.CSharp": "4.0.0"
+			}
+		}
+	}
+}
