@@ -1,16 +1,12 @@
-﻿using Microsoft.AspNet.Routing;
+﻿using JsonRpc.Router.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace JsonRpc.Router
 {
-	public interface IRpcInvoker
-	{
-		RpcResponseBase InvokeRequest(RpcRequest request, string section);
-    }
-
 	public class DefaultRpcInvoker : IRpcInvoker
 	{
 		private List<RpcSection> Sections { get; }
@@ -27,19 +23,39 @@ namespace JsonRpc.Router
 			this.Sections = sections;
 		}
 
+		public List<RpcResponseBase> InvokeBatchRequest(List<RpcRequest> requests, string section)
+		{
+			var invokingTasks = new List<Task<RpcResponseBase>>();
+			foreach (RpcRequest request in requests)
+			{
+				Task<RpcResponseBase> invokingTask = Task.Run(() => this.InvokeRequest(request, section));
+				invokingTasks.Add(invokingTask);
+			}
+
+			Task.WaitAll(invokingTasks.ToArray());
+
+			List<RpcResponseBase> responses = invokingTasks
+				.Select(t => t.Result)
+				.Where(r => r != null)
+				.ToList();
+
+			return responses;
+		}
+
 		public RpcResponseBase InvokeRequest(RpcRequest request, string section)
 		{
-			if (request == null)
-			{
-				throw new ArgumentNullException(nameof(request));
-			}
-			if (!string.Equals(request.JsonRpcVersion, "2.0"))
-			{
-				throw new InvalidRpcRequestException("Request must be jsonrpc version '2.0'");
-			}
 			RpcResponseBase rpcResponse;
 			try
 			{
+				if (request == null)
+				{
+					throw new ArgumentNullException(nameof(request));
+				}
+				if (!string.Equals(request.JsonRpcVersion, "2.0"))
+				{
+					throw new InvalidRpcRequestException("Request must be jsonrpc version '2.0'");
+				}
+
 				object[] parameterList;
 				RpcMethod rpcMethod = this.GetMatchingMethod(section, request, out parameterList);
 

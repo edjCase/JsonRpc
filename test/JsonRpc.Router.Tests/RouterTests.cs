@@ -1,6 +1,10 @@
-﻿using Microsoft.AspNet.Http;
+﻿using System;
+using System.Collections.Generic;
+using Microsoft.AspNet.Http;
 using Microsoft.AspNet.Routing;
 using Xunit;
+using System.Linq;
+using JsonRpc.Router.Abstractions;
 
 namespace JsonRpc.Router.Tests
 {
@@ -22,6 +26,11 @@ namespace JsonRpc.Router.Tests
 		public RpcResponseBase InvokeRequest(RpcRequest request, string section)
 		{
 			return new RpcResultResponse(request.Id, "Fake Result");
+		}
+
+		public List<RpcResponseBase> InvokeBatchRequest(List<RpcRequest> requests, string section)
+		{
+			return requests.Select(r => this.InvokeRequest(r, section)).ToList();
 		}
 	}
 }

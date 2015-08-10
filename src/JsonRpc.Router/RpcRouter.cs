@@ -6,21 +6,28 @@ using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNet.Http;
+using JsonRpc.Router.Abstractions;
 
 namespace JsonRpc.Router
 {
 	public class RpcRouter : IRouter
 	{
 		private RpcRouterConfiguration Configuration { get; }
-		public RpcRouter(RpcRouterConfiguration configuration, IRpcInvoker invoker = null)
+		private IRpcInvoker Invoker { get; }
+		private IRpcParser Parser { get; }
+		public RpcRouter(RpcRouterConfiguration configuration, IRpcInvoker invoker = null, IRpcParser parser = null) //TODO better DI
 		{
 			if (configuration == null)
 			{
 				throw new ArgumentNullException(nameof(configuration));
 			}
-			if(invoker == null)
+			if (invoker == null)
 			{
-				invoker = new DefaultRpcInvoker(configuration.Sections);
+				this.Invoker = new DefaultRpcInvoker(configuration.Sections);
+			}
+			if (parser == null)
+			{
+				this.Parser = new DefaultRpcParser(configuration.RoutePrefix, configuration.Sections);
 			}
 			this.Configuration = configuration;
 		}
@@ -33,126 +40,59 @@ namespace JsonRpc.Router
 
 		public async Task RouteAsync(RouteContext context)
 		{
-			string section;
-			if (!this.IsCorrectRoute(context, out section))
+			try
 			{
-				return;
-			}
-			List<RpcRequest> requests;
-			bool isRpc = this.TryGetRpcRequests(context, out requests);
-			if (!isRpc)
-			{
-				return;
-			}
-
-			var invokingTasks = new List<Task<RpcResponseBase>>();
-			IRpcInvoker invoker = new DefaultRpcInvoker(this.Configuration.Sections);
-			foreach (RpcRequest request in requests)
-			{
-				Task<RpcResponseBase> invokingTask = Task.Run(() => invoker.InvokeRequest(request, section));
-				invokingTasks.Add(invokingTask);
-			}
-			await Task.WhenAll(invokingTasks.ToArray());
-
-			List<RpcResponseBase> responses = invokingTasks
-				.Select(t => t.Result)
-				.Where(r => r != null)
-				.ToList();
-
-			await this.SetResponse(context, responses);
-			context.IsHandled = true;
-		}
-
-		private bool TryGetRpcRequests(RouteContext context, out List<RpcRequest> rpcRequests)
-		{
-			rpcRequests = null;
-
-			Stream contentStream = context.HttpContext.Request.Body;
-
-			if (contentStream == null)
-			{
-				return false;
-			}
-			using (StreamReader streamReader = new StreamReader(contentStream))
-			{
-				string jsonString = streamReader.ReadToEnd().Trim();
-				if (string.IsNullOrWhiteSpace(jsonString))
+				string section;
+				bool matchesRoute = this.Parser.MatchesRpcRoute(context.HttpContext.Request.Path, out section);
+				if (!matchesRoute)
 				{
-					return false;
+					return;
 				}
+
 				try
 				{
-					if (!this.IsSingleRequest(jsonString))
+					Stream contentStream = context.HttpContext.Request.Body;
+
+					string jsonString;
+					if (contentStream == null)
 					{
-						rpcRequests = JsonConvert.DeserializeObject<List<RpcRequest>>(jsonString);
+						jsonString = null;
 					}
 					else
 					{
-						rpcRequests = new List<RpcRequest>();
-						RpcRequest rpcRequest = JsonConvert.DeserializeObject<RpcRequest>(jsonString);
-						if (rpcRequest != null)
+						using (StreamReader streamReader = new StreamReader(contentStream))
 						{
-							rpcRequests.Add(rpcRequest);
+							jsonString = streamReader.ReadToEnd().Trim();
 						}
 					}
+					List<RpcRequest> requests = this.Parser.ParseRequests(jsonString);
 
-					if (!rpcRequests.Any())
-					{
-						return false;
-					}
+					List<RpcResponseBase> responses = this.Invoker.InvokeBatchRequest(requests, section);
+
+					await this.SetResponse(context, responses);
+					context.IsHandled = true;
 				}
-				catch (Exception)
+				catch (RpcException ex)
 				{
-					return false;
+					context.IsHandled = true;
+					await this.SetErrorResponse(context, ex);
+					return;
 				}
 			}
-			return true;
+			catch (Exception)
+			{
+				context.IsHandled = false;
+			}
 		}
 
-		private bool IsSingleRequest(string jsonString)
+		private async Task SetErrorResponse(RouteContext context, RpcException exception)
 		{
-			if (jsonString == null || jsonString.Length < 1)
+			var responses = new List<RpcResponseBase>
 			{
-				throw new ArgumentNullException(nameof(jsonString));
-			}
-			for(int i = 0; i < jsonString.Length; i++)
-			{
-				char character = jsonString[i];
-				switch (character)
-				{
-					case '{':
-						return true;
-					case '[':
-						return false;
-				}
-			}
-			return true;
+				new RpcErrorResponse(null, new RpcError(exception))
+			};
+			await this.SetResponse(context, responses);
 		}
-
-		private bool IsCorrectRoute(RouteContext context, out string section)
-		{
-			PathString remainingPath;
-			bool isRpcRoute = context.HttpContext.Request.Path.StartsWithSegments(this.Configuration.RoutePrefix, out remainingPath);
-			if (!isRpcRoute)
-			{
-				section = null;
-				return false;
-			}
-			string[] pathComponents = remainingPath.Value?.Split(new char[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-			if (pathComponents == null || !pathComponents.Any())
-			{
-				section = null;
-				return false;
-			}
-			section = pathComponents.First();
-			if (string.IsNullOrWhiteSpace(section))
-			{
-				section = null;
-				return false;
-			}
-			return true;
-		}
-
 
 		private async Task SetResponse(RouteContext context, List<RpcResponseBase> responses)
 		{

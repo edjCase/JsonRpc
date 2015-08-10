@@ -20,6 +20,7 @@
 			"dependencies": {
 				"System.Collections": "4.0.10",
 				"System.Runtime": "4.0.20",
+				"System.Runtime.Serialization.Primitives": "4.0.10-beta-*",
 				"System.Threading": "4.0.10",
 				"Microsoft.CSharp": "4.0.0"
 			}
