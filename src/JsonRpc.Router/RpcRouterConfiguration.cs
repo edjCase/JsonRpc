@@ -22,7 +22,7 @@ namespace JsonRpc.Router
 			}
 
 			bool uniqueClass = route.AddClass<T>();
-			if (!uniqueClass)
+			if (uniqueClass)
 			{
 				return;
 			}
