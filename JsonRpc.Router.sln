@@ -14,6 +14,10 @@ Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "JsonRpc.Router", "src\JsonR
 EndProject
 Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "JsonRpc.Router.Sample", "src\JsonRpc.Router.Sample\JsonRpc.Router.Sample.xproj", "{DC822B36-8944-48E5-AFC3-B6F859F49E02}"
 EndProject
+Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "JsonRpc.Router.Tests", "test\JsonRpc.Router.Tests\JsonRpc.Router.Tests.xproj", "{EB3C5DC1-9E22-4C56-8E1F-0D93917E75E5}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{B5DD29D3-4FCA-4CFB-A562-A7985BB1C269}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -28,6 +32,10 @@ Global
 		{DC822B36-8944-48E5-AFC3-B6F859F49E02}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DC822B36-8944-48E5-AFC3-B6F859F49E02}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DC822B36-8944-48E5-AFC3-B6F859F49E02}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB3C5DC1-9E22-4C56-8E1F-0D93917E75E5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB3C5DC1-9E22-4C56-8E1F-0D93917E75E5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB3C5DC1-9E22-4C56-8E1F-0D93917E75E5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB3C5DC1-9E22-4C56-8E1F-0D93917E75E5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -35,5 +43,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{F89E9E51-0D7A-4A82-A899-14C886C4F384} = {EB6CC2D7-ED2C-447F-A85B-5E204FD69352}
 		{DC822B36-8944-48E5-AFC3-B6F859F49E02} = {EB6CC2D7-ED2C-447F-A85B-5E204FD69352}
+		{EB3C5DC1-9E22-4C56-8E1F-0D93917E75E5} = {B5DD29D3-4FCA-4CFB-A562-A7985BB1C269}
 	EndGlobalSection
 EndGlobal

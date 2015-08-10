@@ -3,25 +3,37 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
 
 namespace JsonRpc.Router
 {
-	public class RpcInvoker
+	public interface IRpcInvoker
+	{
+		RpcResponseBase InvokeRequest(RpcRequest request, string section);
+    }
+
+	public class DefaultRpcInvoker : IRpcInvoker
 	{
 		private List<RpcSection> Sections { get; }
-		public RpcInvoker(List<RpcSection> sections)
+		public DefaultRpcInvoker(List<RpcSection> sections)
 		{
+			if (sections == null)
+			{
+				throw new ArgumentNullException(nameof(sections));
+			}
+			if (!sections.Any())
+			{
+				throw new ArgumentException("There must be at least on section defined", nameof(sections));
+			}
 			this.Sections = sections;
 		}
 
-		internal RpcResponseBase InvokeRequest(RouteContext context, RpcRequest request, string section)
+		public RpcResponseBase InvokeRequest(RpcRequest request, string section)
 		{
 			if (request == null)
 			{
 				throw new ArgumentNullException(nameof(request));
 			}
-			if (!string.Equals(request.JsonRpc, "2.0"))
+			if (!string.Equals(request.JsonRpcVersion, "2.0"))
 			{
 				throw new InvalidRpcRequestException("Request must be jsonrpc version '2.0'");
 			}

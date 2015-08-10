@@ -4,7 +4,7 @@ using System;
 namespace JsonRpc.Router
 {
 	[JsonObject]
-	internal class RpcErrorResponse : RpcResponseBase
+	public class RpcErrorResponse : RpcResponseBase
 	{
 		[JsonConstructor]
 		private RpcErrorResponse()
@@ -22,7 +22,7 @@ namespace JsonRpc.Router
 	}
 
 	[JsonObject]
-	internal class RpcResultResponse : RpcResponseBase
+	public class RpcResultResponse : RpcResponseBase
 	{
 		[JsonConstructor]
 		private RpcResultResponse()
@@ -39,7 +39,7 @@ namespace JsonRpc.Router
 	}
 	
 	[JsonObject]
-	internal abstract class RpcResponseBase
+	public abstract class RpcResponseBase
 	{
 		[JsonConstructor]
 		protected RpcResponseBase()
@@ -59,7 +59,7 @@ namespace JsonRpc.Router
 	}
 
 	[JsonObject]
-	internal class RpcError
+	public class RpcError
 	{
 		[JsonConstructor]
 		private RpcError()

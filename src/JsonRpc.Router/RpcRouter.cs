@@ -9,14 +9,18 @@ using Microsoft.AspNet.Http;
 
 namespace JsonRpc.Router
 {
-	internal class RpcRouter : IRouter
+	public class RpcRouter : IRouter
 	{
 		private RpcRouterConfiguration Configuration { get; }
-		public RpcRouter(RpcRouterConfiguration configuration)
+		public RpcRouter(RpcRouterConfiguration configuration, IRpcInvoker invoker = null)
 		{
 			if (configuration == null)
 			{
 				throw new ArgumentNullException(nameof(configuration));
+			}
+			if(invoker == null)
+			{
+				invoker = new DefaultRpcInvoker(configuration.Sections);
 			}
 			this.Configuration = configuration;
 		}
@@ -42,10 +46,10 @@ namespace JsonRpc.Router
 			}
 
 			var invokingTasks = new List<Task<RpcResponseBase>>();
-			RpcInvoker invoker = new RpcInvoker(this.Configuration.Sections);
+			IRpcInvoker invoker = new DefaultRpcInvoker(this.Configuration.Sections);
 			foreach (RpcRequest request in requests)
 			{
-				Task<RpcResponseBase> invokingTask = Task.Run(() => invoker.InvokeRequest(context, request, section));
+				Task<RpcResponseBase> invokingTask = Task.Run(() => invoker.InvokeRequest(request, section));
 				invokingTasks.Add(invokingTask);
 			}
 			await Task.WhenAll(invokingTasks.ToArray());

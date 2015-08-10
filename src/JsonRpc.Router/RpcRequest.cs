@@ -5,7 +5,7 @@ using System.Collections.Generic;
 namespace JsonRpc.Router
 {
 	[JsonObject]
-	internal class RpcRequest
+	public class RpcRequest
 	{
 		[JsonConstructor]
 		private RpcRequest()
@@ -13,10 +13,26 @@ namespace JsonRpc.Router
 
 		}
 
+		public RpcRequest(string id, string jsonRpcVersion, string method, object[] parameterList)
+		{
+			this.Id = id;
+			this.JsonRpcVersion = jsonRpcVersion;
+			this.Method = method;
+			this.RawParameters = parameterList;
+		}
+
+		public RpcRequest(string id, string jsonRpcVersion, string method, Dictionary<string, object> parameterMap)
+		{
+			this.Id = id;
+			this.JsonRpcVersion = jsonRpcVersion;
+			this.Method = method;
+			this.RawParameters = parameterMap;
+		}
+
 		[JsonProperty("id", Required = Required.AllowNull)]
 		public string Id { get; private set; }
 		[JsonProperty("jsonrpc", Required = Required.Always)]
-		public string JsonRpc { get; private set; }
+		public string JsonRpcVersion { get; private set; }
 		[JsonProperty("method", Required = Required.Always)]
 		public string Method { get; private set; }
 		[JsonProperty("params")]
