@@ -43,7 +43,17 @@ namespace JsonRpc.Router
 		{
 			get
 			{
-				return this.RawParameters as object[];
+				var parameterList = this.RawParameters as object[];
+				if (parameterList == null)
+				{
+					JArray jObject = this.RawParameters as JArray;
+					if (jObject != null)
+					{
+						this.RawParameters = jObject.ToObject<object[]>();
+						return (object[]) this.RawParameters;
+					}
+				}
+				return parameterList;
 			}
 		}
 
