@@ -1,8 +1,5 @@
 ﻿using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace JsonRpc.Router
 {
@@ -20,7 +17,7 @@ namespace JsonRpc.Router
 			this.Error = error;
 		}
 
-		[JsonProperty("error")]
+		[JsonProperty("error", Required = Required.Always)]
 		public RpcError Error { get; private set; }
 	}
 
@@ -37,10 +34,10 @@ namespace JsonRpc.Router
 		{
 			this.Result = result;
 		}
-		[JsonProperty("result")]
+		[JsonProperty("result", Required = Required.Always)]
 		public object Result { get; private set; }
 	}
-
+	
 	[JsonObject]
 	internal abstract class RpcResponseBase
 	{

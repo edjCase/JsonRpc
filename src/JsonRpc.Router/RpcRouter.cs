@@ -4,7 +4,6 @@ using Microsoft.AspNet.Routing;
 using System.IO;
 using Newtonsoft.Json;
 using System.Collections.Generic;
-using System.Reflection;
 using System.Linq;
 using Microsoft.AspNet.Http;
 
@@ -35,20 +34,34 @@ namespace JsonRpc.Router
 			{
 				return;
 			}
-			RpcRequest request;
-			bool isRpc = this.TryGetRpcRequest(context, out request);
+			List<RpcRequest> requests;
+			bool isRpc = this.TryGetRpcRequests(context, out requests);
 			if (!isRpc)
 			{
 				return;
 			}
 
-			await InvokeRequest(context, request, section);
+			var invokingTasks = new List<Task<RpcResponseBase>>();
+			RpcInvoker invoker = new RpcInvoker(this.Configuration.Sections);
+			foreach (RpcRequest request in requests)
+			{
+				Task<RpcResponseBase> invokingTask = Task.Run(() => invoker.InvokeRequest(context, request, section));
+				invokingTasks.Add(invokingTask);
+			}
+			await Task.WhenAll(invokingTasks.ToArray());
+
+			List<RpcResponseBase> responses = invokingTasks
+				.Select(t => t.Result)
+				.Where(r => r != null)
+				.ToList();
+
+			await this.SetResponse(context, responses);
 			context.IsHandled = true;
 		}
 
-		private bool TryGetRpcRequest(RouteContext context, out RpcRequest rpcRequest)
+		private bool TryGetRpcRequests(RouteContext context, out List<RpcRequest> rpcRequests)
 		{
-			rpcRequest = null;
+			rpcRequests = null;
 
 			Stream contentStream = context.HttpContext.Request.Body;
 
@@ -58,15 +71,28 @@ namespace JsonRpc.Router
 			}
 			using (StreamReader streamReader = new StreamReader(contentStream))
 			{
-				string jsonString = streamReader.ReadToEnd();
+				string jsonString = streamReader.ReadToEnd().Trim();
 				if (string.IsNullOrWhiteSpace(jsonString))
 				{
 					return false;
 				}
 				try
 				{
-					rpcRequest = JsonConvert.DeserializeObject<RpcRequest>(jsonString);
-					if (rpcRequest == null)
+					if (!this.IsSingleRequest(jsonString))
+					{
+						rpcRequests = JsonConvert.DeserializeObject<List<RpcRequest>>(jsonString);
+					}
+					else
+					{
+						rpcRequests = new List<RpcRequest>();
+						RpcRequest rpcRequest = JsonConvert.DeserializeObject<RpcRequest>(jsonString);
+						if (rpcRequest != null)
+						{
+							rpcRequests.Add(rpcRequest);
+						}
+					}
+
+					if (!rpcRequests.Any())
 					{
 						return false;
 					}
@@ -74,6 +100,26 @@ namespace JsonRpc.Router
 				catch (Exception)
 				{
 					return false;
+				}
+			}
+			return true;
+		}
+
+		private bool IsSingleRequest(string jsonString)
+		{
+			if (jsonString == null || jsonString.Length < 1)
+			{
+				throw new ArgumentNullException(nameof(jsonString));
+			}
+			for(int i = 0; i < jsonString.Length; i++)
+			{
+				char character = jsonString[i];
+				switch (character)
+				{
+					case '{':
+						return true;
+					case '[':
+						return false;
 				}
 			}
 			return true;
@@ -103,124 +149,25 @@ namespace JsonRpc.Router
 			return true;
 		}
 
-		private async Task InvokeRequest(RouteContext context, RpcRequest request, string section)
+
+		private async Task SetResponse(RouteContext context, List<RpcResponseBase> responses)
 		{
-			if (request == null)
+			if (responses == null || !responses.Any())
 			{
-				throw new ArgumentNullException(nameof(request));
+				return;
 			}
-			if (!string.Equals(request.JsonRpc, "2.0"))
-			{
-				throw new InvalidRpcRequestException("Request must be jsonrpc version '2.0'");
-			}
-			RpcResponseBase rpcResponse;
-			try
-			{
-				object[] parameterList;
-				RpcMethod rpcMethod = this.GetMatchingMethod(section, request, out parameterList);
-
-				object result = rpcMethod.Invoke(parameterList);
-
-				rpcResponse = new RpcResultResponse(request.Id, result);
-			}
-			catch (RpcException ex)
-			{
-				RpcError error = new RpcError(ex);
-				rpcResponse = new RpcErrorResponse(request.Id, error);
-			}
-#if DEBUG
-			catch (Exception ex)
-			{
-				string message = ex.Message;
-#else
-			catch (Exception)
-			{
-				string message = "An internal server error has occurred";
-#endif
-				int code = -32603;
-				object data = null;
-				RpcError error = new RpcError(code, message, data);
-				rpcResponse = new RpcErrorResponse(request.Id, error);
-			}
-			if (request.Id != null)
-			{
-				//Only set a response if there is an id
-				await this.SetResponse(context, rpcResponse);
-			}
-		}
-		private RpcMethod GetMatchingMethod(string section, RpcRequest request, out object[] parameterList)
-		{
-			if (string.IsNullOrWhiteSpace(section))
-			{
-				throw new ArgumentNullException(nameof(section));
-			}
-			if (request == null)
-			{
-				throw new ArgumentNullException(nameof(request));
-			}
-			List<RpcMethod> methods = this.GetRpcMethods();
-
-			methods = methods
-				.Where(m => string.Equals(m.Section, section, StringComparison.OrdinalIgnoreCase))
-				.Where(m => string.Equals(m.Method, request.Method, StringComparison.OrdinalIgnoreCase))
-				.ToList();
-
-
-			RpcMethod rpcMethod = null;
-			parameterList = null;
-			foreach (RpcMethod method in methods)
-			{
-				bool matchingMethod;
-				if (request.ParameterMap != null)
-				{
-					matchingMethod = method.HasParameterSignature(request.ParameterMap, out parameterList);
-				}
-				else
-				{
-					matchingMethod = method.HasParameterSignature(request.ParameterList);
-					parameterList = request.ParameterList;
-				}
-				if (matchingMethod)
-				{
-					if (rpcMethod != null) //If already found a match
-					{
-						throw new AmbiguousRpcMethodException();
-					}
-					rpcMethod = method;
-				}
-			}
-
-			if (rpcMethod == null)
-			{
-				throw new RpcMethodNotFoundException();
-			}
-			return rpcMethod;
-		}
-
-		private List<RpcMethod> GetRpcMethods()
-		{
-			List<RpcMethod> rpcMethods = new List<RpcMethod>();
-			foreach (var rpcSection in this.Configuration.Sections)
-			{
-				foreach (Type type in rpcSection.Value)
-				{
-					MethodInfo[] publicMethods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-					foreach (MethodInfo publicMethod in publicMethods)
-					{
-						RpcMethod rpcMethod = new RpcMethod(type, rpcSection.Key, publicMethod);
-						rpcMethods.Add(rpcMethod);
-					}
-				}
-			}
-			return rpcMethods;
-		}
-
-		private async Task SetResponse(RouteContext context, object response)
-		{
 			Stream responseStream = context.HttpContext.Response.Body;
 			using (StreamWriter streamWriter = new StreamWriter(responseStream))
 			{
-				string resultJson = JsonConvert.SerializeObject(response);
+				string resultJson;
+				if (responses.Count == 1)
+				{
+					resultJson = JsonConvert.SerializeObject(responses.First());
+				}
+				else
+				{
+					resultJson = JsonConvert.SerializeObject(responses);
+				}
 				await streamWriter.WriteAsync(resultJson);
 			}
 		}
