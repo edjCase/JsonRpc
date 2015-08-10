@@ -15,6 +15,7 @@ namespace JsonRpc.Router.Sample
 		// Use this method to add services to the container
 		public void ConfigureServices(IServiceCollection services)
 		{
+			services.AddJsonRpc();
 		}
 
 		// Configure is called after ConfigureServices is called.
@@ -22,6 +23,8 @@ namespace JsonRpc.Router.Sample
 		{
 			app.UseJsonRpc(config =>
 			{
+				config.RoutePrefix = "RpcApi";
+				config.RegisterClassToRpcRoute<RpcMath>();
 				config.RegisterClassToRpcRoute<RpcString>("Strings");
 				config.RegisterClassToRpcRoute<RpcCommands>("Commands");
 				config.RegisterClassToRpcRoute<RpcMath>("Math");

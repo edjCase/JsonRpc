@@ -9,21 +9,15 @@ namespace JsonRpc.Router.Tests
 {
 	public class InvokerTests
 	{
-		private IRpcInvoker SetupInvoker(out RpcRoute route)
-		{
-			route = new RpcRoute();
-			route.AddClass<TestRouteClass>();
-			RpcRouteCollection routes = new RpcRouteCollection { route };
-			return new DefaultRpcInvoker(routes);
-		}
-
 		[Fact]
 		public void InvokeRequest_StringParam_ParseAsGuidType()
 		{
 			Guid randomGuid = Guid.NewGuid();
 			RpcRequest stringRequest = new RpcRequest("1", "2.0", "GuidTypeMethod", randomGuid.ToString());
-			RpcRoute route;
-			IRpcInvoker invoker = this.SetupInvoker(out route);
+
+			RpcRoute route = new RpcRoute();
+			route.AddClass<TestRouteClass>();
+			IRpcInvoker invoker = new DefaultRpcInvoker();
 			RpcResponseBase stringResponse = invoker.InvokeRequest(stringRequest, route);
 
 
@@ -35,8 +29,9 @@ namespace JsonRpc.Router.Tests
 		public void InvokeRequest_AmbiguousRequest_ErrorResponse()
 		{
 			RpcRequest stringRequest = new RpcRequest("1", "2.0", "AmbiguousMethod", 1);
-			RpcRoute route;
-			IRpcInvoker invoker = this.SetupInvoker(out route);
+			RpcRoute route = new RpcRoute();
+			route.AddClass<TestRouteClass>();
+			IRpcInvoker invoker = new DefaultRpcInvoker();
 			RpcResponseBase response = invoker.InvokeRequest(stringRequest, route);
 
 			RpcErrorResponse errorResponse = Assert.IsType<RpcErrorResponse>(response);
@@ -48,8 +43,9 @@ namespace JsonRpc.Router.Tests
 		public void InvokeRequest_AsyncMethod_Valid()
 		{
 			RpcRequest stringRequest = new RpcRequest("1", "2.0", "AddAsync", 1, 1);
-			RpcRoute route;
-			IRpcInvoker invoker = this.SetupInvoker(out route);
+			RpcRoute route = new RpcRoute();
+			route.AddClass<TestRouteClass>();
+			IRpcInvoker invoker = new DefaultRpcInvoker();
 			RpcResponseBase response = invoker.InvokeRequest(stringRequest, route);
 
 			RpcResultResponse resultResponse = Assert.IsType<RpcResultResponse>(response);

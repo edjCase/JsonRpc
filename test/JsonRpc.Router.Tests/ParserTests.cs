@@ -18,9 +18,9 @@ namespace JsonRpc.Router.Tests
 			RpcRoute route = new RpcRoute(availableRouteName);
 			RpcRouteCollection routes = new RpcRouteCollection {route};
 
-			DefaultRpcParser parser = new DefaultRpcParser(null, routes);
+			DefaultRpcParser parser = new DefaultRpcParser();
 			RpcRoute matchedRoute;
-			bool isMatch = parser.MatchesRpcRoute(requestUrl, out matchedRoute);
+			bool isMatch = parser.MatchesRpcRoute(routes, requestUrl, out matchedRoute);
 			Assert.Equal(isMatch, shouldMatch);
 			Assert.Equal(matchedRoute != null, shouldMatch);
 			Assert.Equal(route == matchedRoute, shouldMatch);

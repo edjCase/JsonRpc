@@ -9,29 +9,23 @@ namespace JsonRpc.Router
 {
 	public class DefaultRpcParser : IRpcParser
 	{
-		private PathString RoutePrefix { get; }
-		private RpcRouteCollection Routes { get; }
-		public DefaultRpcParser(string routePrefix, RpcRouteCollection routes)
+		public bool MatchesRpcRoute(RpcRouteCollection routes, string requestUrl, out RpcRoute route)
 		{
-			this.RoutePrefix = routePrefix;
-			this.Routes = routes;
-		}
-
-		public bool MatchesRpcRoute(string requestUrl, out RpcRoute route)
-		{
-			if(requestUrl == null)
+			if (routes == null)
+			{
+				throw new ArgumentNullException(nameof(routes));
+			}
+			if (requestUrl == null)
 			{
 				throw new ArgumentNullException(nameof(requestUrl));
 			}
-			if (!requestUrl.StartsWith("/"))
+			PathString requestPath = DefaultRpcParser.CreatePathString(requestUrl);
+			PathString routePrefix = DefaultRpcParser.CreatePathString(routes.RoutePrefix);
+			
+			foreach (RpcRoute rpcRoute in routes)
 			{
-				requestUrl = "/" + requestUrl;
-			}
-			PathString requestPath = new PathString(requestUrl);
-
-			foreach (RpcRoute rpcRoute in this.Routes)
-			{
-				PathString routePath = this.RoutePrefix.Add(new PathString("/" + rpcRoute.Name));
+				PathString routePath = DefaultRpcParser.CreatePathString(rpcRoute.Name);
+				routePath = routePrefix.Add(routePath);
 				if (requestPath == routePath)
 				{
 					route = rpcRoute;
@@ -40,6 +34,19 @@ namespace JsonRpc.Router
 			}
 			route = null;
 			return false;
+		}
+
+		private static PathString CreatePathString(string path)
+		{
+			if (string.IsNullOrWhiteSpace(path))
+			{
+				return new PathString("/");
+			}
+			if (!path.StartsWith("/"))
+			{
+				path = "/" + path;
+			}
+			return new PathString(path);
 		}
 
 		public List<RpcRequest> ParseRequests(string jsonString)
@@ -51,7 +58,7 @@ namespace JsonRpc.Router
 			}
 			try
 			{
-				if (!this.IsSingleRequest(jsonString))
+				if (!DefaultRpcParser.IsSingleRequest(jsonString))
 				{
 					rpcRequests = JsonConvert.DeserializeObject<List<RpcRequest>>(jsonString);
 				}
@@ -90,7 +97,7 @@ namespace JsonRpc.Router
 			return rpcRequests;
 		}
 
-		private bool IsSingleRequest(string jsonString)
+		private static bool IsSingleRequest(string jsonString)
 		{
 			if (string.IsNullOrEmpty(jsonString))
 			{

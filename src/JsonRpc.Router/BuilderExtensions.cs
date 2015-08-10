@@ -1,6 +1,9 @@
 ﻿using JsonRpc.Router;
 using System;
+using JsonRpc.Router.Abstractions;
+using Microsoft.Framework.DependencyInjection;
 
+// ReSharper disable once CheckNamespace
 namespace Microsoft.AspNet.Builder
 {
 	public static class BuilderExtensions
@@ -19,7 +22,15 @@ namespace Microsoft.AspNet.Builder
 			RpcRouterConfiguration configuration = new RpcRouterConfiguration();
 			configureRouter.Invoke(configuration);
 
-			app.UseRouter(new RpcRouter(configuration));
+			IRpcInvoker rpcInvoker = app.ApplicationServices.GetRequiredService<IRpcInvoker>();
+			IRpcParser rpcParser = app.ApplicationServices.GetRequiredService<IRpcParser>();
+			app.UseRouter(new RpcRouter(configuration, rpcInvoker, rpcParser));
+		}
+
+		public static void AddJsonRpc(this IServiceCollection serviceCollection)
+		{
+			serviceCollection.AddSingleton<IRpcInvoker, DefaultRpcInvoker>();
+			serviceCollection.AddSingleton<IRpcParser, DefaultRpcParser>();
 		}
 	}
 }

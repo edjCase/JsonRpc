@@ -5,7 +5,6 @@ using System.IO;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.AspNet.Http;
 using JsonRpc.Router.Abstractions;
 
 namespace JsonRpc.Router
@@ -15,7 +14,7 @@ namespace JsonRpc.Router
 		private RpcRouterConfiguration configuration { get; }
 		private IRpcInvoker invoker { get; }
 		private IRpcParser parser { get; }
-		public RpcRouter(RpcRouterConfiguration configuration, IRpcInvoker invoker = null, IRpcParser parser = null) //TODO better DI
+		public RpcRouter(RpcRouterConfiguration configuration, IRpcInvoker invoker, IRpcParser parser) //TODO better DI
 		{
 			if (configuration == null)
 			{
@@ -23,13 +22,15 @@ namespace JsonRpc.Router
 			}
 			if (invoker == null)
 			{
-				this.invoker = new DefaultRpcInvoker(configuration.Routes);
+				throw new ArgumentNullException(nameof(invoker));
 			}
 			if (parser == null)
 			{
-				this.parser = new DefaultRpcParser(configuration.RoutePrefix, configuration.Routes);
+				throw new ArgumentNullException(nameof(parser));
 			}
 			this.configuration = configuration;
+			this.invoker = invoker;
+			this.parser = parser;
 		}
 
 		public VirtualPathData GetVirtualPath(VirtualPathContext context)
@@ -43,7 +44,7 @@ namespace JsonRpc.Router
 			try
 			{
 				RpcRoute route;
-				bool matchesRoute = this.parser.MatchesRpcRoute(context.HttpContext.Request.Path, out route);
+				bool matchesRoute = this.parser.MatchesRpcRoute(this.configuration.Routes, context.HttpContext.Request.Path, out route);
 				if (!matchesRoute)
 				{
 					return;

@@ -9,20 +9,6 @@ namespace JsonRpc.Router
 {
 	public class DefaultRpcInvoker : IRpcInvoker
 	{
-		private RpcRouteCollection Routes { get; }
-		public DefaultRpcInvoker(RpcRouteCollection routes)
-		{
-			if (routes == null)
-			{
-				throw new ArgumentNullException(nameof(routes));
-			}
-			if (!routes.Any())
-			{
-				throw new ArgumentException("There must be at least on route defined", nameof(routes));
-			}
-			this.Routes = routes;
-		}
-
 		public List<RpcResponseBase> InvokeBatchRequest(List<RpcRequest> requests, RpcRoute route)
 		{
 			var invokingTasks = new List<Task<RpcResponseBase>>();
@@ -32,7 +18,7 @@ namespace JsonRpc.Router
 				invokingTasks.Add(invokingTask);
 			}
 
-			Task.WaitAll(invokingTasks.ToArray());
+			Task.WaitAll(invokingTasks.Cast<Task>().ToArray());
 
 			List<RpcResponseBase> responses = invokingTasks
 				.Select(t => t.Result)
@@ -100,10 +86,9 @@ namespace JsonRpc.Router
 			{
 				throw new ArgumentNullException(nameof(request));
 			}
-			List<RpcMethod> methods = this.GetRpcMethods();
+			List<RpcMethod> methods = DefaultRpcInvoker.GetRpcMethods(route);
 
 			methods = methods
-				.Where(m => m.Route == route)
 				.Where(m => string.Equals(m.Method, request.Method, StringComparison.OrdinalIgnoreCase))
 				.ToList();
 
@@ -139,19 +124,16 @@ namespace JsonRpc.Router
 			return rpcMethod;
 		}
 
-		private List<RpcMethod> GetRpcMethods()
+		private static List<RpcMethod> GetRpcMethods(RpcRoute route)
 		{
 			List<RpcMethod> rpcMethods = new List<RpcMethod>();
-			foreach (RpcRoute route in this.Routes)
+			foreach (Type type in route.GetClasses())
 			{
-				foreach (Type type in route.GetClasses())
+				MethodInfo[] publicMethods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+				foreach (MethodInfo publicMethod in publicMethods)
 				{
-					MethodInfo[] publicMethods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-					foreach (MethodInfo publicMethod in publicMethods)
-					{
-						RpcMethod rpcMethod = new RpcMethod(type, route, publicMethod);
-						rpcMethods.Add(rpcMethod);
-					}
+					RpcMethod rpcMethod = new RpcMethod(type, route, publicMethod);
+					rpcMethods.Add(rpcMethod);
 				}
 			}
 			return rpcMethods;

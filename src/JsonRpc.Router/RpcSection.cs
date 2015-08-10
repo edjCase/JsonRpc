@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.AspNet.Http;
 
 namespace JsonRpc.Router
 {
@@ -39,7 +40,13 @@ namespace JsonRpc.Router
 		public int Count => this.routeList.Count;
 
 		public bool IsReadOnly => false;
-		
+
+		public string RoutePrefix { get; set; }
+		public RpcRouteCollection(string routePrefix = null)
+		{
+			this.RoutePrefix = routePrefix;
+		}
+
 		public RpcRoute GetByName(string routeName)
 		{
 			if (string.IsNullOrWhiteSpace(routeName))

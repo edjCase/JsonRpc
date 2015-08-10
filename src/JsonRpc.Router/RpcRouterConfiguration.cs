@@ -2,13 +2,24 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using JsonRpc.Router.Abstractions;
 
 namespace JsonRpc.Router
 {
 	public class RpcRouterConfiguration
 	{
-		internal RpcRouteCollection Routes { get; } = new RpcRouteCollection();
-		public PathString RoutePrefix { get; set; }
+		internal RpcRouteCollection Routes { get; }
+
+		public string RoutePrefix
+		{
+			get { return this.Routes.RoutePrefix; }
+			set { this.Routes.RoutePrefix = value; }
+		}
+
+		public RpcRouterConfiguration(string routePrefix = null)
+		{
+			this.Routes = new RpcRouteCollection(routePrefix);
+		}
 
 		public void RegisterClassToRpcRoute<T>(string routeName = null)
 		{
