@@ -13,7 +13,7 @@ namespace JsonRpc.Router
 
 		}
 
-		public RpcRequest(string id, string jsonRpcVersion, string method, object[] parameterList)
+		public RpcRequest(string id, string jsonRpcVersion, string method, params object[] parameterList)
 		{
 			this.Id = id;
 			this.JsonRpcVersion = jsonRpcVersion;

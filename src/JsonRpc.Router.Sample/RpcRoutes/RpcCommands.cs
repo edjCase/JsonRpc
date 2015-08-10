@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace JsonRpc.Router.Sample.RpcSections
+namespace JsonRpc.Router.Sample.RpcRoutes
 {
-	public class CommandRpcSection
+	public class RpcCommands
 	{
-		public void DoStuff()
+		public bool ValidateId(Guid id)
 		{
-
+			return id != Guid.Empty;
 		}
 
 		private void HiddenMethod()

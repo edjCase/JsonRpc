@@ -53,7 +53,7 @@ namespace JsonRpc.Router
 				}
 				if (!string.Equals(request.JsonRpcVersion, "2.0"))
 				{
-					throw new InvalidRpcRequestException("Request must be jsonrpc version '2.0'");
+					throw new RpcInvalidRequestException("Request must be jsonrpc version '2.0'");
 				}
 
 				object[] parameterList;
@@ -66,23 +66,23 @@ namespace JsonRpc.Router
 			catch (RpcException ex)
 			{
 				RpcError error = new RpcError(ex);
-				rpcResponse = new RpcErrorResponse(request.Id, error);
+				rpcResponse = new RpcErrorResponse(request?.Id, error);
 			}
 #if DEBUG
 			catch (Exception ex)
 			{
-				UnknownRpcException exception = new UnknownRpcException(ex.Message);
+				RpcUnknownException exception = new RpcUnknownException(ex.Message);
 #else
 			catch (Exception)
 			{
 				string message = "An internal server error has occurred";
-				UnknownRpcException exception = new UnknownRpcException(message);
+				RpcUnknownException exception = new RpcUnknownException(message);
 #endif
 				RpcError error = new RpcError(exception);
-				rpcResponse = new RpcErrorResponse(request.Id, error);
+				rpcResponse = new RpcErrorResponse(request?.Id, error);
 			}
 
-			if (request.Id != null)
+			if (request?.Id != null)
 			{
 				//Only give a response if there is an id
 				return rpcResponse;
@@ -126,7 +126,7 @@ namespace JsonRpc.Router
 				{
 					if (rpcMethod != null) //If already found a match
 					{
-						throw new AmbiguousRpcMethodException();
+						throw new RpcAmbiguousMethodException();
 					}
 					rpcMethod = method;
 				}
@@ -144,7 +144,7 @@ namespace JsonRpc.Router
 			List<RpcMethod> rpcMethods = new List<RpcMethod>();
 			foreach (RpcRoute route in this.Routes)
 			{
-				foreach (Type type in route.Types)
+				foreach (Type type in route.GetClasses())
 				{
 					MethodInfo[] publicMethods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 					foreach (MethodInfo publicMethod in publicMethods)

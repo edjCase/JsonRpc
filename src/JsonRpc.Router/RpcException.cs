@@ -7,41 +7,42 @@ namespace JsonRpc.Router
 {
 	public abstract class RpcException : Exception
 	{
-		public int RpcErrorCode { get; }
+		public RpcErrorCode ErrorCode { get; }
 		public object RpcData { get; }
-		public RpcException(int errorCode, string message, object data = null) : base(message)
+
+		protected RpcException(RpcErrorCode errorCode, string message, object data = null) : base(message)
 		{
-			this.RpcErrorCode = errorCode;
+			this.ErrorCode = errorCode;
 			this.RpcData = data;
 		}
 	}
-	public class InvalidRpcRequestException : RpcException
+	public class RpcInvalidRequestException : RpcException
 	{
-		public InvalidRpcRequestException(string message) : base(-32600, message)
+		public RpcInvalidRequestException(string message) : base(RpcErrorCode.InvalidRequest, message)
 		{
 		}
 	}
-	public class AmbiguousRpcMethodException : RpcException
+	public class RpcAmbiguousMethodException : RpcException
 	{
-		public AmbiguousRpcMethodException() : base(-32000, "Request matches multiple method signatures")
+		public RpcAmbiguousMethodException() : base(RpcErrorCode.AmbiguousMethod, "Request matches multiple method signatures")
 		{
 		}
 	}
 	public class RpcMethodNotFoundException : RpcException
 	{
-		public RpcMethodNotFoundException() : base(-32601, "No method found with the requested signature")
+		public RpcMethodNotFoundException() : base(RpcErrorCode.MethodNotFound, "No method found with the requested signature")
 		{
 		}
 	}
-	public class InvalidRpcParametersException : RpcException
+	public class RpcInvalidParametersException : RpcException
 	{
-		public InvalidRpcParametersException() : base(-32602, "Parameters do not match")
+		public RpcInvalidParametersException() : base(RpcErrorCode.InvalidParams, "Parameters do not match")
 		{
 		}
 	}
-	public class UnknownRpcException : RpcException
+	public class RpcUnknownException : RpcException
 	{
-		public UnknownRpcException(string message) : base(-32602, message)
+		public RpcUnknownException(string message) : base(RpcErrorCode.InternalError, message)
 		{
 		}
 	}

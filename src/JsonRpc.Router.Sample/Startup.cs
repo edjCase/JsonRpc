@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNet.Builder;
 using Microsoft.AspNet.Hosting;
 using Microsoft.Framework.DependencyInjection;
-using JsonRpc.Router.Sample.RpcSections;
+using JsonRpc.Router.Sample.RpcRoutes;
 
 namespace JsonRpc.Router.Sample
 {
@@ -22,8 +22,9 @@ namespace JsonRpc.Router.Sample
 		{
 			app.UseJsonRpc(config =>
 			{
-				config.RegisterClassToRpcSection<StringRpcSection>("Strings");
-				config.RegisterClassToRpcSection<CommandRpcSection>("Commands");
+				config.RegisterClassToRpcRoute<RpcString>("Strings");
+				config.RegisterClassToRpcRoute<RpcCommands>("Commands");
+				config.RegisterClassToRpcRoute<RpcMath>("Math");
 			});
 		}
 	}

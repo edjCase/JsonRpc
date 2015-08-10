@@ -12,9 +12,9 @@ namespace JsonRpc.Router
 {
 	public class RpcRouter : IRouter
 	{
-		private RpcRouterConfiguration Configuration { get; }
-		private IRpcInvoker Invoker { get; }
-		private IRpcParser Parser { get; }
+		private RpcRouterConfiguration configuration { get; }
+		private IRpcInvoker invoker { get; }
+		private IRpcParser parser { get; }
 		public RpcRouter(RpcRouterConfiguration configuration, IRpcInvoker invoker = null, IRpcParser parser = null) //TODO better DI
 		{
 			if (configuration == null)
@@ -23,13 +23,13 @@ namespace JsonRpc.Router
 			}
 			if (invoker == null)
 			{
-				this.Invoker = new DefaultRpcInvoker(configuration.Sections);
+				this.invoker = new DefaultRpcInvoker(configuration.Routes);
 			}
 			if (parser == null)
 			{
-				this.Parser = new DefaultRpcParser(configuration.RoutePrefix, configuration.Sections);
+				this.parser = new DefaultRpcParser(configuration.RoutePrefix, configuration.Routes);
 			}
-			this.Configuration = configuration;
+			this.configuration = configuration;
 		}
 
 		public VirtualPathData GetVirtualPath(VirtualPathContext context)
@@ -42,8 +42,8 @@ namespace JsonRpc.Router
 		{
 			try
 			{
-				RpcRoute section;
-				bool matchesRoute = this.Parser.MatchesRpcRoute(context.HttpContext.Request.Path, out section);
+				RpcRoute route;
+				bool matchesRoute = this.parser.MatchesRpcRoute(context.HttpContext.Request.Path, out route);
 				if (!matchesRoute)
 				{
 					return;
@@ -65,9 +65,9 @@ namespace JsonRpc.Router
 							jsonString = streamReader.ReadToEnd().Trim();
 						}
 					}
-					List<RpcRequest> requests = this.Parser.ParseRequests(jsonString);
+					List<RpcRequest> requests = this.parser.ParseRequests(jsonString);
 
-					List<RpcResponseBase> responses = this.Invoker.InvokeBatchRequest(requests, section);
+					List<RpcResponseBase> responses = this.invoker.InvokeBatchRequest(requests, route);
 
 					await this.SetResponse(context, responses);
 					context.IsHandled = true;

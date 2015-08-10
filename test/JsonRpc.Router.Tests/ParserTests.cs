@@ -13,11 +13,10 @@ namespace JsonRpc.Router.Tests
 		[InlineData("/Test/Test2", "Test", false)]
 		[InlineData("/Test/Test2", "Test/Test2", true)]
 		[InlineData("Test", "Test", true)]
-		public void MatchesRpcRoute_DifferentRoutes_Valid(string requestUrl, string availableSectionName, bool shouldMatch)
+		public void MatchesRpcRoute_DifferentRoutes_Valid(string requestUrl, string availableRouteName, bool shouldMatch)
 		{
-			RpcRoute route = new RpcRoute(availableSectionName);
-			RpcRouteCollection routes = new RpcRouteCollection();
-			routes.Add(route);
+			RpcRoute route = new RpcRoute(availableRouteName);
+			RpcRouteCollection routes = new RpcRouteCollection {route};
 
 			DefaultRpcParser parser = new DefaultRpcParser(null, routes);
 			RpcRoute matchedRoute;

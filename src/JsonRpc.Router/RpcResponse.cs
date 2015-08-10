@@ -73,7 +73,7 @@ namespace JsonRpc.Router
 			{
 				throw new ArgumentNullException(nameof(exception));
 			}
-			this.Code = exception.RpcErrorCode;
+			this.Code = (int)exception.ErrorCode;
 			this.Message = exception.Message;
 			this.Data = exception.RpcData;
 		}

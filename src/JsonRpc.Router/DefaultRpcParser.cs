@@ -47,7 +47,7 @@ namespace JsonRpc.Router
 			List<RpcRequest> rpcRequests;
 			if (string.IsNullOrWhiteSpace(jsonString))
 			{
-				throw new InvalidRpcRequestException("Json request was empty");
+				throw new RpcInvalidRequestException("Json request was empty");
 			}
 			try
 			{
@@ -71,12 +71,12 @@ namespace JsonRpc.Router
 #if DEBUG
 				errorMessage += "\tException: " + ex.Message;
 #endif
-				throw new InvalidRpcRequestException(errorMessage);
+				throw new RpcInvalidRequestException(errorMessage);
 			}
 
 			if (rpcRequests == null || !rpcRequests.Any())
 			{
-				throw new InvalidRpcRequestException("No rpc json requests found");
+				throw new RpcInvalidRequestException("No rpc json requests found");
 			}
 			HashSet<string> uniqueIds = new HashSet<string>();
 			foreach (RpcRequest rpcRequest in rpcRequests)
@@ -84,7 +84,7 @@ namespace JsonRpc.Router
 				bool unique = uniqueIds.Add(rpcRequest.Id);
 				if (!unique)
 				{
-					throw new InvalidRpcRequestException("Duplicate ids in batch requests are not allowed");
+					throw new RpcInvalidRequestException("Duplicate ids in batch requests are not allowed");
 				}
 			}
 			return rpcRequests;
@@ -92,9 +92,9 @@ namespace JsonRpc.Router
 
 		private bool IsSingleRequest(string jsonString)
 		{
-			if (jsonString == null || jsonString.Length < 1)
+			if (string.IsNullOrEmpty(jsonString))
 			{
-				throw new InvalidRpcRequestException(nameof(jsonString));
+				throw new RpcInvalidRequestException(nameof(jsonString));
 			}
 			for (int i = 0; i < jsonString.Length; i++)
 			{

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 
@@ -26,11 +27,27 @@ namespace JsonRpc.Router
 			object obj = Activator.CreateInstance(this.Type);
 			try
 			{
+				if (parameters != null)
+				{
+					ParameterInfo[] parameterInfoList = this.MethodInfo.GetParameters();
+					for (int index = 0; index < parameters.Length; index++)
+					{
+						ParameterInfo parameterInfo = parameterInfoList[index];
+
+						if (parameters[index] is string && parameterInfo.ParameterType == typeof(Guid))
+						{
+							Guid guid;
+							Guid.TryParse((string)parameters[index], out guid);
+							parameters[index] = guid;
+						}
+						parameters[index] = Convert.ChangeType(parameters[index], parameterInfo.ParameterType);
+					}
+				}
 				return this.MethodInfo.Invoke(obj, parameters);
 			}
 			catch (Exception)
 			{
-				throw new InvalidRpcParametersException();
+				throw new RpcInvalidParametersException();
 			}
 		}
 		
@@ -53,19 +70,51 @@ namespace JsonRpc.Router
 			{
 				ParameterInfo parameterInfo = this.ParameterInfoList[i];
 				object parameter = parameterList[i];
-				if (parameter == null)
-				{
-					bool isNullable = parameterInfo.HasDefaultValue && parameterInfo.DefaultValue == null;
-					if (!isNullable)
-					{
-						return false;
-					}
-				}
-				bool typeMatches = parameterInfo.ParameterType == parameter.GetType();
-				if (!typeMatches)
+				bool isMatch = RpcMethod.ParameterMatches(parameterInfo, parameter);
+				if (!isMatch)
 				{
 					return false;
 				}
+			}
+			return true;
+		}
+
+		private static bool ParameterMatches(ParameterInfo parameterInfo, object parameter)
+		{
+			if (parameter == null)
+			{
+				bool isNullable = parameterInfo.HasDefaultValue && parameterInfo.DefaultValue == null;
+				return isNullable;
+			}
+			if (parameterInfo.ParameterType == parameter.GetType())
+			{
+				return true;
+			}
+			if (parameter is long)
+			{
+				return parameterInfo.ParameterType == typeof (short) 
+					|| parameterInfo.ParameterType == typeof (int);
+			}
+			if (parameter is double || parameter is decimal)
+			{
+				return parameterInfo.ParameterType == typeof(double) 
+					|| parameterInfo.ParameterType == typeof(decimal) 
+					|| parameterInfo.ParameterType == typeof(float);
+			}
+			if (parameter is string && parameterInfo.ParameterType == typeof (Guid))
+			{
+				Guid guid;
+				return Guid.TryParse((string)parameter, out guid);
+			}
+			try
+			{
+				//Final check to see if the conversion can happen
+				// ReSharper disable once ReturnValueOfPureMethodIsNotUsed
+				Convert.ChangeType(parameter, parameterInfo.ParameterType);
+			}
+			catch (Exception)
+			{
+				return false;
 			}
 			return true;
 		}
@@ -76,11 +125,26 @@ namespace JsonRpc.Router
 			{
 				throw new ArgumentNullException(nameof(parametersMap));
 			}
-
 			if (this.ParameterInfoList == null)
 			{
 				this.ParameterInfoList = this.MethodInfo.GetParameters();
 			}
+			bool canParse = this.TryParseParameterList(parametersMap, out parameterList);
+			if (!canParse)
+			{
+				return false;
+			}
+			bool hasSignature = this.HasParameterSignature(parameterList);
+			if (hasSignature)
+			{
+				return true;
+			}
+			parameterList = null;
+			return false;
+		}
+
+		private bool TryParseParameterList(Dictionary<string, object> parametersMap, out object[] parameterList)
+		{
 			parameterList = new object[this.ParameterInfoList.Count()];
 			foreach (ParameterInfo parameterInfo in this.ParameterInfoList)
 			{

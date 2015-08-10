@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace JsonRpc.Router.Sample.RpcSections
+namespace JsonRpc.Router.Sample.RpcRoutes
 {
-	public class StringRpcSection
+	public class RpcString
 	{
 		public int CharacterCount(string text)
 		{

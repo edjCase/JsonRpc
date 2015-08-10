@@ -7,25 +7,28 @@ namespace JsonRpc.Router
 {
 	public class RpcRouterConfiguration
 	{
-		internal RpcRouteCollection Sections { get; } = new RpcRouteCollection();
+		internal RpcRouteCollection Routes { get; } = new RpcRouteCollection();
 		public PathString RoutePrefix { get; set; }
 
-		public void RegisterClassToRpcSection<T>(string sectionName = null)
+		public void RegisterClassToRpcRoute<T>(string routeName = null)
 		{
 			Type type = typeof(T);
-			RpcRoute section = this.Sections.GetByName(sectionName);
+			RpcRoute route = this.Routes.GetByName(routeName);
 
-			if (section == null)
+			if (route == null)
 			{
-				section = new RpcRoute(sectionName);
-				this.Sections.Add(section);
-			}
-			else if (section.Types.Any(t => t == type))
-			{
-				throw new ArgumentException($"Type '{type.FullName}' has already been registered with the Rpc router under the section '{sectionName}'");
+				route = new RpcRoute(routeName);
+				this.Routes.Add(route);
 			}
 
-			section.Types.Add(type);
+			bool uniqueClass = route.AddClass<T>();
+			if (!uniqueClass)
+			{
+				return;
+			}
+			string alreadyRegisteredMessage = $"Type '{type.FullName}' has already been registered " +
+											$"with the Rpc router under the route '{routeName}'";
+			throw new ArgumentException(alreadyRegisteredMessage);
 		}
 	}
 }
