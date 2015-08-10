@@ -43,6 +43,19 @@ namespace JsonRpc.Router.Tests
 			Assert.NotNull(errorResponse.Error);
 			Assert.Equal(errorResponse.Error.Code, (int)RpcErrorCode.AmbiguousMethod);
 		}
+
+		[Fact]
+		public void InvokeRequest_AsyncMethod_Valid()
+		{
+			RpcRequest stringRequest = new RpcRequest("1", "2.0", "AddAsync", 1, 1);
+			RpcRoute route;
+			IRpcInvoker invoker = this.SetupInvoker(out route);
+			RpcResponseBase response = invoker.InvokeRequest(stringRequest, route);
+
+			RpcResultResponse resultResponse = Assert.IsType<RpcResultResponse>(response);
+			Assert.NotNull(resultResponse.Result);
+			Assert.Equal(resultResponse.Result, 2);
+		}
 	}
 
 	public class TestRouteClass
@@ -60,6 +73,11 @@ namespace JsonRpc.Router.Tests
 		public long AmbiguousMethod(long a)
 		{
 			return a;
+		}
+
+		public async Task<int> AddAsync(int a, int b)
+		{
+			return await Task.Run(() => a + b);
 		}
 	}
 }

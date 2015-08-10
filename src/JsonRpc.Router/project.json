@@ -1,13 +1,13 @@
 ﻿{
 	"title": "JsonRpc DNX Router",
-	"version": "1.0.0-beta6-3",
+	"version": "1.0.0-beta6-4",
 	"description": "A DNX IRouter implementation for Json Rpc v2 requests for Microsoft.AspNet.Routing.",
 	"summary": "A DNX Json RPC v2 router",
 	"authors": [ "Gekctek" ],
 	"tags": [ "JsonRpc Rpc AspNet Json-Rpc DNX" ],
 	"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
 	"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-	"releaseNotes": "Fixing bug with using params as an array rather than an associative array object",
+	"releaseNotes": "Fixing bug with configuration/registration blowing up. Added capability to call async/Task<> methods",
 
 	"dependencies": {
 		"Microsoft.AspNet.Routing": "1.0.0-beta6",

@@ -11,6 +11,7 @@ namespace JsonRpc.Router.Sample.RpcRoutes
 		{
 			return id != Guid.Empty;
 		}
+		
 
 		private void HiddenMethod()
 		{

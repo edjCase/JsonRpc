@@ -1,74 +1,99 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace JsonRpc.Router
 {
 	internal class RpcMethod
 	{
 		public RpcRoute Route { get; }
-		public string Method => this.MethodInfo.Name;
-		private MethodInfo MethodInfo { get; }
-		private Type Type { get; }
+		public string Method => this.methodInfo.Name;
+		private MethodInfo methodInfo { get; }
+		private Type type { get; }
 
-		private ParameterInfo[] ParameterInfoList { get; set; }
+		private ParameterInfo[] parameterInfoList { get; }
 
 		public RpcMethod(Type type, RpcRoute route, MethodInfo methodInfo)
 		{
-			this.Type = type;
+			this.type = type;
 			this.Route = route;
-			this.MethodInfo = methodInfo;
+			this.methodInfo = methodInfo;
+			this.parameterInfoList = methodInfo.GetParameters();
 		}
 
 		public object Invoke(params object[] parameters)
 		{
-			object obj = Activator.CreateInstance(this.Type);
+			object obj = Activator.CreateInstance(this.type);
 			try
 			{
-				if (parameters != null)
-				{
-					ParameterInfo[] parameterInfoList = this.MethodInfo.GetParameters();
-					for (int index = 0; index < parameters.Length; index++)
-					{
-						ParameterInfo parameterInfo = parameterInfoList[index];
+				parameters = this.ConvertParameters(parameters);
 
-						if (parameters[index] is string && parameterInfo.ParameterType == typeof(Guid))
-						{
-							Guid guid;
-							Guid.TryParse((string)parameters[index], out guid);
-							parameters[index] = guid;
-						}
-						parameters[index] = Convert.ChangeType(parameters[index], parameterInfo.ParameterType);
-					}
-				}
-				return this.MethodInfo.Invoke(obj, parameters);
+				object returnObj = this.methodInfo.Invoke(obj, parameters);
+				
+				returnObj = RpcMethod.HandleAsyncResponses(returnObj);
+				
+				return returnObj;
 			}
 			catch (Exception)
 			{
 				throw new RpcInvalidParametersException();
 			}
 		}
-		
+
+		private static object HandleAsyncResponses(object returnObj)
+		{
+			Task task = returnObj as Task;
+			if (task == null) //Not async request
+			{
+				return returnObj;
+			}
+			PropertyInfo propertyInfo = task.GetType().GetProperty("Result");
+			if (propertyInfo != null)
+			{
+				//Type of Task<T>. Wait for result then return it
+				return propertyInfo.GetValue(returnObj);
+			}
+			//Just of type Task with no return result
+			task.GetAwaiter().GetResult();
+			return null;
+		}
+
+		private object[] ConvertParameters(object[] parameters)
+		{
+			if (parameters != null)
+			{
+				for (int index = 0; index < parameters.Length; index++)
+				{
+					ParameterInfo parameterInfo = this.parameterInfoList[index];
+
+					if (parameters[index] is string && parameterInfo.ParameterType == typeof (Guid))
+					{
+						Guid guid;
+						Guid.TryParse((string) parameters[index], out guid);
+						parameters[index] = guid;
+					}
+					parameters[index] = Convert.ChangeType(parameters[index], parameterInfo.ParameterType);
+				}
+			}
+			return parameters;
+		}
+
 		public bool HasParameterSignature(object[] parameterList)
 		{
 			if(parameterList == null)
 			{
 				throw new ArgumentNullException(nameof(parameterList));
 			}
-			if (this.ParameterInfoList == null)
-			{
-				this.ParameterInfoList = this.MethodInfo.GetParameters();
-			}
-			if (parameterList.Count() > this.ParameterInfoList.Count())
+			if (parameterList.Count() > this.parameterInfoList.Count())
 			{
 				return false;
 			}
 
 			for (int i = 0; i < parameterList.Count(); i++)
 			{
-				ParameterInfo parameterInfo = this.ParameterInfoList[i];
+				ParameterInfo parameterInfo = this.parameterInfoList[i];
 				object parameter = parameterList[i];
 				bool isMatch = RpcMethod.ParameterMatches(parameterInfo, parameter);
 				if (!isMatch)
@@ -125,10 +150,6 @@ namespace JsonRpc.Router
 			{
 				throw new ArgumentNullException(nameof(parametersMap));
 			}
-			if (this.ParameterInfoList == null)
-			{
-				this.ParameterInfoList = this.MethodInfo.GetParameters();
-			}
 			bool canParse = this.TryParseParameterList(parametersMap, out parameterList);
 			if (!canParse)
 			{
@@ -145,8 +166,8 @@ namespace JsonRpc.Router
 
 		private bool TryParseParameterList(Dictionary<string, object> parametersMap, out object[] parameterList)
 		{
-			parameterList = new object[this.ParameterInfoList.Count()];
-			foreach (ParameterInfo parameterInfo in this.ParameterInfoList)
+			parameterList = new object[this.parameterInfoList.Count()];
+			foreach (ParameterInfo parameterInfo in this.parameterInfoList)
 			{
 				if (!parametersMap.ContainsKey(parameterInfo.Name) && !parameterInfo.IsOptional)
 				{
