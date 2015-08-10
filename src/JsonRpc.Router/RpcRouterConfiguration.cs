@@ -7,17 +7,17 @@ namespace JsonRpc.Router
 {
 	public class RpcRouterConfiguration
 	{
-		internal List<RpcSection> Sections { get; } = new List<RpcSection>();
+		internal RpcRouteCollection Sections { get; } = new RpcRouteCollection();
 		public PathString RoutePrefix { get; set; }
 
 		public void RegisterClassToRpcSection<T>(string sectionName = null)
 		{
 			Type type = typeof(T);
-			RpcSection section = this.Sections.FirstOrDefault(s => string.Equals(s.Name, sectionName, StringComparison.OrdinalIgnoreCase));
+			RpcRoute section = this.Sections.GetByName(sectionName);
 
 			if (section == null)
 			{
-				section = new RpcSection(sectionName);
+				section = new RpcRoute(sectionName);
 				this.Sections.Add(section);
 			}
 			else if (section.Types.Any(t => t == type))

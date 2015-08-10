@@ -9,26 +9,26 @@ namespace JsonRpc.Router
 {
 	public class DefaultRpcInvoker : IRpcInvoker
 	{
-		private List<RpcSection> Sections { get; }
-		public DefaultRpcInvoker(List<RpcSection> sections)
+		private RpcRouteCollection Routes { get; }
+		public DefaultRpcInvoker(RpcRouteCollection routes)
 		{
-			if (sections == null)
+			if (routes == null)
 			{
-				throw new ArgumentNullException(nameof(sections));
+				throw new ArgumentNullException(nameof(routes));
 			}
-			if (!sections.Any())
+			if (!routes.Any())
 			{
-				throw new ArgumentException("There must be at least on section defined", nameof(sections));
+				throw new ArgumentException("There must be at least on route defined", nameof(routes));
 			}
-			this.Sections = sections;
+			this.Routes = routes;
 		}
 
-		public List<RpcResponseBase> InvokeBatchRequest(List<RpcRequest> requests, string section)
+		public List<RpcResponseBase> InvokeBatchRequest(List<RpcRequest> requests, RpcRoute route)
 		{
 			var invokingTasks = new List<Task<RpcResponseBase>>();
 			foreach (RpcRequest request in requests)
 			{
-				Task<RpcResponseBase> invokingTask = Task.Run(() => this.InvokeRequest(request, section));
+				Task<RpcResponseBase> invokingTask = Task.Run(() => this.InvokeRequest(request, route));
 				invokingTasks.Add(invokingTask);
 			}
 
@@ -42,7 +42,7 @@ namespace JsonRpc.Router
 			return responses;
 		}
 
-		public RpcResponseBase InvokeRequest(RpcRequest request, string section)
+		public RpcResponseBase InvokeRequest(RpcRequest request, RpcRoute route)
 		{
 			RpcResponseBase rpcResponse;
 			try
@@ -57,7 +57,7 @@ namespace JsonRpc.Router
 				}
 
 				object[] parameterList;
-				RpcMethod rpcMethod = this.GetMatchingMethod(section, request, out parameterList);
+				RpcMethod rpcMethod = this.GetMatchingMethod(route, request, out parameterList);
 
 				object result = rpcMethod.Invoke(parameterList);
 
@@ -71,15 +71,14 @@ namespace JsonRpc.Router
 #if DEBUG
 			catch (Exception ex)
 			{
-				string message = ex.Message;
+				UnknownRpcException exception = new UnknownRpcException(ex.Message);
 #else
 			catch (Exception)
 			{
 				string message = "An internal server error has occurred";
+				UnknownRpcException exception = new UnknownRpcException(message);
 #endif
-				int code = -32603;
-				object data = null;
-				RpcError error = new RpcError(code, message, data);
+				RpcError error = new RpcError(exception);
 				rpcResponse = new RpcErrorResponse(request.Id, error);
 			}
 
@@ -91,11 +90,11 @@ namespace JsonRpc.Router
 			return null;
 		}
 
-		private RpcMethod GetMatchingMethod(string section, RpcRequest request, out object[] parameterList)
+		private RpcMethod GetMatchingMethod(RpcRoute route, RpcRequest request, out object[] parameterList)
 		{
-			if (string.IsNullOrWhiteSpace(section))
+			if (route == null)
 			{
-				throw new ArgumentNullException(nameof(section));
+				throw new ArgumentNullException(nameof(route));
 			}
 			if (request == null)
 			{
@@ -104,7 +103,7 @@ namespace JsonRpc.Router
 			List<RpcMethod> methods = this.GetRpcMethods();
 
 			methods = methods
-				.Where(m => string.Equals(m.Section, section, StringComparison.OrdinalIgnoreCase))
+				.Where(m => m.Route == route)
 				.Where(m => string.Equals(m.Method, request.Method, StringComparison.OrdinalIgnoreCase))
 				.ToList();
 
@@ -143,14 +142,14 @@ namespace JsonRpc.Router
 		private List<RpcMethod> GetRpcMethods()
 		{
 			List<RpcMethod> rpcMethods = new List<RpcMethod>();
-			foreach (RpcSection rpcSection in this.Sections)
+			foreach (RpcRoute route in this.Routes)
 			{
-				foreach (Type type in rpcSection.Types)
+				foreach (Type type in route.Types)
 				{
 					MethodInfo[] publicMethods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
 					foreach (MethodInfo publicMethod in publicMethods)
 					{
-						RpcMethod rpcMethod = new RpcMethod(type, rpcSection.Name, publicMethod);
+						RpcMethod rpcMethod = new RpcMethod(type, route, publicMethod);
 						rpcMethods.Add(rpcMethod);
 					}
 				}

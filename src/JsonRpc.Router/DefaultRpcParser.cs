@@ -9,38 +9,37 @@ namespace JsonRpc.Router
 {
 	public class DefaultRpcParser : IRpcParser
 	{
-		private string RoutePrefix { get; }
-		private List<RpcSection> Sections { get; }
-		public DefaultRpcParser(string routePrefix, List<RpcSection> sections)
+		private PathString RoutePrefix { get; }
+		private RpcRouteCollection Routes { get; }
+		public DefaultRpcParser(string routePrefix, RpcRouteCollection routes)
 		{
 			this.RoutePrefix = routePrefix;
-			this.Sections = sections;
+			this.Routes = routes;
 		}
 
-		public bool MatchesRpcRoute(string requestUrl, out string section)
+		public bool MatchesRpcRoute(string requestUrl, out RpcRoute route)
 		{
-			PathString pathString = new PathString(requestUrl);
-			PathString remainingPath;
-			bool isRpcRoute = pathString.StartsWithSegments(this.RoutePrefix, out remainingPath);
-			if (!isRpcRoute)
+			if(requestUrl == null)
 			{
-				section = null;
-				return false;
+				throw new ArgumentNullException(nameof(requestUrl));
 			}
-			string[] pathComponents = remainingPath.Value?.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-			if(pathComponents == null || !pathComponents.Any())
+			if (!requestUrl.StartsWith("/"))
 			{
-				section = null;
-				return false;
+				requestUrl = "/" + requestUrl;
 			}
+			PathString requestPath = new PathString(requestUrl);
 
-			section = pathComponents.First();
-			if (string.IsNullOrWhiteSpace(section))
+			foreach (RpcRoute rpcRoute in this.Routes)
 			{
-				section = null;
-				return false;
+				PathString routePath = this.RoutePrefix.Add(new PathString("/" + rpcRoute.Name));
+				if (requestPath == routePath)
+				{
+					route = rpcRoute;
+					return true;
+				}
 			}
-			return true;
+			route = null;
+			return false;
 		}
 
 		public List<RpcRequest> ParseRequests(string jsonString)
@@ -70,14 +69,23 @@ namespace JsonRpc.Router
 			{
 				string errorMessage = "Unable to parse json request into an rpc format";
 #if DEBUG
-				errorMessage += "\n\tException:" + ex.Message;
+				errorMessage += "\tException: " + ex.Message;
 #endif
 				throw new InvalidRpcRequestException(errorMessage);
 			}
 
-			if (!rpcRequests.Any())
+			if (rpcRequests == null || !rpcRequests.Any())
 			{
 				throw new InvalidRpcRequestException("No rpc json requests found");
+			}
+			HashSet<string> uniqueIds = new HashSet<string>();
+			foreach (RpcRequest rpcRequest in rpcRequests)
+			{
+				bool unique = uniqueIds.Add(rpcRequest.Id);
+				if (!unique)
+				{
+					throw new InvalidRpcRequestException("Duplicate ids in batch requests are not allowed");
+				}
 			}
 			return rpcRequests;
 		}
@@ -86,7 +94,7 @@ namespace JsonRpc.Router
 		{
 			if (jsonString == null || jsonString.Length < 1)
 			{
-				throw new ArgumentNullException(nameof(jsonString));
+				throw new InvalidRpcRequestException(nameof(jsonString));
 			}
 			for (int i = 0; i < jsonString.Length; i++)
 			{

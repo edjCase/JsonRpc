@@ -42,7 +42,7 @@ namespace JsonRpc.Router
 		{
 			try
 			{
-				string section;
+				RpcRoute section;
 				bool matchesRoute = this.Parser.MatchesRpcRoute(context.HttpContext.Request.Path, out section);
 				if (!matchesRoute)
 				{

@@ -39,4 +39,10 @@ namespace JsonRpc.Router
 		{
 		}
 	}
+	public class UnknownRpcException : RpcException
+	{
+		public UnknownRpcException(string message) : base(-32602, message)
+		{
+		}
+	}
 }
