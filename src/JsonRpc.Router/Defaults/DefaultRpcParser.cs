@@ -69,7 +69,7 @@ namespace JsonRpc.Router.Defaults
 					}
 				}
 			}
-			catch (Exception ex)
+			catch (Exception ex) when (!(ex is RpcException))
 			{
 				string errorMessage = "Unable to parse json request into an rpc format.";
 #if DEBUG

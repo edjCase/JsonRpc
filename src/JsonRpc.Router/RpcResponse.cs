@@ -53,6 +53,7 @@ namespace JsonRpc.Router
 		}
 
 		[JsonProperty("id", Required = Required.AllowNull)]
+		[JsonConverter(typeof(RpcIdJsonConverter))]
 		public object Id { get; private set; }
 		[JsonProperty("jsonrpc", Required = Required.Always)]
 		public string JsonRpc { get; private set; } = "2.0";

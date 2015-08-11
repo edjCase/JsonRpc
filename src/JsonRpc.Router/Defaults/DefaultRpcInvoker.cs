@@ -40,14 +40,22 @@ namespace JsonRpc.Router.Defaults
 
 		public RpcResponseBase InvokeRequest(RpcRequest request, RpcRoute route)
 		{
-			if (request == null)
+			try
 			{
-				throw new ArgumentNullException(nameof(request));
+				if (request == null)
+				{
+					throw new ArgumentNullException(nameof(request));
+				}
+				if (route == null)
+				{
+					throw new ArgumentNullException(nameof(route));
+				}
 			}
-			if (route == null)
+			catch (ArgumentNullException ex) // Dont want to throw any exceptions when doing async requests
 			{
-				throw new ArgumentNullException(nameof(route));
+				return this.GetUnknownExceptionReponse(request, ex);
 			}
+
 			this.Logger?.LogVerbose($"Invoking request with id '{request.Id}'");
 			RpcResponseBase rpcResponse;
 			try
@@ -74,15 +82,7 @@ namespace JsonRpc.Router.Defaults
 			}
 			catch (Exception ex)
 			{
-				this.Logger?.LogError("An unknown error occurred. Returning an Rpc error response", ex);
-#if DEBUG
-				string message = ex.Message;
-#else
-				string message = "An internal server error has occurred";
-#endif
-				RpcUnknownException exception = new RpcUnknownException(message);
-				RpcError error = new RpcError(exception);
-				rpcResponse = new RpcErrorResponse(request.Id, error);
+				rpcResponse = this.GetUnknownExceptionReponse(request, ex);
 			}
 
 			if (request.Id != null)
@@ -93,6 +93,24 @@ namespace JsonRpc.Router.Defaults
 			}
 			this.Logger?.LogVerbose($"Finished request with no id. Not returning a response");
 			return null;
+		}
+
+		private RpcResponseBase GetUnknownExceptionReponse(RpcRequest request, Exception ex)
+		{
+			this.Logger?.LogError("An unknown error occurred. Returning an Rpc error response", ex);
+#if DEBUG
+			string message = ex.Message;
+#else
+			string message = "An internal server error has occurred";
+#endif
+			RpcUnknownException exception = new RpcUnknownException(message);
+			RpcError error = new RpcError(exception);
+			if (request?.Id == null)
+			{
+				return null;
+			}
+			RpcResponseBase rpcResponse = new RpcErrorResponse(request.Id, error);
+			return rpcResponse;
 		}
 
 		private RpcMethod GetMatchingMethod(RpcRoute route, RpcRequest request, out object[] parameterList)

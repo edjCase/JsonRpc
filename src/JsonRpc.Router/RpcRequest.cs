@@ -30,6 +30,7 @@ namespace JsonRpc.Router
 		}
 
 		[JsonProperty("id")]
+		[JsonConverter(typeof(RpcIdJsonConverter))]
 		public object Id { get; private set; }
 		[JsonProperty("jsonrpc", Required = Required.Always)]
 		public string JsonRpcVersion { get; private set; }
