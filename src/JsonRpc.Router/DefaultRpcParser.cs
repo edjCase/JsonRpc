@@ -19,12 +19,12 @@ namespace JsonRpc.Router
 			{
 				throw new ArgumentNullException(nameof(requestUrl));
 			}
-			PathString requestPath = DefaultRpcParser.CreatePathString(requestUrl);
-			PathString routePrefix = DefaultRpcParser.CreatePathString(routes.RoutePrefix);
+			RpcPath requestPath = RpcPath.Parse(requestUrl);
+			RpcPath routePrefix = RpcPath.Parse(routes.RoutePrefix);
 			
 			foreach (RpcRoute rpcRoute in routes)
 			{
-				PathString routePath = DefaultRpcParser.CreatePathString(rpcRoute.Name);
+				RpcPath routePath = RpcPath.Parse(rpcRoute.Name);
 				routePath = routePrefix.Add(routePath);
 				if (requestPath == routePath)
 				{
@@ -34,19 +34,6 @@ namespace JsonRpc.Router
 			}
 			route = null;
 			return false;
-		}
-
-		private static PathString CreatePathString(string path)
-		{
-			if (string.IsNullOrWhiteSpace(path))
-			{
-				return new PathString("/");
-			}
-			if (!path.StartsWith("/"))
-			{
-				path = "/" + path;
-			}
-			return new PathString(path);
 		}
 
 		public List<RpcRequest> ParseRequests(string jsonString)
@@ -89,7 +76,7 @@ namespace JsonRpc.Router
 			foreach (RpcRequest rpcRequest in rpcRequests)
 			{
 				bool unique = uniqueIds.Add(rpcRequest.Id);
-				if (!unique)
+				if (!unique && rpcRequest.Id != null)
 				{
 					throw new RpcInvalidRequestException("Duplicate ids in batch requests are not allowed");
 				}
