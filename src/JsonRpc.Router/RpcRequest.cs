@@ -29,8 +29,8 @@ namespace JsonRpc.Router
 			this.RawParameters = parameterMap;
 		}
 
-		[JsonProperty("id", Required = Required.AllowNull)]
-		public string Id { get; private set; }
+		[JsonProperty("id")]
+		public object Id { get; private set; }
 		[JsonProperty("jsonrpc", Required = Required.Always)]
 		public string JsonRpcVersion { get; private set; }
 		[JsonProperty("method", Required = Required.Always)]

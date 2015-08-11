@@ -12,7 +12,7 @@ namespace JsonRpc.Router
 
 		}
 
-		public RpcErrorResponse(string id, RpcError error) : base(id)
+		public RpcErrorResponse(object id, RpcError error) : base(id)
 		{
 			this.Error = error;
 		}
@@ -30,7 +30,7 @@ namespace JsonRpc.Router
 
 		}
 
-		public RpcResultResponse(string id, object result) : base(id)
+		public RpcResultResponse(object id, object result) : base(id)
 		{
 			this.Result = result;
 		}
@@ -47,13 +47,13 @@ namespace JsonRpc.Router
 
 		}
 
-		protected RpcResponseBase(string id)
+		protected RpcResponseBase(object id)
 		{
 			this.Id = id;
 		}
 
 		[JsonProperty("id", Required = Required.AllowNull)]
-		public string Id { get; private set; }
+		public object Id { get; private set; }
 		[JsonProperty("jsonrpc", Required = Required.Always)]
 		public string JsonRpc { get; private set; } = "2.0";
 	}

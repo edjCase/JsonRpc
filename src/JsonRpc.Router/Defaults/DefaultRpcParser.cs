@@ -83,7 +83,7 @@ namespace JsonRpc.Router.Defaults
 				throw new RpcInvalidRequestException("No rpc json requests found");
 			}
 			this.Logger?.LogVerbose($"Successfully parsed {rpcRequests.Count} Rpc request(s)");
-			HashSet<string> uniqueIds = new HashSet<string>();
+			HashSet<object> uniqueIds = new HashSet<object>();
 			foreach (RpcRequest rpcRequest in rpcRequests)
 			{
 				bool unique = uniqueIds.Add(rpcRequest.Id);

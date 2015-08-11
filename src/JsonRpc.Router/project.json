@@ -1,13 +1,13 @@
 ﻿{
 	"title": "JsonRpc DNX Router",
-	"version": "1.0.0-beta6-6",
+	"version": "1.0.0-beta6-7",
 	"description": "A DNX IRouter implementation for Json Rpc v2 requests for Microsoft.AspNet.Routing.",
 	"summary": "A DNX Json RPC v2 router",
 	"authors": [ "Gekctek" ],
 	"tags": [ "JsonRpc Rpc AspNet Json-Rpc DNX" ],
 	"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
 	"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-	"releaseNotes": "Added compression (gzip/deflate) if requested.",
+	"releaseNotes": "Added ILogger/ILoggerFactory DI and logging calls througout code",
 
 	"dependencies": {
 		"Microsoft.AspNet.Routing": "1.0.0-beta6",
