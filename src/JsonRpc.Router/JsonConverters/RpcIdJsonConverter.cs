@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 
-namespace JsonRpc.Router
+namespace JsonRpc.Router.JsonConverters
 {
 	public class RpcIdJsonConverter : JsonConverter
 	{
@@ -27,7 +24,7 @@ namespace JsonRpc.Router
 			}
 			if(!this.CanConvert(value.GetType()))
 			{
-				throw new RpcInvalidRequestException("Id must be a string or a number.");
+				throw new RpcInvalidRequestException("Id must be a string, a number or null.");
 			}
 			string idString = value as string;
 			if (idString != null && string.IsNullOrWhiteSpace(idString))

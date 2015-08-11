@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 
 namespace JsonRpc.Router
 {
@@ -74,6 +75,14 @@ namespace JsonRpc.Router
 						Guid.TryParse((string) parameters[index], out guid);
 						parameters[index] = guid;
 					}
+					if (parameters[index] is JObject)
+					{
+						parameters[index] = ((JObject)parameters[index]).ToObject(parameterInfo.ParameterType);
+					}
+					if (parameters[index] is JArray)
+					{
+						parameters[index] = ((JArray)parameters[index]).ToObject(parameterInfo.ParameterType);
+					}
 					parameters[index] = Convert.ChangeType(parameters[index], parameterInfo.ParameterType);
 				}
 			}
@@ -133,6 +142,18 @@ namespace JsonRpc.Router
 			}
 			try
 			{
+				if (parameter is JObject)
+				{
+					JObject jObject = (JObject)parameter;
+					jObject.ToObject(parameterInfo.ParameterType); //Test conversion
+					return true;
+				}
+				if (parameter is JArray)
+				{
+					JArray jArray = (JArray)parameter;
+					jArray.ToObject(parameterInfo.ParameterType); //Test conversion
+					return true;
+				}
 				//Final check to see if the conversion can happen
 				// ReSharper disable once ReturnValueOfPureMethodIsNotUsed
 				Convert.ChangeType(parameter, parameterInfo.ParameterType);
@@ -164,7 +185,7 @@ namespace JsonRpc.Router
 			return false;
 		}
 
-		private bool TryParseParameterList(Dictionary<string, object> parametersMap, out object[] parameterList)
+		public bool TryParseParameterList(Dictionary<string, object> parametersMap, out object[] parameterList)
 		{
 			parameterList = new object[this.parameterInfoList.Count()];
 			foreach (ParameterInfo parameterInfo in this.parameterInfoList)

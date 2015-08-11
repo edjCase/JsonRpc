@@ -48,14 +48,14 @@ namespace JsonRpc.Router.Tests
 		[Fact]
 		public void ParseRequests_DateTime_Valid()
 		{
-			const string json = "{\"jsonrpc\": \"2.0\", \"method\": \"datetime\", \"params\": [\"2000-12-15T22:11:03\"], \"id\": \"2000-12-15T22:11:03\"}";
+			const string json = "{\"jsonrpc\": \"2.0\", \"method\": \"datetime\", \"params\": [\"2000-12-15T22:11:03\"], \"id\": 1}";
 			DateTime dateTime = DateTime.Parse("2000-12-15T22:11:03");
 			DefaultRpcParser parser = new DefaultRpcParser();
 
 			RpcRequest rpcRequest = parser.ParseRequests(json).FirstOrDefault();
 
 			Assert.NotNull(rpcRequest);
-			Assert.Equal(rpcRequest.Id, dateTime);
+			Assert.Equal(rpcRequest.Id, (long)1);
 			Assert.Equal(rpcRequest.Method, "datetime");
 			Assert.Equal(rpcRequest.JsonRpcVersion, "2.0");
 			Assert.Equal(rpcRequest.ParameterList, new object[] { dateTime });
@@ -104,7 +104,7 @@ namespace JsonRpc.Router.Tests
 		[Fact]
 		public void ParseRequests_MissingVersion_InvalidRequestException()
 		{
-			const string json = "{\"method\": \"datetime\", \"params\": [\"2000-12-15T22:11:03\"], \"id\": \"2000-12-15T22:11:03\"}";
+			const string json = "{\"method\": \"datetime\", \"params\": [\"2000-12-15T22:11:03\"], \"id\": \"1\"}";
 			DefaultRpcParser parser = new DefaultRpcParser();
 
 			Assert.Throws<RpcInvalidRequestException>(() => parser.ParseRequests(json));
@@ -113,7 +113,7 @@ namespace JsonRpc.Router.Tests
 		[Fact]
 		public void ParseRequests_MissingMethod_InvalidRequestException()
 		{
-			const string json = "{\"jsonrpc\": \"2.0\", \"params\": [\"2000-12-15T22:11:03\"], \"id\": \"2000-12-15T22:11:03\"}";
+			const string json = "{\"jsonrpc\": \"2.0\", \"params\": [\"2000-12-15T22:11:03\"], \"id\": \"1\"}";
 			DefaultRpcParser parser = new DefaultRpcParser();
 
 			Assert.Throws<RpcInvalidRequestException>(() => parser.ParseRequests(json));
@@ -131,7 +131,7 @@ namespace JsonRpc.Router.Tests
 		[Fact]
 		public void ParseRequests_MissingParams_NoException()
 		{
-			const string json = "{\"method\": \"datetime\",\"jsonrpc\": \"2.0\", \"id\": \"2000-12-15T22:11:03\"}";
+			const string json = "{\"method\": \"datetime\",\"jsonrpc\": \"2.0\", \"id\": \"1\"}";
 			DefaultRpcParser parser = new DefaultRpcParser();
 
 			parser.ParseRequests(json);

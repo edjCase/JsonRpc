@@ -130,31 +130,49 @@ namespace JsonRpc.Router.Defaults
 				.Where(m => string.Equals(m.Method, request.Method, StringComparison.OrdinalIgnoreCase))
 				.ToList();
 
-
 			RpcMethod rpcMethod = null;
 			parameterList = null;
-			foreach (RpcMethod method in methods)
+			if (methods.Count > 1)
 			{
-				bool matchingMethod;
+				foreach (RpcMethod method in methods)
+				{
+					bool matchingMethod;
+					if (request.ParameterMap != null)
+					{
+						matchingMethod = method.HasParameterSignature(request.ParameterMap, out parameterList);
+					}
+					else
+					{
+						matchingMethod = method.HasParameterSignature(request.ParameterList);
+						parameterList = request.ParameterList;
+					}
+					if (matchingMethod)
+					{
+						if (rpcMethod != null) //If already found a match
+						{
+							throw new RpcAmbiguousMethodException();
+						}
+						rpcMethod = method;
+					}
+				}
+			}
+			else if (methods.Count == 1)
+			{
+				//Only signature check for methods that have the same name for performance reasons
+				rpcMethod = methods.First();
 				if (request.ParameterMap != null)
 				{
-					matchingMethod = method.HasParameterSignature(request.ParameterMap, out parameterList);
+					bool signatureMatch = rpcMethod.TryParseParameterList(request.ParameterMap, out parameterList);
+					if (!signatureMatch)
+					{
+						throw new RpcMethodNotFoundException();
+					}
 				}
 				else
 				{
-					matchingMethod = method.HasParameterSignature(request.ParameterList);
 					parameterList = request.ParameterList;
 				}
-				if (matchingMethod)
-				{
-					if (rpcMethod != null) //If already found a match
-					{
-						throw new RpcAmbiguousMethodException();
-					}
-					rpcMethod = method;
-				}
 			}
-
 			if (rpcMethod == null)
 			{
 				throw new RpcMethodNotFoundException();

@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
+using JsonRpc.Router.JsonConverters;
 
 namespace JsonRpc.Router
 {
@@ -37,44 +38,13 @@ namespace JsonRpc.Router
 		[JsonProperty("method", Required = Required.Always)]
 		public string Method { get; private set; }
 		[JsonProperty("params")]
+		[JsonConverter(typeof(RpcParametersJsonConverter))]
 		public object RawParameters { get; private set; }
 
 		[JsonIgnore]
-		public object[] ParameterList
-		{
-			get
-			{
-				var parameterList = this.RawParameters as object[];
-				if (parameterList == null)
-				{
-					JArray jObject = this.RawParameters as JArray;
-					if (jObject != null)
-					{
-						this.RawParameters = jObject.ToObject<object[]>();
-						return (object[]) this.RawParameters;
-					}
-				}
-				return parameterList;
-			}
-		}
+		public object[] ParameterList => this.RawParameters as object[];
 
 		[JsonIgnore]
-		public Dictionary<string, object> ParameterMap
-		{
-			get
-			{
-				var parameterMap = this.RawParameters as Dictionary<string, object>;
-				if (parameterMap == null)
-				{
-					JObject jObject = this.RawParameters as JObject;
-					if (jObject != null)
-					{
-						this.RawParameters = jObject.ToObject<Dictionary<string, object>>();
-						return this.RawParameters as Dictionary<string, object>;
-					}
-				}
-				return parameterMap;
-			}
-		}
+		public Dictionary<string, object> ParameterMap => this.RawParameters as Dictionary<string, object>;
 	}
 }

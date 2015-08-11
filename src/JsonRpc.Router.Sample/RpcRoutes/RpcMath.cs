@@ -22,5 +22,11 @@ namespace JsonRpc.Router.Sample.RpcRoutes
 			return await Task.Run(() => a + b);
 		}
 
+
+		public int Add(int[] a)
+		{
+			return a[0] + a[1];
+		}
+
 	}
 }
