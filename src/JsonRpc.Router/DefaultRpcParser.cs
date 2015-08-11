@@ -1,5 +1,4 @@
 ﻿using JsonRpc.Router.Abstractions;
-using Microsoft.AspNet.Http;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;

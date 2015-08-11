@@ -5,6 +5,7 @@ using System.IO;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using JsonRpc.Router.Abstractions;
 
 namespace JsonRpc.Router
@@ -14,7 +15,8 @@ namespace JsonRpc.Router
 		private RpcRouterConfiguration configuration { get; }
 		private IRpcInvoker invoker { get; }
 		private IRpcParser parser { get; }
-		public RpcRouter(RpcRouterConfiguration configuration, IRpcInvoker invoker, IRpcParser parser) //TODO better DI
+		private IRpcCompressor compressor { get; }
+		public RpcRouter(RpcRouterConfiguration configuration, IRpcInvoker invoker, IRpcParser parser, IRpcCompressor compressor)
 		{
 			if (configuration == null)
 			{
@@ -28,9 +30,14 @@ namespace JsonRpc.Router
 			{
 				throw new ArgumentNullException(nameof(parser));
 			}
+			if (compressor == null)
+			{
+				throw new ArgumentNullException(nameof(compressor));
+			}
 			this.configuration = configuration;
 			this.invoker = invoker;
 			this.parser = parser;
+			this.compressor = compressor;
 		}
 
 		public VirtualPathData GetVirtualPath(VirtualPathContext context)
@@ -101,18 +108,33 @@ namespace JsonRpc.Router
 			{
 				return;
 			}
+
+			string resultJson = responses.Count == 1
+				? JsonConvert.SerializeObject(responses.First())
+				: JsonConvert.SerializeObject(responses);
+
+			string acceptEncoding = context.HttpContext.Request.Headers["Accept-Encoding"];
+			if (!string.IsNullOrWhiteSpace(acceptEncoding))
+			{
+				string[] encodings = acceptEncoding.Split(new[] {',', ' '}, StringSplitOptions.RemoveEmptyEntries);
+				foreach (string encoding in encodings)
+				{
+					CompressionType compressionType;
+					bool haveType = Enum.TryParse(encoding, true, out compressionType);
+					if (!haveType)
+					{
+						continue;
+					}
+					context.HttpContext.Response.Headers.Add("Content-Encoding", new[] {encoding});
+					this.compressor.CompressText(context.HttpContext.Response.Body, resultJson, Encoding.UTF8, compressionType);
+					return;
+				}
+			}
+
 			Stream responseStream = context.HttpContext.Response.Body;
 			using (StreamWriter streamWriter = new StreamWriter(responseStream))
 			{
-				string resultJson;
-				if (responses.Count == 1)
-				{
-					resultJson = JsonConvert.SerializeObject(responses.First());
-				}
-				else
-				{
-					resultJson = JsonConvert.SerializeObject(responses);
-				}
+					
 				await streamWriter.WriteAsync(resultJson);
 			}
 		}

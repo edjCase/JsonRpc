@@ -1,13 +1,13 @@
 ﻿{
 	"title": "JsonRpc DNX Router",
-	"version": "1.0.0-beta6-5",
+	"version": "1.0.0-beta6-6",
 	"description": "A DNX IRouter implementation for Json Rpc v2 requests for Microsoft.AspNet.Routing.",
 	"summary": "A DNX Json RPC v2 router",
 	"authors": [ "Gekctek" ],
 	"tags": [ "JsonRpc Rpc AspNet Json-Rpc DNX" ],
 	"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
 	"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-	"releaseNotes": "Using better Dependency Injection. ConfigureServices method in Startup now requires the new AddJsonRpc extension to be called",
+	"releaseNotes": "Added compression (gzip/deflate) if requested.",
 
 	"dependencies": {
 		"Microsoft.AspNet.Routing": "1.0.0-beta6",
@@ -22,7 +22,8 @@
 				"System.Runtime": "4.0.20",
 				"System.Runtime.Serialization.Primitives": "4.0.10-beta-*",
 				"System.Threading": "4.0.10",
-				"Microsoft.CSharp": "4.0.0"
+				"Microsoft.CSharp": "4.0.0",
+				"System.IO.Compression": "4.0.0-beta-*"
 			}
 		}
 	}
