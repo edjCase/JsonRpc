@@ -1,13 +1,20 @@
 ﻿using JsonRpc.Router.Abstractions;
+using Microsoft.Framework.Logging;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace JsonRpc.Router
+namespace JsonRpc.Router.Defaults
 {
 	public class DefaultRpcParser : IRpcParser
 	{
+		public ILogger Logger { get; set; }
+		public DefaultRpcParser(ILogger logger = null)
+		{
+			this.Logger = logger;
+		}
+
 		public bool MatchesRpcRoute(RpcRouteCollection routes, string requestUrl, out RpcRoute route)
 		{
 			if (routes == null)
@@ -18,6 +25,7 @@ namespace JsonRpc.Router
 			{
 				throw new ArgumentNullException(nameof(requestUrl));
 			}
+			this.Logger?.LogVerbose($"Attempting to match Rpc route for the request url '{requestUrl}'");
 			RpcPath requestPath = RpcPath.Parse(requestUrl);
 			RpcPath routePrefix = RpcPath.Parse(routes.RoutePrefix);
 			
@@ -27,16 +35,19 @@ namespace JsonRpc.Router
 				routePath = routePrefix.Add(routePath);
 				if (requestPath == routePath)
 				{
+					this.Logger?.LogVerbose($"Matched the request url '{requestUrl}' to the route '{rpcRoute.Name}'");
 					route = rpcRoute;
 					return true;
 				}
 			}
+			this.Logger?.LogVerbose($"Failed to match the request url '{requestUrl}' to a route");
 			route = null;
 			return false;
 		}
 
 		public List<RpcRequest> ParseRequests(string jsonString)
 		{
+			this.Logger?.LogVerbose($"Attempting to parse Rpc request from the json string '{jsonString}'");
 			List<RpcRequest> rpcRequests;
 			if (string.IsNullOrWhiteSpace(jsonString))
 			{
@@ -60,7 +71,7 @@ namespace JsonRpc.Router
 			}
 			catch (Exception ex)
 			{
-				string errorMessage = "Unable to parse json request into an rpc format";
+				string errorMessage = "Unable to parse json request into an rpc format.";
 #if DEBUG
 				errorMessage += "\tException: " + ex.Message;
 #endif
@@ -71,6 +82,7 @@ namespace JsonRpc.Router
 			{
 				throw new RpcInvalidRequestException("No rpc json requests found");
 			}
+			this.Logger?.LogVerbose($"Successfully parsed {rpcRequests.Count} Rpc request(s)");
 			HashSet<string> uniqueIds = new HashSet<string>();
 			foreach (RpcRequest rpcRequest in rpcRequests)
 			{

@@ -1,18 +1,23 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using JsonRpc.Router.Abstractions;
+using Microsoft.Framework.Logging;
 
-namespace JsonRpc.Router
+namespace JsonRpc.Router.Defaults
 {
 	public class DefaultRpcCompressor : IRpcCompressor
 	{
+		public ILogger Logger { get; set; }
+		public DefaultRpcCompressor(ILogger logger = null)
+		{
+			this.Logger = logger;
+		}
+
 		public void CompressText(Stream outputStream, string text, Encoding encoding, CompressionType compressionType)
 		{
+			this.Logger?.LogVerbose($"Compressing the following text with the '{compressionType}' format: {text}");
 			switch (compressionType)
 			{
 				case CompressionType.Gzip:
@@ -38,6 +43,7 @@ namespace JsonRpc.Router
 				default:
 					throw new ArgumentOutOfRangeException(nameof(compressionType), compressionType, null);
 			}
+			this.Logger?.LogVerbose("Compression successful");
 		}
 	}
 }

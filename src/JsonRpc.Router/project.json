@@ -23,7 +23,7 @@
 				"System.Runtime.Serialization.Primitives": "4.0.10-beta-*",
 				"System.Threading": "4.0.10",
 				"Microsoft.CSharp": "4.0.0",
-				"System.IO.Compression": "4.0.0-beta-*"
+				"System.IO.Compression": "4.0.0"
 			}
 		}
 	}

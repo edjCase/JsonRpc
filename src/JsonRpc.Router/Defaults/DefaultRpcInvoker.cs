@@ -1,16 +1,24 @@
 ﻿using JsonRpc.Router.Abstractions;
+using Microsoft.Framework.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace JsonRpc.Router
+namespace JsonRpc.Router.Defaults
 {
 	public class DefaultRpcInvoker : IRpcInvoker
 	{
+		public ILogger Logger { get; set; }
+		public DefaultRpcInvoker(ILogger logger = null)
+		{
+			this.Logger = logger;
+		}
+
 		public List<RpcResponseBase> InvokeBatchRequest(List<RpcRequest> requests, RpcRoute route)
 		{
+			this.Logger?.LogVerbose($"Invoking '{requests.Count}' batch requests");
 			var invokingTasks = new List<Task<RpcResponseBase>>();
 			foreach (RpcRequest request in requests)
 			{
@@ -25,54 +33,65 @@ namespace JsonRpc.Router
 				.Where(r => r != null)
 				.ToList();
 
+			this.Logger?.LogVerbose($"Finished '{requests.Count}' batch requests");
+
 			return responses;
 		}
 
 		public RpcResponseBase InvokeRequest(RpcRequest request, RpcRoute route)
 		{
+			if (request == null)
+			{
+				throw new ArgumentNullException(nameof(request));
+			}
+			if (route == null)
+			{
+				throw new ArgumentNullException(nameof(route));
+			}
+			this.Logger?.LogVerbose($"Invoking request with id '{request.Id}'");
 			RpcResponseBase rpcResponse;
 			try
 			{
-				if (request == null)
-				{
-					throw new ArgumentNullException(nameof(request));
-				}
 				if (!string.Equals(request.JsonRpcVersion, "2.0"))
 				{
 					throw new RpcInvalidRequestException("Request must be jsonrpc version '2.0'");
 				}
-
+				
 				object[] parameterList;
 				RpcMethod rpcMethod = this.GetMatchingMethod(route, request, out parameterList);
 
+				this.Logger?.LogVerbose($"Attempting to invoke method '{request.Method}'");
 				object result = rpcMethod.Invoke(parameterList);
+				this.Logger?.LogVerbose($"Finished invoking method '{request.Method}'");
 
 				rpcResponse = new RpcResultResponse(request.Id, result);
 			}
 			catch (RpcException ex)
 			{
+				this.Logger?.LogError("An Rpc error occurred. Returning an Rpc error response", ex);
 				RpcError error = new RpcError(ex);
-				rpcResponse = new RpcErrorResponse(request?.Id, error);
+				rpcResponse = new RpcErrorResponse(request.Id, error);
 			}
-#if DEBUG
 			catch (Exception ex)
 			{
-				RpcUnknownException exception = new RpcUnknownException(ex.Message);
+				this.Logger?.LogError("An unknown error occurred. Returning an Rpc error response", ex);
+#if DEBUG
+				string message = ex.Message;
 #else
-			catch (Exception)
-			{
 				string message = "An internal server error has occurred";
-				RpcUnknownException exception = new RpcUnknownException(message);
 #endif
+				RpcUnknownException exception = new RpcUnknownException(message);
 				RpcError error = new RpcError(exception);
-				rpcResponse = new RpcErrorResponse(request?.Id, error);
+				rpcResponse = new RpcErrorResponse(request.Id, error);
 			}
 
-			if (request?.Id != null)
+			if (request.Id != null)
 			{
+				this.Logger?.LogVerbose($"Finished request with id '{request.Id}'");
 				//Only give a response if there is an id
 				return rpcResponse;
 			}
+			this.Logger?.LogVerbose($"Finished request with no id. Not returning a response");
 			return null;
 		}
 
@@ -86,6 +105,7 @@ namespace JsonRpc.Router
 			{
 				throw new ArgumentNullException(nameof(request));
 			}
+			this.Logger?.LogVerbose($"Attempting to match Rpc request to a method '{request.Method}'");
 			List<RpcMethod> methods = DefaultRpcInvoker.GetRpcMethods(route);
 
 			methods = methods
@@ -121,6 +141,7 @@ namespace JsonRpc.Router
 			{
 				throw new RpcMethodNotFoundException();
 			}
+			this.Logger?.LogVerbose("Request was matched to a method");
 			return rpcMethod;
 		}
 

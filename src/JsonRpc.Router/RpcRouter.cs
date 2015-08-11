@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using JsonRpc.Router.Abstractions;
+using Microsoft.Framework.Logging;
 
 namespace JsonRpc.Router
 {
@@ -16,7 +17,9 @@ namespace JsonRpc.Router
 		private IRpcInvoker invoker { get; }
 		private IRpcParser parser { get; }
 		private IRpcCompressor compressor { get; }
-		public RpcRouter(RpcRouterConfiguration configuration, IRpcInvoker invoker, IRpcParser parser, IRpcCompressor compressor)
+		private ILogger Logger { get; }
+
+		public RpcRouter(RpcRouterConfiguration configuration, IRpcInvoker invoker, IRpcParser parser, IRpcCompressor compressor, ILoggerFactory loggerFactory)
 		{
 			if (configuration == null)
 			{
@@ -38,6 +41,7 @@ namespace JsonRpc.Router
 			this.invoker = invoker;
 			this.parser = parser;
 			this.compressor = compressor;
+			this.Logger = loggerFactory.CreateLogger("Json Rpc Router");
 		}
 
 		public VirtualPathData GetVirtualPath(VirtualPathContext context)
@@ -56,7 +60,7 @@ namespace JsonRpc.Router
 				{
 					return;
 				}
-
+				this.Logger?.LogInformation($"Rpc request route '{route.Name}' matched");
 				try
 				{
 					Stream contentStream = context.HttpContext.Request.Body;
@@ -74,21 +78,28 @@ namespace JsonRpc.Router
 						}
 					}
 					List<RpcRequest> requests = this.parser.ParseRequests(jsonString);
+					this.Logger?.LogInformation($"Processing {requests.Count} Rpc requests");
 
 					List<RpcResponseBase> responses = this.invoker.InvokeBatchRequest(requests, route);
 
+					this.Logger?.LogInformation($"Sending '{responses.Count}' Rpc responses");
 					await this.SetResponse(context, responses);
 					context.IsHandled = true;
+
+					this.Logger?.LogInformation($"Rpc request complete");
 				}
 				catch (RpcException ex)
 				{
 					context.IsHandled = true;
+					this.Logger?.LogError("Error occurred when proccessing Rpc request. Sending Rpc error response", ex);
 					await this.SetErrorResponse(context, ex);
 					return;
 				}
 			}
-			catch (Exception)
+			catch (Exception ex)
 			{
+				string errorMessage = "Unknown exception occurred when trying to process Rpc request. Marking route unhandled";
+                this.Logger?.LogError(errorMessage, ex);
 				context.IsHandled = false;
 			}
 		}

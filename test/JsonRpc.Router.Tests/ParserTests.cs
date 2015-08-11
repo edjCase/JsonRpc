@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿using JsonRpc.Router.Defaults;
 using Xunit;
 
 namespace JsonRpc.Router.Tests

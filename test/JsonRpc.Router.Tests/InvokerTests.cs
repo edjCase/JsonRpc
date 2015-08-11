@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using JsonRpc.Router.Abstractions;
 using Xunit;
+using JsonRpc.Router.Defaults;
 
 namespace JsonRpc.Router.Tests
 {
