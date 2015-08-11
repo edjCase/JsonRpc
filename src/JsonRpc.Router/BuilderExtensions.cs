@@ -23,6 +23,10 @@ namespace Microsoft.AspNet.Builder
 
 			RpcRouterConfiguration configuration = new RpcRouterConfiguration();
 			configureRouter.Invoke(configuration);
+			if (configuration.Routes.Count < 1)
+			{
+				throw new RpcConfigurationException("At least on class/route must be configured for router to work.");
+			}
 
 			IRpcInvoker rpcInvoker = app.ApplicationServices.GetRequiredService<IRpcInvoker>();
 			IRpcParser rpcParser = app.ApplicationServices.GetRequiredService<IRpcParser>();

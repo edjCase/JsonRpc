@@ -46,4 +46,13 @@ namespace JsonRpc.Router
 		{
 		}
 	}
+
+
+	//Not a request exception so it is not an `RpcException`
+	public class RpcConfigurationException : Exception
+	{
+		public RpcConfigurationException(string message) : base(message)
+		{
+		}
+	}
 }
