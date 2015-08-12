@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace JsonRpc.Router.Abstractions
+namespace edjCase.JsonRpc.Router.Abstractions
 {
 	public interface IRpcInvoker
 	{

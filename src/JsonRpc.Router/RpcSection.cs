@@ -2,9 +2,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.AspNet.Http;
 
-namespace JsonRpc.Router
+namespace edjCase.JsonRpc.Router
 {
 	public class RpcRoute
 	{

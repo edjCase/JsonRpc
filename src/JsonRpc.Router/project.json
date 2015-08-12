@@ -1,13 +1,14 @@
 ﻿{
 	"title": "JsonRpc DNX Router",
-	"version": "1.0.0-beta6-8",
+	"version": "1.0.0-beta6-9",
 	"description": "A DNX IRouter implementation for Json Rpc v2 requests for Microsoft.AspNet.Routing.",
 	"summary": "A DNX Json RPC v2 router",
 	"authors": [ "Gekctek" ],
 	"tags": [ "JsonRpc Rpc AspNet Json-Rpc DNX" ],
 	"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
+	"repository": {"type": "git"},
 	"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-	"releaseNotes": "First 'stable' beta release for beta6 dnx, marking a release. Added enforcing id to be string, number or null. Enforcing user to configure one route in the configuration. Now compatable with complex objects/lists as parameters.",
+	"releaseNotes": "Changing namespace to include edjCase as the prefix",
 
 	"dependencies": {
 		"Microsoft.AspNet.Routing": "1.0.0-beta6",

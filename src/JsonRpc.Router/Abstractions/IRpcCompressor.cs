@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using System.IO;
 using System.Text;
-using System.Threading.Tasks;
-using Microsoft.AspNet.Http;
 
-namespace JsonRpc.Router.Abstractions
+namespace edjCase.JsonRpc.Router.Abstractions
 {
 	public interface IRpcCompressor
 	{

@@ -2,10 +2,10 @@
 using System.IO;
 using System.IO.Compression;
 using System.Text;
-using JsonRpc.Router.Abstractions;
+using edjCase.JsonRpc.Router.Abstractions;
 using Microsoft.Framework.Logging;
 
-namespace JsonRpc.Router.Defaults
+namespace edjCase.JsonRpc.Router.Defaults
 {
 	public class DefaultRpcCompressor : IRpcCompressor
 	{

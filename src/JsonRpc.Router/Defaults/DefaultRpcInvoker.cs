@@ -1,12 +1,12 @@
-﻿using JsonRpc.Router.Abstractions;
-using Microsoft.Framework.Logging;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using edjCase.JsonRpc.Router.Abstractions;
+using Microsoft.Framework.Logging;
 
-namespace JsonRpc.Router.Defaults
+namespace edjCase.JsonRpc.Router.Defaults
 {
 	public class DefaultRpcInvoker : IRpcInvoker
 	{

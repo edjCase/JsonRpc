@@ -1,9 +1,8 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System.Collections.Generic;
-using JsonRpc.Router.JsonConverters;
+﻿using System.Collections.Generic;
+using edjCase.JsonRpc.Router.JsonConverters;
+using Newtonsoft.Json;
 
-namespace JsonRpc.Router
+namespace edjCase.JsonRpc.Router
 {
 	[JsonObject]
 	public class RpcRequest

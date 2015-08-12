@@ -1,12 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using JsonRpc.Router.Abstractions;
+using edjCase.JsonRpc.Router.Abstractions;
+using edjCase.JsonRpc.Router.Defaults;
 using Xunit;
-using JsonRpc.Router.Defaults;
 
-namespace JsonRpc.Router.Tests
+namespace edjCase.JsonRpc.Router.Tests
 {
 	public class InvokerTests
 	{

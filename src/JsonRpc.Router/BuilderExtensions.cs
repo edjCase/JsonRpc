@@ -1,8 +1,8 @@
-﻿using JsonRpc.Router;
-using System;
-using JsonRpc.Router.Abstractions;
+﻿using System;
+using edjCase.JsonRpc.Router;
+using edjCase.JsonRpc.Router.Abstractions;
+using edjCase.JsonRpc.Router.Defaults;
 using Microsoft.Framework.DependencyInjection;
-using JsonRpc.Router.Defaults;
 using Microsoft.Framework.Logging;
 
 // ReSharper disable once CheckNamespace

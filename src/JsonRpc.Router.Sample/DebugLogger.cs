@@ -1,11 +1,8 @@
-﻿using Microsoft.Framework.Logging;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.Framework.Logging;
 
-namespace JsonRpc.Router.Sample
+namespace edjCase.JsonRpc.Router.Sample
 {
 	public class DebugLogger : ILogger
 	{

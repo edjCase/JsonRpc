@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 
-namespace JsonRpc.Router
+namespace edjCase.JsonRpc.Router
 {
 	internal class RpcMethod
 	{

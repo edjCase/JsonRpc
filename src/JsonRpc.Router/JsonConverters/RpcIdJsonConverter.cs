@@ -1,7 +1,7 @@
 ﻿using System;
 using Newtonsoft.Json;
 
-namespace JsonRpc.Router.JsonConverters
+namespace edjCase.JsonRpc.Router.JsonConverters
 {
 	public class RpcIdJsonConverter : JsonConverter
 	{

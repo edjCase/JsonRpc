@@ -1,10 +1,10 @@
-﻿using Microsoft.AspNet.Builder;
+﻿using edjCase.JsonRpc.Router.Sample.RpcRoutes;
+using Microsoft.AspNet.Builder;
 using Microsoft.AspNet.Hosting;
 using Microsoft.Framework.DependencyInjection;
-using JsonRpc.Router.Sample.RpcRoutes;
 using Microsoft.Framework.Logging;
 
-namespace JsonRpc.Router.Sample
+namespace edjCase.JsonRpc.Router.Sample
 {
 	public class Startup
 	{

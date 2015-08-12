@@ -1,10 +1,10 @@
-﻿using JsonRpc.Router.Defaults;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using edjCase.JsonRpc.Router.Defaults;
 using Xunit;
 
-namespace JsonRpc.Router.Tests
+namespace edjCase.JsonRpc.Router.Tests
 {
 	public class ParserTests
 	{

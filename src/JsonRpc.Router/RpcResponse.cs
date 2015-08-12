@@ -1,8 +1,8 @@
-﻿using Newtonsoft.Json;
-using System;
-using JsonRpc.Router.JsonConverters;
+﻿using System;
+using edjCase.JsonRpc.Router.JsonConverters;
+using Newtonsoft.Json;
 
-namespace JsonRpc.Router
+namespace edjCase.JsonRpc.Router
 {
 	[JsonObject]
 	public class RpcErrorResponse : RpcResponseBase

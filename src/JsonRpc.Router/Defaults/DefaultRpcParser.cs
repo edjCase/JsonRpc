@@ -1,11 +1,11 @@
-﻿using JsonRpc.Router.Abstractions;
-using Microsoft.Framework.Logging;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using edjCase.JsonRpc.Router.Abstractions;
+using Microsoft.Framework.Logging;
+using Newtonsoft.Json;
 
-namespace JsonRpc.Router.Defaults
+namespace edjCase.JsonRpc.Router.Defaults
 {
 	public class DefaultRpcParser : IRpcParser
 	{

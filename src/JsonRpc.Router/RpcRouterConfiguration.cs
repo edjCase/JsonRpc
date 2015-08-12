@@ -1,10 +1,6 @@
-﻿using Microsoft.AspNet.Http;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using JsonRpc.Router.Abstractions;
+﻿using System;
 
-namespace JsonRpc.Router
+namespace edjCase.JsonRpc.Router
 {
 	public class RpcRouterConfiguration
 	{

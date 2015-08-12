@@ -1,15 +1,15 @@
 ﻿using System;
-using System.Threading.Tasks;
-using Microsoft.AspNet.Routing;
-using System.IO;
-using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
-using JsonRpc.Router.Abstractions;
+using System.Threading.Tasks;
+using edjCase.JsonRpc.Router.Abstractions;
+using Microsoft.AspNet.Routing;
 using Microsoft.Framework.Logging;
+using Newtonsoft.Json;
 
-namespace JsonRpc.Router
+namespace edjCase.JsonRpc.Router
 {
 	public class RpcRouter : IRouter
 	{
