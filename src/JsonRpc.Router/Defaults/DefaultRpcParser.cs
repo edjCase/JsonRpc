@@ -7,14 +7,32 @@ using Newtonsoft.Json;
 
 namespace edjCase.JsonRpc.Router.Defaults
 {
+	/// <summary>
+	/// Default Rpc parser that uses <see cref="Newtonsoft.Json"/>
+	/// </summary>
 	public class DefaultRpcParser : IRpcParser
 	{
+		/// <summary>
+		/// Optional logger for logging Rpc parsing
+		/// </summary>
 		public ILogger Logger { get; set; }
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="logger">Optional logger for logging Rpc parsing</param>
 		public DefaultRpcParser(ILogger logger = null)
 		{
 			this.Logger = logger;
 		}
 
+		/// <summary>
+		/// Indicates if the incoming request matches any predefined routes
+		/// </summary>
+		/// <param name="routes">Predefined routes for Rpc requests</param>
+		/// <param name="requestUrl">The current request url</param>
+		/// <param name="route">The matching route corresponding to the request url if found, otherwise it is null</param>
+		/// <returns>True if the request url matches any Rpc routes, otherwise False</returns>
 		public bool MatchesRpcRoute(RpcRouteCollection routes, string requestUrl, out RpcRoute route)
 		{
 			if (routes == null)
@@ -45,6 +63,12 @@ namespace edjCase.JsonRpc.Router.Defaults
 			return false;
 		}
 
+
+		/// <summary>
+		/// Parses all the requests from the json in the request
+		/// </summary>
+		/// <param name="jsonString">Json from the http request</param>
+		/// <returns>List of Rpc requests that were parsed from the json</returns>
 		public List<RpcRequest> ParseRequests(string jsonString)
 		{
 			this.Logger?.LogVerbose($"Attempting to parse Rpc request from the json string '{jsonString}'");
@@ -95,6 +119,11 @@ namespace edjCase.JsonRpc.Router.Defaults
 			return rpcRequests;
 		}
 
+		/// <summary>
+		/// Detects if the json string is a single Rpc request versus a batch request
+		/// </summary>
+		/// <param name="jsonString">Json of Rpc request</param>
+		/// <returns>True if json is a single Rpc request, otherwise False</returns>
 		private static bool IsSingleRequest(string jsonString)
 		{
 			if (string.IsNullOrEmpty(jsonString))

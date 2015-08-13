@@ -8,14 +8,31 @@ using Microsoft.Framework.Logging;
 
 namespace edjCase.JsonRpc.Router.Defaults
 {
+	/// <summary>
+	/// Default Rpc method invoker that uses asynchronous processing
+	/// </summary>
 	public class DefaultRpcInvoker : IRpcInvoker
 	{
+		/// <summary>
+		/// Optional logger for logging Rpc invocation
+		/// </summary>
 		public ILogger Logger { get; set; }
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="logger">Optional logger for logging Rpc invocation</param>
 		public DefaultRpcInvoker(ILogger logger = null)
 		{
 			this.Logger = logger;
 		}
 
+		/// <summary>
+		/// Call the incoming Rpc requests methods and gives the appropriate respones
+		/// </summary>
+		/// <param name="request">List of Rpc requests</param>
+		/// <param name="route">Rpc route that applies to the current request</param>
+		/// <returns>List of Rpc responses for the requests</returns>
 		public List<RpcResponseBase> InvokeBatchRequest(List<RpcRequest> requests, RpcRoute route)
 		{
 			this.Logger?.LogVerbose($"Invoking '{requests.Count}' batch requests");
@@ -38,6 +55,12 @@ namespace edjCase.JsonRpc.Router.Defaults
 			return responses;
 		}
 
+		/// <summary>
+		/// Call the incoming Rpc request method and gives the appropriate response
+		/// </summary>
+		/// <param name="request">Rpc request</param>
+		/// <param name="route">Rpc route that applies to the current request</param>
+		/// <returns>An Rpc response for the request</returns>
 		public RpcResponseBase InvokeRequest(RpcRequest request, RpcRoute route)
 		{
 			try
@@ -95,7 +118,13 @@ namespace edjCase.JsonRpc.Router.Defaults
 			return null;
 		}
 
-		private RpcResponseBase GetUnknownExceptionReponse(RpcRequest request, Exception ex)
+		/// <summary>
+		/// Converts an unknown caught exception into a Rpc response
+		/// </summary>
+		/// <param name="request">Current Rpc request</param>
+		/// <param name="ex">Unknown exception</param>
+		/// <returns>Rpc error response from the exception</returns>
+		private RpcErrorResponse GetUnknownExceptionReponse(RpcRequest request, Exception ex)
 		{
 			this.Logger?.LogError("An unknown error occurred. Returning an Rpc error response", ex);
 #if DEBUG
@@ -109,10 +138,17 @@ namespace edjCase.JsonRpc.Router.Defaults
 			{
 				return null;
 			}
-			RpcResponseBase rpcResponse = new RpcErrorResponse(request.Id, error);
+			RpcErrorResponse rpcResponse = new RpcErrorResponse(request.Id, error);
 			return rpcResponse;
 		}
 
+		/// <summary>
+		/// Finds the matching Rpc method for the current request
+		/// </summary>
+		/// <param name="route">Rpc route for the current request</param>
+		/// <param name="request">Current Rpc request</param>
+		/// <param name="parameterList">Paramter list parsed from the request</param>
+		/// <returns>The matching Rpc method to the current request</returns>
 		private RpcMethod GetMatchingMethod(RpcRoute route, RpcRequest request, out object[] parameterList)
 		{
 			if (route == null)
@@ -181,12 +217,17 @@ namespace edjCase.JsonRpc.Router.Defaults
 			return rpcMethod;
 		}
 
+		/// <summary>
+		/// Gets all the predefined Rpc methods for a Rpc route
+		/// </summary>
+		/// <param name="route">The route to get Rpc methods for</param>
+		/// <returns>List of Rpc methods for the specified Rpc route</returns>
 		private static List<RpcMethod> GetRpcMethods(RpcRoute route)
 		{
 			List<RpcMethod> rpcMethods = new List<RpcMethod>();
 			foreach (Type type in route.GetClasses())
 			{
-				MethodInfo[] publicMethods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+				MethodInfo[] publicMethods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
 				foreach (MethodInfo publicMethod in publicMethods)
 				{
 					RpcMethod rpcMethod = new RpcMethod(type, route, publicMethod);

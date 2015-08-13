@@ -3,6 +3,9 @@ using Newtonsoft.Json;
 
 namespace edjCase.JsonRpc.Router.JsonConverters
 {
+	/// <summary>
+	/// Converter to convert and enforce the id to be a string, number or null
+	/// </summary>
 	public class RpcIdJsonConverter : JsonConverter
 	{
 		public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
