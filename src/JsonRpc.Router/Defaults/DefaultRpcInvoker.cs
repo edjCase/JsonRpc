@@ -17,10 +17,7 @@ namespace edjCase.JsonRpc.Router.Defaults
 		/// Optional logger for logging Rpc invocation
 		/// </summary>
 		public ILogger Logger { get; set; }
-
-		/// <summary>
-		/// 
-		/// </summary>
+		
 		/// <param name="logger">Optional logger for logging Rpc invocation</param>
 		public DefaultRpcInvoker(ILogger logger = null)
 		{
@@ -30,7 +27,7 @@ namespace edjCase.JsonRpc.Router.Defaults
 		/// <summary>
 		/// Call the incoming Rpc requests methods and gives the appropriate respones
 		/// </summary>
-		/// <param name="request">List of Rpc requests</param>
+		/// <param name="requests">List of Rpc requests</param>
 		/// <param name="route">Rpc route that applies to the current request</param>
 		/// <returns>List of Rpc responses for the requests</returns>
 		public List<RpcResponseBase> InvokeBatchRequest(List<RpcRequest> requests, RpcRoute route)

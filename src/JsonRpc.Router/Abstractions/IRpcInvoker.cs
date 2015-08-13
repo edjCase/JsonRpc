@@ -15,7 +15,7 @@ namespace edjCase.JsonRpc.Router.Abstractions
 		/// <summary>
 		/// Call the incoming Rpc requests methods and gives the appropriate respones
 		/// </summary>
-		/// <param name="request">List of Rpc requests</param>
+		/// <param name="requests">List of Rpc requests to invoke</param>
 		/// <param name="route">Rpc route that applies to the current request</param>
 		/// <returns>List of Rpc responses for the requests</returns>
 		List<RpcResponseBase> InvokeBatchRequest(List<RpcRequest> requests, RpcRoute route);

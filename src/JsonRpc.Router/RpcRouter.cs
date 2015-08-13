@@ -11,15 +11,38 @@ using Newtonsoft.Json;
 
 namespace edjCase.JsonRpc.Router
 {
+	/// <summary>
+	/// Router for Asp.Net to direct Http Rpc requests to the correct method, invoke it and return the proper response
+	/// </summary>
 	public class RpcRouter : IRouter
 	{
+		/// <summary>
+		/// Configuration data for the router
+		/// </summary>
 		private RpcRouterConfiguration configuration { get; }
+		/// <summary>
+		/// Component that invokes Rpc requests target methods and returns a response
+		/// </summary>
 		private IRpcInvoker invoker { get; }
+		/// <summary>
+		/// Component that parses Http requests into Rpc requests
+		/// </summary>
 		private IRpcParser parser { get; }
+		/// <summary>
+		/// Component that compresses Rpc responses
+		/// </summary>
 		private IRpcCompressor compressor { get; }
-		private ILogger Logger { get; }
+		/// <summary>
+		/// Component that logs actions from the router
+		/// </summary>
+		private ILogger logger { get; }
 
-		public RpcRouter(RpcRouterConfiguration configuration, IRpcInvoker invoker, IRpcParser parser, IRpcCompressor compressor, ILoggerFactory loggerFactory)
+		/// <param name="configuration">Configuration data for the router</param>
+		/// <param name="invoker">Component that invokes Rpc requests target methods and returns a response</param>
+		/// <param name="parser">Component that parses Http requests into Rpc requests</param>
+		/// <param name="compressor">Component that compresses Rpc responses</param>
+		/// <param name="logger">Component that logs actions from the router</param>
+		public RpcRouter(RpcRouterConfiguration configuration, IRpcInvoker invoker, IRpcParser parser, IRpcCompressor compressor, ILogger logger)
 		{
 			if (configuration == null)
 			{
@@ -41,15 +64,25 @@ namespace edjCase.JsonRpc.Router
 			this.invoker = invoker;
 			this.parser = parser;
 			this.compressor = compressor;
-			this.Logger = loggerFactory.CreateLogger("Json Rpc Router");
+			this.logger = logger;
 		}
 
+		/// <summary>
+		/// Generates the virtual path data for the router
+		/// </summary>
+		/// <param name="context">Virtual path context</param>
+		/// <returns>Virtual path data for the router</returns>
 		public VirtualPathData GetVirtualPath(VirtualPathContext context)
 		{
 			// We return null here because we're not responsible for generating the url, the route is.
 			return null;
 		}
 
+		/// <summary>
+		/// Takes a route/http contexts and attempts to parse, invoke, respond to an Rpc request
+		/// </summary>
+		/// <param name="context">Route context</param>
+		/// <returns>Task for async routing</returns>
 		public async Task RouteAsync(RouteContext context)
 		{
 			try
@@ -60,7 +93,7 @@ namespace edjCase.JsonRpc.Router
 				{
 					return;
 				}
-				this.Logger?.LogInformation($"Rpc request route '{route.Name}' matched");
+				this.logger?.LogInformation($"Rpc request route '{route.Name}' matched");
 				try
 				{
 					Stream contentStream = context.HttpContext.Request.Body;
@@ -78,20 +111,20 @@ namespace edjCase.JsonRpc.Router
 						}
 					}
 					List<RpcRequest> requests = this.parser.ParseRequests(jsonString);
-					this.Logger?.LogInformation($"Processing {requests.Count} Rpc requests");
+					this.logger?.LogInformation($"Processing {requests.Count} Rpc requests");
 
 					List<RpcResponseBase> responses = this.invoker.InvokeBatchRequest(requests, route);
 
-					this.Logger?.LogInformation($"Sending '{responses.Count}' Rpc responses");
+					this.logger?.LogInformation($"Sending '{responses.Count}' Rpc responses");
 					await this.SetResponse(context, responses);
 					context.IsHandled = true;
 
-					this.Logger?.LogInformation($"Rpc request complete");
+					this.logger?.LogInformation($"Rpc request complete");
 				}
 				catch (RpcException ex)
 				{
 					context.IsHandled = true;
-					this.Logger?.LogError("Error occurred when proccessing Rpc request. Sending Rpc error response", ex);
+					this.logger?.LogError("Error occurred when proccessing Rpc request. Sending Rpc error response", ex);
 					await this.SetErrorResponse(context, ex);
 					return;
 				}
@@ -99,11 +132,17 @@ namespace edjCase.JsonRpc.Router
 			catch (Exception ex)
 			{
 				string errorMessage = "Unknown exception occurred when trying to process Rpc request. Marking route unhandled";
-                this.Logger?.LogError(errorMessage, ex);
+                this.logger?.LogError(errorMessage, ex);
 				context.IsHandled = false;
 			}
 		}
 
+		/// <summary>
+		/// Sets the http response to the corresponding Rpc exception
+		/// </summary>
+		/// <param name="context">Route context</param>
+		/// <param name="exception">Exception from Rpc request processing</param>
+		/// <returns>Task for async call</returns>
 		private async Task SetErrorResponse(RouteContext context, RpcException exception)
 		{
 			var responses = new List<RpcResponseBase>
@@ -113,6 +152,12 @@ namespace edjCase.JsonRpc.Router
 			await this.SetResponse(context, responses);
 		}
 
+		/// <summary>
+		/// Sets the http response with the given Rpc responses
+		/// </summary>
+		/// <param name="context">Route context</param>
+		/// <param name="responses">Responses generated from the Rpc request(s)</param>
+		/// <returns>Task for async call</returns>
 		private async Task SetResponse(RouteContext context, List<RpcResponseBase> responses)
 		{
 			if (responses == null || !responses.Any())

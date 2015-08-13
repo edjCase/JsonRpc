@@ -7,15 +7,35 @@ using Newtonsoft.Json.Linq;
 
 namespace edjCase.JsonRpc.Router
 {
+	/// <summary>
+	/// Object that represents a preconfigured method that the Rpc Api allows a request to call
+	/// </summary>
 	internal class RpcMethod
 	{
+		/// <summary>
+		/// The method's configured request route it can be called from
+		/// </summary>
 		public RpcRoute Route { get; }
+		/// <summary>
+		/// The name of the method
+		/// </summary>
 		public string Method => this.methodInfo.Name;
+		/// <summary>
+		/// Reflection information about the method
+		/// </summary>
 		private MethodInfo methodInfo { get; }
+		/// <summary>
+		/// The class the method exists in 
+		/// </summary>
 		private Type type { get; }
-
+		/// <summary>
+		/// Reflection information about each of the method's parameters
+		/// </summary>
 		private ParameterInfo[] parameterInfoList { get; }
-
+		
+		/// <param name="type">Class type that the method is in</param>
+		/// <param name="route">Request route the method can be called from</param>
+		/// <param name="methodInfo">Reflection information about the method</param>
 		public RpcMethod(Type type, RpcRoute route, MethodInfo methodInfo)
 		{
 			this.type = type;
@@ -24,6 +44,12 @@ namespace edjCase.JsonRpc.Router
 			this.parameterInfoList = methodInfo.GetParameters();
 		}
 
+		/// <summary>
+		/// Invokes the method with the specified parameters, returns the result of the method
+		/// </summary>
+		/// <exception cref="RpcInvalidParametersException">Thrown when conversion of parameters fails or when invoking the method is not compatible with the parameters</exception>
+		/// <param name="parameters">List of parameters to invoke the method with</param>
+		/// <returns>The result of the invoked method</returns>
 		public object Invoke(params object[] parameters)
 		{
 			object obj = Activator.CreateInstance(this.type);
@@ -43,6 +69,11 @@ namespace edjCase.JsonRpc.Router
 			}
 		}
 
+		/// <summary>
+		/// Handles/Awaits the result object if it is a async Task
+		/// </summary>
+		/// <param name="returnObj">The result of a invoked method</param>
+		/// <returns>Awaits a Task and returns its result if object is a Task, otherwise returns the same object given</returns>
 		private static object HandleAsyncResponses(object returnObj)
 		{
 			Task task = returnObj as Task;
@@ -61,6 +92,11 @@ namespace edjCase.JsonRpc.Router
 			return null;
 		}
 
+		/// <summary>
+		/// Converts the object array into the exact types the method needs (e.g. long -> int)
+		/// </summary>
+		/// <param name="parameters">Array of parameters for the method</param>
+		/// <returns>Array of objects with the exact types required by the method</returns>
 		private object[] ConvertParameters(object[] parameters)
 		{
 			if (parameters != null)
@@ -89,6 +125,11 @@ namespace edjCase.JsonRpc.Router
 			return parameters;
 		}
 
+		/// <summary>
+		/// Detects if list of parameters matches the method signature
+		/// </summary>
+		/// <param name="parameterList">Array of parameters for the method</param>
+		/// <returns>True if the method signature matches the parameterList, otherwise False</returns>
 		public bool HasParameterSignature(object[] parameterList)
 		{
 			if(parameterList == null)
@@ -113,6 +154,12 @@ namespace edjCase.JsonRpc.Router
 			return true;
 		}
 
+		/// <summary>
+		/// Detects if the request parameter matches the method parameter
+		/// </summary>
+		/// <param name="parameterInfo">Reflection info about a method parameter</param>
+		/// <param name="parameter">The request's value for the parameter</param>
+		/// <returns>True if the request parameter matches the type of the method parameter</returns>
 		private static bool ParameterMatches(ParameterInfo parameterInfo, object parameter)
 		{
 			if (parameter == null)
@@ -165,6 +212,12 @@ namespace edjCase.JsonRpc.Router
 			return true;
 		}
 
+		/// <summary>
+		/// Detects if the request parameters match the method parameters and converts the map into an ordered list
+		/// </summary>
+		/// <param name="parametersMap">Map of parameter name to parameter value</param>
+		/// <param name="parameterList">Result of converting the map to an ordered list, null if result is False</param>
+		/// <returns>True if the request parameters match the method parameters, otherwise Fasle</returns>
 		public bool HasParameterSignature(Dictionary<string, object> parametersMap, out object[] parameterList)
 		{
 			if(parametersMap == null)
@@ -185,6 +238,13 @@ namespace edjCase.JsonRpc.Router
 			return false;
 		}
 
+
+		/// <summary>
+		/// Tries to parse the parameter map into an ordered parameter list
+		/// </summary>
+		/// <param name="parametersMap">Map of parameter name to parameter value</param>
+		/// <param name="parameterList">Result of converting the map to an ordered list, null if result is False</param>
+		/// <returns>True if the parameters can convert to an ordered list based on the method signature, otherwise Fasle</returns>
 		public bool TryParseParameterList(Dictionary<string, object> parametersMap, out object[] parameterList)
 		{
 			parameterList = new object[this.parameterInfoList.Count()];

@@ -3,24 +3,30 @@ using System.Linq;
 
 namespace edjCase.JsonRpc.Router
 {
+	/// <summary>
+	/// Represents the url path for Rpc routing purposes
+	/// </summary>
 	public struct RpcPath : IEquatable<RpcPath>
 	{
+		/// <summary>
+		/// Default/Empty path
+		/// </summary>
 		public static RpcPath Default => new RpcPath();
 
+		/// <summary>
+		/// Path components split on forward slashes
+		/// </summary>
 		private string[] components { get; }
-
+		
+		/// <param name="path">Url/route path</param>
 		private RpcPath(string path)
 		{
-			if (!string.IsNullOrWhiteSpace(path))
-			{
-				this.components = path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
-			}
-			else
-			{
-				this.components = new string[0];
-			}
+			this.components = !string.IsNullOrWhiteSpace(path)
+				? path.Split(new[] {'/'}, StringSplitOptions.RemoveEmptyEntries)
+				: new string[0];
 		}
-
+		
+		/// <param name="components">Uri components for the path</param>
 		private RpcPath(string[] components)
 		{
 			if (components == null)
@@ -86,11 +92,21 @@ namespace edjCase.JsonRpc.Router
 			return hash;
 		}
 
+		/// <summary>
+		/// Creates a <see cref="RpcPath"/> based on the string form of the path
+		/// </summary>
+		/// <param name="path">Uri/route path</param>
+		/// <returns>Rpc path based on the path string</returns>
 		public static RpcPath Parse(string path)
 		{
 			return new RpcPath(path);
 		}
 
+		/// <summary>
+		/// Merges the two paths to create a new Rpc path that is the combination of the two
+		/// </summary>
+		/// <param name="other">Other path to add to the end of the current path</param>
+		/// <returns>A new path that is the combination of the two paths</returns>
 		public RpcPath Add(RpcPath other)
 		{
 			int componentCount = this.components.Length + other.components.Length;

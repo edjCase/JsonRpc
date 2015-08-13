@@ -1,5 +1,8 @@
 ﻿namespace edjCase.JsonRpc.Router
 {
+	/// <summary>
+	/// Error codes for different Rpc errors
+	/// </summary>
 	public enum RpcErrorCode
 	{
 		ParseError = -32700,

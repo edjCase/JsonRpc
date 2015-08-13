@@ -15,6 +15,9 @@ namespace edjCase.JsonRpc.Router.Abstractions
 		void CompressText(Stream outputStream, string text, Encoding encoding, CompressionType compressionType);
 	}
 
+	/// <summary>
+	/// Types of compressions
+	/// </summary>
 	public enum CompressionType
 	{
 		Gzip,
