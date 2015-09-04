@@ -19,10 +19,10 @@
 	"frameworks": {
 		"dnxcore50": {
 			"dependencies": {
-				"System.Collections": "4.0.10",
-				"System.Runtime": "4.0.20",
-				"System.Threading": "4.0.10",
-				"Microsoft.CSharp": "4.0.0"
+				"System.Collections": "4.0.11-beta-23225",
+				"System.Runtime": "4.0.21-beta-23225",
+				"System.Threading": "4.0.11-beta-23225",
+				"Microsoft.CSharp": "4.0.1-beta-23225"
 			}
 		}
 	}

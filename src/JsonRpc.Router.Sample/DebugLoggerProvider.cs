@@ -8,5 +8,10 @@ namespace edjCase.JsonRpc.Router.Sample
 		{
 			return new DebugLogger(name);
 		}
+
+		public void Dispose()
+		{
+			
+		}
 	}
 }
