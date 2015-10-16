@@ -1,6 +1,6 @@
 ﻿{
 	"title": "JsonRpc DNX Router",
-	"version": "1.0.0-beta7-10",
+	"version": "1.0.0-beta8-11",
 	"description": "A DNX IRouter implementation for Json Rpc v2 requests for Microsoft.AspNet.Routing.",
 	"summary": "A DNX Json RPC v2 router",
 	"authors": [ "Gekctek" ],
@@ -8,10 +8,11 @@
 	"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
 	"repository": {"type": "git"},
 	"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-	"releaseNotes": "Upgrading to beta7",
+	"releaseNotes": "Upgrading to beta8",
 
 	"dependencies": {
-		"Microsoft.AspNet.Routing": "1.0.0-beta7",
+		"Microsoft.AspNet.Routing": "1.0.0-beta8",
+		"Microsoft.Framework.Logging.Abstractions": "1.0.0-beta8",
 		"Newtonsoft.Json": "7.0.1"
 	},
 
@@ -19,12 +20,11 @@
 		"dnx451": { },
 		"dnxcore50": {
 			"dependencies": {
-				"System.Collections": "4.0.11-beta-23225",
-				"System.Runtime": "4.0.21-beta-23225",
-				"System.Runtime.Serialization.Primitives": "4.0.11-beta-23225",
-				"System.Threading": "4.0.11-beta-23225",
-				"Microsoft.CSharp": "4.0.1-beta-23225",
-				"System.IO.Compression": "4.0.1-beta-23225"
+				"System.Collections": "4.0.11-beta-23409",
+				"System.Runtime": "4.0.21-beta-23409",
+				"System.Runtime.Serialization.Primitives": "4.0.11-beta-23409",
+				"System.Threading": "4.0.11-beta-23409",
+				"System.IO.Compression": "4.0.1-beta-23409"
 			}
 		}
 	}
