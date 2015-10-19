@@ -194,6 +194,4 @@ FakesAssemblies/
 
 # Visual Studio 6 workspace options file
 *.opt
-src/JsonRpc.Router.Sample/project.lock.json
-src/JsonRpc.Router/project.lock.json
-test/JsonRpc.Router.Tests/project.lock.json
+project.lock.json
