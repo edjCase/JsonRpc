@@ -1,6 +1,6 @@
 ﻿{
 	"title": "JsonRpc DNX Router",
-	"version": "1.0.0-beta8-11",
+	"version": "1.0.0-beta8-12",
 	"description": "A DNX IRouter implementation for Json Rpc v2 requests for Microsoft.AspNet.Routing.",
 	"summary": "A DNX Json RPC v2 router",
 	"authors": [ "Gekctek" ],
@@ -8,7 +8,7 @@
 	"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
 	"repository": {"type": "git"},
 	"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-	"releaseNotes": "Upgrading to beta8",
+	"releaseNotes": "Fixing Builder not returing appbuilder",
 
 	"dependencies": {
 		"Microsoft.AspNet.Routing": "1.0.0-beta8",

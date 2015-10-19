@@ -19,7 +19,7 @@ namespace Microsoft.AspNet.Builder
 		/// <param name="app"><see cref="IApplicationBuilder"/> that is supplied by Asp.Net</param>
 		/// <param name="configureRouter">Action to configure the router properties</param>
 		/// <returns><see cref="IApplicationBuilder"/> that includes the Basic auth middleware</returns>
-		public static void UseJsonRpc(this IApplicationBuilder app, Action<RpcRouterConfiguration> configureRouter)
+		public static IApplicationBuilder UseJsonRpc(this IApplicationBuilder app, Action<RpcRouterConfiguration> configureRouter)
 		{
 			if (app == null)
 			{
@@ -43,6 +43,7 @@ namespace Microsoft.AspNet.Builder
 			ILoggerFactory loggerFactory = app.ApplicationServices.GetService<ILoggerFactory>();
 			ILogger logger = loggerFactory?.CreateLogger<RpcRouter>();
 			app.UseRouter(new RpcRouter(configuration, rpcInvoker, rpcParser, rpcCompressor, logger));
+			return app;
 		}
 
 		/// <summary>
