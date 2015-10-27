@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using edjCase.JsonRpc.Core;
+using Microsoft.Framework.DependencyInjection;
 using Newtonsoft.Json.Linq;
 
 namespace edjCase.JsonRpc.Router
@@ -32,16 +34,24 @@ namespace edjCase.JsonRpc.Router
 		/// Reflection information about each of the method's parameters
 		/// </summary>
 		private ParameterInfo[] parameterInfoList { get; }
-		
+
+		/// <summary>
+		/// Service provider to be used as an IoC Container. If not set it will use
+		/// basic reflection to invoke methods
+		/// </summary>
+		private IServiceProvider serviceProvider { get; }
+
 		/// <param name="type">Class type that the method is in</param>
 		/// <param name="route">Request route the method can be called from</param>
 		/// <param name="methodInfo">Reflection information about the method</param>
-		public RpcMethod(Type type, RpcRoute route, MethodInfo methodInfo)
+		/// <param name="serviceProvider">(Optional) Service provider to be used as an IoC Container</param>
+		public RpcMethod(Type type, RpcRoute route, MethodInfo methodInfo, IServiceProvider serviceProvider = null)
 		{
 			this.type = type;
 			this.Route = route;
 			this.methodInfo = methodInfo;
 			this.parameterInfoList = methodInfo.GetParameters();
+			this.serviceProvider = serviceProvider;
 		}
 
 		/// <summary>
@@ -52,7 +62,17 @@ namespace edjCase.JsonRpc.Router
 		/// <returns>The result of the invoked method</returns>
 		public object Invoke(params object[] parameters)
 		{
-			object obj = Activator.CreateInstance(this.type);
+			object obj = null;
+			if (this.serviceProvider != null)
+			{
+				//Use service provider (if exists) to create instance
+				obj = this.serviceProvider.GetService(this.type);
+			}
+			if(obj == null)
+			{
+				//Use reflection to create instance if service provider failed or is null
+				obj = Activator.CreateInstance(this.type);
+			}
 			try
 			{
 				parameters = this.ConvertParameters(parameters);

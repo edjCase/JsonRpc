@@ -13,6 +13,11 @@ namespace edjCase.JsonRpc.Router
 		internal RpcRouteCollection Routes { get; }
 
 		/// <summary>
+		/// IoC container for create Rpc method controllers
+		/// </summary>
+		internal IServiceProvider ServiceProvider { get; private set; }
+
+		/// <summary>
 		/// The prefix for the routes
 		/// </summary>
 		public string RoutePrefix
@@ -51,6 +56,16 @@ namespace edjCase.JsonRpc.Router
 			string alreadyRegisteredMessage = $"Type '{type.FullName}' has already been registered " +
 											$"with the Rpc router under the route '{routeName}'";
 			throw new ArgumentException(alreadyRegisteredMessage);
+		}
+
+		/// <summary>
+		/// Sets the IoC container for creating the Rpc method controllers. If not specified will use 
+		/// parameterless constructor for the controller
+		/// </summary>
+		/// <param name="serviceProvider">IoC container for create Rpc method controllers</param>
+		public void SetServiceProvider(IServiceProvider serviceProvider)
+		{
+			this.ServiceProvider = serviceProvider;
 		}
 	}
 }

@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System.Linq;
 
-namespace edjCase.JsonRpc.Router.JsonConverters
+namespace edjCase.JsonRpc.Core.JsonConverters
 {
 	/// <summary>
 	/// Json converter for Rpc parameters
@@ -18,7 +19,8 @@ namespace edjCase.JsonRpc.Router.JsonConverters
 		/// <param name="serializer">Json serializer</param>
 		public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
 		{
-			writer.WriteValue(value);
+			string json = JsonConvert.SerializeObject(value);
+			writer.WriteRawValue(json);
 		}
 
 		/// <summary>

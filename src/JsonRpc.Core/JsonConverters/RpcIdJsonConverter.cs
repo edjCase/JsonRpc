@@ -1,7 +1,7 @@
 ﻿using System;
 using Newtonsoft.Json;
 
-namespace edjCase.JsonRpc.Router.JsonConverters
+namespace edjCase.JsonRpc.Core.JsonConverters
 {
 	/// <summary>
 	/// Converter to convert and enforce the id to be a string, number or null

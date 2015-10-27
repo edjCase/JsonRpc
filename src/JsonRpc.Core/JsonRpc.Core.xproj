@@ -6,8 +6,8 @@
   </PropertyGroup>
   <Import Project="$(VSToolsPath)\DNX\Microsoft.DNX.Props" Condition="'$(VSToolsPath)' != ''" />
   <PropertyGroup Label="Globals">
-    <ProjectGuid>87ed8b44-b59a-440c-a377-565effb2691a</ProjectGuid>
-    <RootNamespace>edjCase.JsonRpc.Client</RootNamespace>
+    <ProjectGuid>9f2cec93-9fec-4949-8797-d08bf776bfbf</ProjectGuid>
+    <RootNamespace>edjCase.JsonRpc.Core</RootNamespace>
     <BaseIntermediateOutputPath Condition="'$(BaseIntermediateOutputPath)'=='' ">..\..\artifacts\obj\$(MSBuildProjectName)</BaseIntermediateOutputPath>
     <OutputPath Condition="'$(OutputPath)'=='' ">..\..\artifacts\bin\$(MSBuildProjectName)\</OutputPath>
   </PropertyGroup>

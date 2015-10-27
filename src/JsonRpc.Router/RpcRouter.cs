@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using edjCase.JsonRpc.Core;
 using edjCase.JsonRpc.Router.Abstractions;
 using Microsoft.AspNet.Routing;
 using Microsoft.Framework.Logging;
@@ -113,7 +114,7 @@ namespace edjCase.JsonRpc.Router
 					List<RpcRequest> requests = this.parser.ParseRequests(jsonString);
 					this.logger?.LogInformation($"Processing {requests.Count} Rpc requests");
 
-					List<RpcResponseBase> responses = this.invoker.InvokeBatchRequest(requests, route);
+					List<RpcResponse> responses = this.invoker.InvokeBatchRequest(requests, route, this.configuration.ServiceProvider);
 
 					this.logger?.LogInformation($"Sending '{responses.Count}' Rpc responses");
 					await this.SetResponse(context, responses);
@@ -145,9 +146,9 @@ namespace edjCase.JsonRpc.Router
 		/// <returns>Task for async call</returns>
 		private async Task SetErrorResponse(RouteContext context, RpcException exception)
 		{
-			var responses = new List<RpcResponseBase>
+			var responses = new List<RpcResponse>
 			{
-				new RpcErrorResponse(null, new RpcError(exception))
+				new RpcResponse(null, new RpcError(exception))
 			};
 			await this.SetResponse(context, responses);
 		}
@@ -158,7 +159,7 @@ namespace edjCase.JsonRpc.Router
 		/// <param name="context">Route context</param>
 		/// <param name="responses">Responses generated from the Rpc request(s)</param>
 		/// <returns>Task for async call</returns>
-		private async Task SetResponse(RouteContext context, List<RpcResponseBase> responses)
+		private async Task SetResponse(RouteContext context, List<RpcResponse> responses)
 		{
 			if (responses == null || !responses.Any())
 			{

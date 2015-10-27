@@ -1,4 +1,4 @@
-﻿namespace edjCase.JsonRpc.Router
+﻿namespace edjCase.JsonRpc.Core
 {
 	/// <summary>
 	/// Error codes for different Rpc errors
@@ -13,5 +13,13 @@
 
 		//Custom
 		AmbiguousMethod = -32000
+	}
+
+	public static class JsonRpcContants
+	{
+		/// <summary>
+		/// Version of Json Rpc protocol being used
+		/// </summary>
+		public const string JsonRpcVersion = "2.0";
 	}
 }

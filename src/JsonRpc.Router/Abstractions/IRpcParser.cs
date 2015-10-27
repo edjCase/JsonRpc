@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using edjCase.JsonRpc.Core;
 
 namespace edjCase.JsonRpc.Router.Abstractions
 {

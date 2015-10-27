@@ -1,9 +1,9 @@
 ﻿using System;
 
-namespace edjCase.JsonRpc.Router
+namespace edjCase.JsonRpc.Core
 {
 	/// <summary>
-	/// Base Rpc exception that contains Rpc specfic error info
+	/// Base Rpc server exception that contains Rpc specfic error info
 	/// </summary>
 	public abstract class RpcException : Exception
 	{
@@ -24,6 +24,12 @@ namespace edjCase.JsonRpc.Router
 			this.ErrorCode = errorCode;
 			this.RpcData = data;
 		}
+
+		/// <param name="error">Rpc error to make into an exception</param>
+		protected RpcException(RpcError error) : this(error.Code, error.Message, error.Data)
+		{
+			
+		}
 	}
 
 	/// <summary>
@@ -31,6 +37,10 @@ namespace edjCase.JsonRpc.Router
 	/// </summary>
 	public class RpcInvalidRequestException : RpcException
 	{
+		internal RpcInvalidRequestException(RpcError error) : base(error)
+		{
+		}
+
 		/// <param name="message">Error message</param>
 		public RpcInvalidRequestException(string message) : base(RpcErrorCode.InvalidRequest, message)
 		{
@@ -42,6 +52,9 @@ namespace edjCase.JsonRpc.Router
 	/// </summary>
 	public class RpcAmbiguousMethodException : RpcException
 	{
+		internal RpcAmbiguousMethodException(RpcError error) : base(error)
+		{
+		}
 		public RpcAmbiguousMethodException() : base(RpcErrorCode.AmbiguousMethod, "Request matches multiple method signatures")
 		{
 		}
@@ -52,6 +65,9 @@ namespace edjCase.JsonRpc.Router
 	/// </summary>
 	public class RpcMethodNotFoundException : RpcException
 	{
+		internal RpcMethodNotFoundException(RpcError error) : base(error)
+		{
+		}
 		public RpcMethodNotFoundException() : base(RpcErrorCode.MethodNotFound, "No method found with the requested signature")
 		{
 		}
@@ -62,6 +78,9 @@ namespace edjCase.JsonRpc.Router
 	/// </summary>
 	public class RpcInvalidParametersException : RpcException
 	{
+		internal RpcInvalidParametersException(RpcError error) : base(error)
+		{
+		}
 		public RpcInvalidParametersException() : base(RpcErrorCode.InvalidParams, "Parameters do not match")
 		{
 		}
@@ -72,22 +91,27 @@ namespace edjCase.JsonRpc.Router
 	/// </summary>
 	public class RpcUnknownException : RpcException
 	{
+		internal RpcUnknownException(RpcError error) : base(error)
+		{
+		}
+
 		/// <param name="message">Error message</param>
 		public RpcUnknownException(string message) : base(RpcErrorCode.InternalError, message)
 		{
 		}
 	}
 
-
-
 	/// <summary>
-	/// Exception for bad configuration of the Rpc server
+	/// Exception for requests that have parsing error
 	/// </summary>
-	//Not a request exception so it is not an `RpcException`
-	public class RpcConfigurationException : Exception
+	public class RpcParseException : RpcException
 	{
+		internal RpcParseException(RpcError error) : base(error)
+		{
+		}
+
 		/// <param name="message">Error message</param>
-		public RpcConfigurationException(string message) : base(message)
+		public RpcParseException(string message) : base(RpcErrorCode.ParseError, message)
 		{
 		}
 	}
