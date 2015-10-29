@@ -58,7 +58,7 @@ namespace edjCase.JsonRpc.Client
 			{
 				throw new ArgumentNullException(nameof(method));
 			}
-			RpcRequest request= new RpcRequest("1", method, paramList);
+			RpcRequest request= new RpcRequest(Guid.NewGuid().ToString(), method, paramList);
 			return this.SendRequestAsync(request, route);
 		}
 

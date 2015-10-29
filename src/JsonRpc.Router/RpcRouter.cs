@@ -120,7 +120,7 @@ namespace edjCase.JsonRpc.Router
 					await this.SetResponse(context, responses);
 					context.IsHandled = true;
 
-					this.logger?.LogInformation($"Rpc request complete");
+					this.logger?.LogInformation("Rpc request complete");
 				}
 				catch (RpcException ex)
 				{

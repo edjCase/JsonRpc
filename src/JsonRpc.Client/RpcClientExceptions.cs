@@ -24,7 +24,7 @@ namespace edjCase.JsonRpc.Client
 	}
 
 	/// <summary>
-	/// Exception for all unknown exceptions that were thro
+	/// Exception for all unknown exceptions that were thrown by the client
 	/// </summary>
 	public class RpcClientUnknownException : RpcClientException
 	{
@@ -36,6 +36,23 @@ namespace edjCase.JsonRpc.Client
 		/// <param name="message">Error message</param>
 		/// <param name="innerException">Inner exception</param>
 		public RpcClientUnknownException(string message, Exception innerException) : base(message, innerException)
+		{
+		}
+	}
+
+	/// <summary>
+	/// Exception for all parsing exceptions that were thro
+	/// </summary>
+	public class RpcClientParseException : RpcClientException
+	{
+		/// <param name="message">Error message</param>
+		public RpcClientParseException(string message) : base(message)
+		{
+		}
+
+		/// <param name="message">Error message</param>
+		/// <param name="innerException">Inner exception</param>
+		public RpcClientParseException(string message, Exception innerException) : base(message, innerException)
 		{
 		}
 	}

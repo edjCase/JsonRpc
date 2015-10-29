@@ -62,20 +62,6 @@ namespace edjCase.JsonRpc.Core
 		[JsonProperty("error", Required = Required.Default)]
 		public RpcError Error { get; private set; }
 
-		public T GetResult<T>()
-		{
-			if (this.Result is T)
-			{
-				return (T) this.Result;
-			}
-			JObject jObject = this.Result as JObject;
-			if (jObject != null)
-			{
-				return jObject.ToObject<T>();
-			}
-			return default(T);
-		}
-
 		[JsonIgnore]
 		public bool HasError => this.Error != null;
 

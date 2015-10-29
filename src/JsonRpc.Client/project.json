@@ -1,6 +1,6 @@
 ﻿{
 	"title": "JsonRpc DNX Client",
-	"version": "1.0.0-beta8-1",
+	"version": "1.0.0-beta8-3",
 	"description": "A DNX Client implementation for Json Rpc v2 requests.",
 	"summary": "A DNX Json RPC v2 client",
 	"authors": [ "Gekctek" ],
@@ -8,12 +8,12 @@
 	"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
 	"repository": {"type": "git"},
 	"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-	"releaseNotes": "Initial",
+	"releaseNotes": "Fixing GetResult<> for responses not converting json arrays",
 
 	"dependencies": {
 		"Newtonsoft.Json": "7.0.1",
 		"Microsoft.Net.Http.Client": "1.0.0-beta8-15501",
-		"JsonRpc.Core": "1.0.0-beta8-1"
+		"JsonRpc.Core": "1.0.0-beta8-*"
 	},
 
 	"frameworks": {
