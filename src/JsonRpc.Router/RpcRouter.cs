@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using edjCase.JsonRpc.Core;
 using edjCase.JsonRpc.Router.Abstractions;
 using Microsoft.AspNet.Routing;
-using Microsoft.Framework.Logging;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace edjCase.JsonRpc.Router

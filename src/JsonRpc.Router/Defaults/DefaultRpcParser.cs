@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using edjCase.JsonRpc.Core;
 using edjCase.JsonRpc.Router.Abstractions;
-using Microsoft.Framework.Logging;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
 namespace edjCase.JsonRpc.Router.Defaults

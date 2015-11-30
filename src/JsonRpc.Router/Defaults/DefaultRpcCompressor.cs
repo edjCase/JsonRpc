@@ -3,7 +3,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 using edjCase.JsonRpc.Router.Abstractions;
-using Microsoft.Framework.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace edjCase.JsonRpc.Router.Defaults
 {

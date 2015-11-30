@@ -3,8 +3,8 @@ using edjCase.JsonRpc.Core;
 using edjCase.JsonRpc.Router;
 using edjCase.JsonRpc.Router.Abstractions;
 using edjCase.JsonRpc.Router.Defaults;
-using Microsoft.Framework.DependencyInjection;
-using Microsoft.Framework.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 // ReSharper disable once CheckNamespace
 namespace Microsoft.AspNet.Builder

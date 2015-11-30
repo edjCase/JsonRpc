@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using edjCase.JsonRpc.Core;
 using edjCase.JsonRpc.Router.Abstractions;
-using Microsoft.Framework.Logging;
+using Microsoft.Extensions.Logging;
 
 namespace edjCase.JsonRpc.Router.Defaults
 {

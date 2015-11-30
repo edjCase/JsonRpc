@@ -3,9 +3,8 @@ using System.Threading.Tasks;
 using edjCase.JsonRpc.Core;
 using edjCase.JsonRpc.Router.Abstractions;
 using edjCase.JsonRpc.Router.Defaults;
-using Microsoft.Framework.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using Xunit.Abstractions;
 
 namespace edjCase.JsonRpc.Router.Tests
 {

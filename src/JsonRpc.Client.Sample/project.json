@@ -1,6 +1,6 @@
 ﻿{
 	"title": "JsonRpc DNX Client Sample",
-	"version": "1.0.0-beta8-1",
+	"version": "1.0.0-rc1-1",
 	"description": "A DNX Client sample for Json Rpc v2 requests.",
 	"summary": "A DNX Json RPC v2 client sample",
 	"authors": [ "Gekctek" ],
@@ -24,12 +24,12 @@
 		"dnx451": { },
 		"dnxcore50": {
 			"dependencies": {
-				"System.Collections": "4.0.11-beta-23409",
-				"System.Runtime": "4.0.21-beta-23409",
-				"System.Runtime.Serialization.Primitives": "4.0.11-beta-23409",
-				"System.Threading": "4.0.11-beta-23409",
-				"System.IO.Compression": "4.0.1-beta-23409",
-				"System.Console": "4.0.0-beta-23409"
+				"System.Collections": "4.0.11-beta-23516",
+				"System.Runtime": "4.0.21-beta-23516",
+				"System.Runtime.Serialization.Primitives": "4.1.0-beta-23516",
+				"System.Threading": "4.0.11-beta-23516",
+				"System.IO.Compression": "4.1.0-beta-23516",
+				"System.Console": "4.0.0-beta-23516"
 			}
 		}
 	}

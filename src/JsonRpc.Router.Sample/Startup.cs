@@ -5,9 +5,9 @@ using System.Text;
 using edjCase.JsonRpc.Router.Sample.RpcRoutes;
 using Microsoft.AspNet.Builder;
 using Microsoft.AspNet.Hosting;
-using Microsoft.Framework.DependencyInjection;
-using Microsoft.Framework.Logging;
-using Microsoft.Framework.Primitives;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 
 namespace edjCase.JsonRpc.Router.Sample
 {
