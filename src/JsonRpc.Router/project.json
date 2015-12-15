@@ -1,6 +1,6 @@
 {
 	"title": "JsonRpc DNX Router",
-	"version": "1.0.0-rc1-3",
+	"version": "1.0.0-rc1-4",
 	"description": "A DNX IRouter implementation for Json Rpc v2 requests for Microsoft.AspNet.Routing.",
 	"summary": "A DNX Json RPC v2 router",
 	"authors": [ "Gekctek" ],
@@ -8,7 +8,7 @@
 	"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
 	"repository": { "type": "git" },
 	"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-	"releaseNotes": "Fixing bugs with ambiguos method call exceptions when not ambiguous. Changing RpcResponse object to better handle GetResult<> types",
+	"releaseNotes": "Fixing IServiceProvider usage so that the controllers (or equivalent) dont need to be added to the services themselves, just their injected components",
 
 	"dependencies": {
 		"JsonRpc.Core": "1.0.0-rc1-*",

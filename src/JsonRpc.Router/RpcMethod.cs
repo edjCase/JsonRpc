@@ -75,7 +75,8 @@ namespace edjCase.JsonRpc.Router
 			if (this.serviceProvider != null)
 			{
 				//Use service provider (if exists) to create instance
-				obj = this.serviceProvider.GetService(this.type);
+				var objectFactory = ActivatorUtilities.CreateFactory(this.type, Type.EmptyTypes);
+				obj = objectFactory(this.serviceProvider, null);
 			}
 			if(obj == null)
 			{
