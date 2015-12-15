@@ -111,13 +111,13 @@ namespace edjCase.JsonRpc.Router
 							jsonString = streamReader.ReadToEnd().Trim();
 						}
 					}
-					List<RpcRequest> requests = this.parser.ParseRequests(jsonString);
+					List<RpcRequest> requests = this.parser.ParseRequests(jsonString, this.configuration.JsonSerializerSettings);
 					this.logger?.LogInformation($"Processing {requests.Count} Rpc requests");
 
-					List<RpcResponse> responses = this.invoker.InvokeBatchRequest(requests, route, this.configuration.ServiceProvider);
+					List<RpcResponse> responses = this.invoker.InvokeBatchRequest(requests, route, this.configuration.ServiceProvider, this.configuration.JsonSerializerSettings);
 
 					this.logger?.LogInformation($"Sending '{responses.Count}' Rpc responses");
-					await this.SetResponse(context, responses);
+					await this.SetResponse(context, responses, this.configuration.JsonSerializerSettings);
 					context.IsHandled = true;
 
 					this.logger?.LogInformation("Rpc request complete");
@@ -150,7 +150,7 @@ namespace edjCase.JsonRpc.Router
 			{
 				new RpcResponse(null, new RpcError(exception))
 			};
-			await this.SetResponse(context, responses);
+			await this.SetResponse(context, responses, this.configuration.JsonSerializerSettings);
 		}
 
 		/// <summary>
@@ -158,8 +158,9 @@ namespace edjCase.JsonRpc.Router
 		/// </summary>
 		/// <param name="context">Route context</param>
 		/// <param name="responses">Responses generated from the Rpc request(s)</param>
+		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <returns>Task for async call</returns>
-		private async Task SetResponse(RouteContext context, List<RpcResponse> responses)
+		private async Task SetResponse(RouteContext context, List<RpcResponse> responses, JsonSerializerSettings jsonSerializerSettings = null)
 		{
 			if (responses == null || !responses.Any())
 			{
@@ -167,8 +168,8 @@ namespace edjCase.JsonRpc.Router
 			}
 
 			string resultJson = responses.Count == 1
-				? JsonConvert.SerializeObject(responses.First())
-				: JsonConvert.SerializeObject(responses);
+				? JsonConvert.SerializeObject(responses.First(), jsonSerializerSettings)
+				: JsonConvert.SerializeObject(responses, jsonSerializerSettings);
 
 			string acceptEncoding = context.HttpContext.Request.Headers["Accept-Encoding"];
 			if (!string.IsNullOrWhiteSpace(acceptEncoding))
@@ -191,7 +192,6 @@ namespace edjCase.JsonRpc.Router
 			Stream responseStream = context.HttpContext.Response.Body;
 			using (StreamWriter streamWriter = new StreamWriter(responseStream))
 			{
-					
 				await streamWriter.WriteAsync(resultJson);
 			}
 		}

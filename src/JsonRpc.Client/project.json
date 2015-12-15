@@ -1,6 +1,6 @@
 {
 	"title": "JsonRpc DNX Client",
-	"version": "1.0.0-rc1-1",
+	"version": "1.0.0-rc1-2",
 	"description": "A DNX Client implementation for Json Rpc v2 requests.",
 	"summary": "A DNX Json RPC v2 client",
 	"authors": [ "Gekctek" ],
@@ -8,7 +8,7 @@
 	"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
 	"repository": { "type": "git" },
 	"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-	"releaseNotes": "Updating to RC1",
+	"releaseNotes": "Adding setting of Json serialization settings",
 
 	"dependencies": {
 		"Newtonsoft.Json": "7.0.1",

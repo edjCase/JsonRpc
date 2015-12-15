@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using edjCase.JsonRpc.Core;
 using edjCase.JsonRpc.Router.Abstractions;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
 namespace edjCase.JsonRpc.Router.Defaults
 {
@@ -31,14 +32,15 @@ namespace edjCase.JsonRpc.Router.Defaults
 		/// <param name="requests">List of Rpc requests</param>
 		/// <param name="route">Rpc route that applies to the current request</param>
 		/// <param name="serviceProvider">(Optional)IoC Container for rpc method controllers</param>
+		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <returns>List of Rpc responses for the requests</returns>
-		public List<RpcResponse> InvokeBatchRequest(List<RpcRequest> requests, RpcRoute route, IServiceProvider serviceProvider = null)
+		public List<RpcResponse> InvokeBatchRequest(List<RpcRequest> requests, RpcRoute route, IServiceProvider serviceProvider = null, JsonSerializerSettings jsonSerializerSettings = null)
 		{
 			this.Logger?.LogVerbose($"Invoking '{requests.Count}' batch requests");
 			var invokingTasks = new List<Task<RpcResponse>>();
 			foreach (RpcRequest request in requests)
 			{
-				Task<RpcResponse> invokingTask = Task.Run(() => this.InvokeRequest(request, route, serviceProvider));
+				Task<RpcResponse> invokingTask = Task.Run(() => this.InvokeRequest(request, route, serviceProvider, jsonSerializerSettings));
 				invokingTasks.Add(invokingTask);
 			}
 
@@ -60,8 +62,9 @@ namespace edjCase.JsonRpc.Router.Defaults
 		/// <param name="request">Rpc request</param>
 		/// <param name="route">Rpc route that applies to the current request</param>
 		/// <param name="serviceProvider">(Optional)IoC Container for rpc method controllers</param>
+		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <returns>An Rpc response for the request</returns>
-		public RpcResponse InvokeRequest(RpcRequest request, RpcRoute route, IServiceProvider serviceProvider = null)
+		public RpcResponse InvokeRequest(RpcRequest request, RpcRoute route, IServiceProvider serviceProvider = null, JsonSerializerSettings jsonSerializerSettings = null)
 		{
 			try
 			{
@@ -89,7 +92,7 @@ namespace edjCase.JsonRpc.Router.Defaults
 				}
 				
 				object[] parameterList;
-				RpcMethod rpcMethod = this.GetMatchingMethod(route, request, out parameterList, serviceProvider);
+				RpcMethod rpcMethod = this.GetMatchingMethod(route, request, out parameterList, serviceProvider, jsonSerializerSettings);
 
 				this.Logger?.LogVerbose($"Attempting to invoke method '{request.Method}'");
 				object result = rpcMethod.Invoke(parameterList);
@@ -149,8 +152,9 @@ namespace edjCase.JsonRpc.Router.Defaults
 		/// <param name="request">Current Rpc request</param>
 		/// <param name="parameterList">Paramter list parsed from the request</param>
 		/// <param name="serviceProvider">(Optional)IoC Container for rpc method controllers</param>
+		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <returns>The matching Rpc method to the current request</returns>
-		private RpcMethod GetMatchingMethod(RpcRoute route, RpcRequest request, out object[] parameterList, IServiceProvider serviceProvider = null)
+		private RpcMethod GetMatchingMethod(RpcRoute route, RpcRequest request, out object[] parameterList, IServiceProvider serviceProvider = null, JsonSerializerSettings jsonSerializerSettings = null)
 		{
 			if (route == null)
 			{
@@ -161,7 +165,7 @@ namespace edjCase.JsonRpc.Router.Defaults
 				throw new ArgumentNullException(nameof(request));
 			}
 			this.Logger?.LogVerbose($"Attempting to match Rpc request to a method '{request.Method}'");
-			List<RpcMethod> methods = DefaultRpcInvoker.GetRpcMethods(route, serviceProvider);
+			List<RpcMethod> methods = DefaultRpcInvoker.GetRpcMethods(route, serviceProvider, jsonSerializerSettings);
 
 			methods = methods
 				.Where(m => string.Equals(m.Method, request.Method, StringComparison.OrdinalIgnoreCase))
@@ -223,8 +227,9 @@ namespace edjCase.JsonRpc.Router.Defaults
 		/// </summary>
 		/// <param name="route">The route to get Rpc methods for</param>
 		/// <param name="serviceProvider">(Optional) IoC Container for rpc method controllers</param>
+		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <returns>List of Rpc methods for the specified Rpc route</returns>
-		private static List<RpcMethod> GetRpcMethods(RpcRoute route, IServiceProvider serviceProvider = null)
+		private static List<RpcMethod> GetRpcMethods(RpcRoute route, IServiceProvider serviceProvider = null, JsonSerializerSettings jsonSerializerSettings = null)
 		{
 			List<RpcMethod> rpcMethods = new List<RpcMethod>();
 			foreach (Type type in route.GetClasses())
@@ -232,7 +237,7 @@ namespace edjCase.JsonRpc.Router.Defaults
 				MethodInfo[] publicMethods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
 				foreach (MethodInfo publicMethod in publicMethods)
 				{
-					RpcMethod rpcMethod = new RpcMethod(type, route, publicMethod, serviceProvider);
+					RpcMethod rpcMethod = new RpcMethod(type, route, publicMethod, serviceProvider, jsonSerializerSettings);
 					rpcMethods.Add(rpcMethod);
 				}
 			}

@@ -69,8 +69,9 @@ namespace edjCase.JsonRpc.Router.Defaults
 		/// Parses all the requests from the json in the request
 		/// </summary>
 		/// <param name="jsonString">Json from the http request</param>
+		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <returns>List of Rpc requests that were parsed from the json</returns>
-		public List<RpcRequest> ParseRequests(string jsonString)
+		public List<RpcRequest> ParseRequests(string jsonString, JsonSerializerSettings jsonSerializerSettings = null)
 		{
 			this.Logger?.LogVerbose($"Attempting to parse Rpc request from the json string '{jsonString}'");
 			List<RpcRequest> rpcRequests;
@@ -82,12 +83,12 @@ namespace edjCase.JsonRpc.Router.Defaults
 			{
 				if (!DefaultRpcParser.IsSingleRequest(jsonString))
 				{
-					rpcRequests = JsonConvert.DeserializeObject<List<RpcRequest>>(jsonString);
+					rpcRequests = JsonConvert.DeserializeObject<List<RpcRequest>>(jsonString, jsonSerializerSettings);
 				}
 				else
 				{
 					rpcRequests = new List<RpcRequest>();
-					RpcRequest rpcRequest = JsonConvert.DeserializeObject<RpcRequest>(jsonString);
+					RpcRequest rpcRequest = JsonConvert.DeserializeObject<RpcRequest>(jsonString, jsonSerializerSettings);
 					if (rpcRequest != null)
 					{
 						rpcRequests.Add(rpcRequest);

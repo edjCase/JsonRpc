@@ -1,4 +1,5 @@
 ﻿using System;
+using Newtonsoft.Json;
 
 namespace edjCase.JsonRpc.Router
 {
@@ -16,6 +17,12 @@ namespace edjCase.JsonRpc.Router
 		/// IoC container for create Rpc method controllers
 		/// </summary>
 		internal IServiceProvider ServiceProvider { get; private set; }
+
+		/// <summary>
+		/// Json serialization settings that will be used in serialization and deserialization
+		/// for rpc requests
+		/// </summary>
+		internal JsonSerializerSettings JsonSerializerSettings { get; private set; }
 
 		/// <summary>
 		/// The prefix for the routes
@@ -66,6 +73,16 @@ namespace edjCase.JsonRpc.Router
 		public void SetServiceProvider(IServiceProvider serviceProvider)
 		{
 			this.ServiceProvider = serviceProvider;
+		}
+
+		/// <summary>
+		/// Sets the json serialization settings that will be used in serialization and deserialization
+		/// for rpc requests
+		/// </summary>
+		/// <param name="jsonSerializerSettings"></param>
+		public void SetJsonSerializerSettings(JsonSerializerSettings jsonSerializerSettings)
+		{
+			this.JsonSerializerSettings = jsonSerializerSettings;
 		}
 	}
 }

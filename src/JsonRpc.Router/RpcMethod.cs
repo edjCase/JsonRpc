@@ -41,17 +41,25 @@ namespace edjCase.JsonRpc.Router
 		/// </summary>
 		private IServiceProvider serviceProvider { get; }
 
+		/// <summary>
+		/// Json serialization settings that will be used in serialization and deserialization
+		/// for rpc requests
+		/// </summary>
+		private JsonSerializerSettings jsonSerializerSettings { get; }
+
 		/// <param name="type">Class type that the method is in</param>
 		/// <param name="route">Request route the method can be called from</param>
 		/// <param name="methodInfo">Reflection information about the method</param>
 		/// <param name="serviceProvider">(Optional) Service provider to be used as an IoC Container</param>
-		public RpcMethod(Type type, RpcRoute route, MethodInfo methodInfo, IServiceProvider serviceProvider = null)
+		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
+		public RpcMethod(Type type, RpcRoute route, MethodInfo methodInfo, IServiceProvider serviceProvider = null, JsonSerializerSettings jsonSerializerSettings = null)
 		{
 			this.type = type;
 			this.Route = route;
 			this.methodInfo = methodInfo;
 			this.parameterInfoList = methodInfo.GetParameters();
 			this.serviceProvider = serviceProvider;
+			this.jsonSerializerSettings = jsonSerializerSettings;
 		}
 
 		/// <summary>
@@ -133,11 +141,13 @@ namespace edjCase.JsonRpc.Router
 					}
 					if (parameters[index] is JObject)
 					{
-						parameters[index] = ((JObject)parameters[index]).ToObject(parameterInfo.ParameterType);
+						JsonSerializer jsonSerializer = JsonSerializer.Create(this.jsonSerializerSettings);
+						parameters[index] = ((JObject)parameters[index]).ToObject(parameterInfo.ParameterType, jsonSerializer);
 					}
 					if (parameters[index] is JArray)
 					{
-						parameters[index] = ((JArray)parameters[index]).ToObject(parameterInfo.ParameterType);
+						JsonSerializer jsonSerializer = JsonSerializer.Create(this.jsonSerializerSettings);
+						parameters[index] = ((JArray)parameters[index]).ToObject(parameterInfo.ParameterType, jsonSerializer);
 					}
 					parameters[index] = Convert.ChangeType(parameters[index], parameterInfo.ParameterType);
 				}

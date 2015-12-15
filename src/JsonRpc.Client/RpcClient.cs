@@ -20,14 +20,25 @@ namespace edjCase.JsonRpc.Client
 		/// Base url for the rpc server
 		/// </summary>
 		public Uri BaseUrl { get; }
+		/// <summary>
+		/// Authentication header value for the rpc request being sent. If the server requires
+		/// authentication this requires a value. Otherwise it can be null
+		/// </summary>
 		public AuthenticationHeaderValue AuthHeaderValue { get; set; }
+		/// <summary>
+		/// Json serialization settings that will be used in serialization and deserialization
+		/// for rpc requests
+		/// </summary>
+		public JsonSerializerSettings JsonSerializerSettings { get; set; }
 
 		/// <param name="baseUrl">Base url for the rpc server</param>
 		/// <param name="authHeaderValue">Http authentication header for rpc request</param>
-		public RpcClient(Uri baseUrl, AuthenticationHeaderValue authHeaderValue = null)
+		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
+		public RpcClient(Uri baseUrl, AuthenticationHeaderValue authHeaderValue = null, JsonSerializerSettings jsonSerializerSettings = null)
 		{
 			this.BaseUrl = baseUrl;
 			this.AuthHeaderValue = authHeaderValue;
+			this.JsonSerializerSettings = jsonSerializerSettings;
 		}
 
 		/// <summary>
@@ -92,7 +103,7 @@ namespace edjCase.JsonRpc.Client
 				{
 					httpClient.BaseAddress = this.BaseUrl;
 
-					string rpcRequestJson = JsonConvert.SerializeObject(request);
+					string rpcRequestJson = JsonConvert.SerializeObject(request, this.JsonSerializerSettings);
 					HttpContent httpContent = new StringContent(rpcRequestJson);
 					HttpResponseMessage httpResponseMessage = await httpClient.PostAsync(route, httpContent);
 					httpResponseMessage.EnsureSuccessStatusCode();
@@ -101,11 +112,11 @@ namespace edjCase.JsonRpc.Client
 
 					try
 					{
-						return JsonConvert.DeserializeObject<TResponse>(responseJson);
+						return JsonConvert.DeserializeObject<TResponse>(responseJson, this.JsonSerializerSettings);
 					}
 					catch (JsonSerializationException)
 					{
-						RpcResponse rpcResponse = JsonConvert.DeserializeObject<RpcResponse>(responseJson);
+						RpcResponse rpcResponse = JsonConvert.DeserializeObject<RpcResponse>(responseJson, this.JsonSerializerSettings);
 						if (rpcResponse == null)
 						{
 							throw new RpcClientUnknownException(

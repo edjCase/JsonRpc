@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using edjCase.JsonRpc.Core;
+using Newtonsoft.Json;
 
 namespace edjCase.JsonRpc.Router.Abstractions
 {
@@ -18,7 +19,8 @@ namespace edjCase.JsonRpc.Router.Abstractions
 		/// Parses all the requests from the json in the request
 		/// </summary>
 		/// <param name="jsonString">Json from the http request</param>
+		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <returns>List of Rpc requests that were parsed from the json</returns>
-		List<RpcRequest> ParseRequests(string jsonString);
+		List<RpcRequest> ParseRequests(string jsonString, JsonSerializerSettings jsonSerializerSettings = null);
 	}
 }

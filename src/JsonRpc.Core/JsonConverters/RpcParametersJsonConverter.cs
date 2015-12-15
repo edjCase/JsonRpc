@@ -19,8 +19,7 @@ namespace edjCase.JsonRpc.Core.JsonConverters
 		/// <param name="serializer">Json serializer</param>
 		public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
 		{
-			string json = JsonConvert.SerializeObject(value);
-			writer.WriteRawValue(json);
+			serializer.Serialize(writer, value);
 		}
 
 		/// <summary>
@@ -46,7 +45,7 @@ namespace edjCase.JsonRpc.Core.JsonConverters
 						throw new RpcInvalidRequestException("Request parameters can only be an associative array, list or null.");
 					}
 				case JsonToken.StartArray:
-					return JArray.Load(reader).ToObject<object[]>();
+					return JArray.Load(reader).ToObject<object[]>(serializer);
 				case JsonToken.Null:
 					return null;
 			}
