@@ -1,6 +1,6 @@
 {
 	"title": "JsonRpc DNX Core",
-	"version": "1.0.0-rc1-2",
+	"version": "1.0.0-rc1-3",
 	"description": "The core library used by JsonRpc client/router.",
 	"summary": "A DNX Json RPC v2 core library",
 	"authors": [ "Gekctek" ],
@@ -8,7 +8,7 @@
 	"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
 	"repository": { "type": "git" },
 	"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-	"releaseNotes": "Adding setting of Json serialization settings",
+	"releaseNotes": "Changing RpcResponse object to better handle GetResult<> types.",
 
 	"dependencies": {
 		"Newtonsoft.Json": "7.0.1"

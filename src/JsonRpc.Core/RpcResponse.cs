@@ -32,7 +32,7 @@ namespace edjCase.JsonRpc.Core
 
 		/// <param name="id">Request id</param>
 		/// <param name="result">Response result object</param>
-		public RpcResponse(object id, object result) : this(id)
+		public RpcResponse(object id, JToken result) : this(id)
 		{
 			this.Result = result;
 		}
@@ -54,7 +54,7 @@ namespace edjCase.JsonRpc.Core
 		/// Reponse result object (Required)
 		/// </summary>
 		[JsonProperty("result", Required = Required.Default)] //TODO somehow enforce this or an error, not both
-		public object Result { get; private set; }
+		public JToken Result { get; private set; }
 
 		/// <summary>
 		/// Error from processing Rpc request (Required)

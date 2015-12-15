@@ -7,6 +7,7 @@ using edjCase.JsonRpc.Core;
 using edjCase.JsonRpc.Router.Abstractions;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace edjCase.JsonRpc.Router.Defaults
 {
@@ -98,7 +99,9 @@ namespace edjCase.JsonRpc.Router.Defaults
 				object result = rpcMethod.Invoke(parameterList);
 				this.Logger?.LogVerbose($"Finished invoking method '{request.Method}'");
 
-				rpcResponse = new RpcResponse(request.Id, result);
+				JsonSerializer jsonSerializer = JsonSerializer.Create(jsonSerializerSettings);
+				JToken resultJToken = JToken.FromObject(result, jsonSerializer);
+				rpcResponse = new RpcResponse(request.Id, resultJToken);
 			}
 			catch (RpcException ex)
 			{

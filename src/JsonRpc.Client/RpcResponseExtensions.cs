@@ -1,35 +1,32 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using edjCase.JsonRpc.Core;
-using Newtonsoft.Json.Linq;
 
 namespace edjCase.JsonRpc.Client
 {
-    public static class RpcResponseExtensions
-    {
-		public static T GetResult<T>(this RpcResponse response)
+	public static class RpcResponseExtensions
+	{
+		/// <summary>
+		/// Parses and returns the result of the rpc response as the type specified. 
+		/// Otherwise throws a parsing exception
+		/// </summary>
+		/// <typeparam name="T">Type of object to parse the response as</typeparam>
+		/// <param name="response">Rpc response object</param>
+		/// <param name="returnDefaultIfNull">Returns the type's default value if the result is null. Otherwise throws parsing exception</param>
+		/// <returns>Result of response as type specified</returns>
+		public static T GetResult<T>(this RpcResponse response, bool returnDefaultIfNull = true)
 		{
 			if (response.Result == null)
 			{
 				return default(T);
 			}
-			if (response.Result is T)
+			try
 			{
-				return (T)response.Result;
+				return response.Result.ToObject<T>();
 			}
-			JObject jObject = response.Result as JObject;
-			if (jObject != null)
+			catch (Exception ex)
 			{
-				return jObject.ToObject<T>();
+				throw new RpcClientParseException($"Unable to convert the result to type '{typeof(T)}'", ex);
 			}
-			JArray jArray = response.Result as JArray;
-			if (jArray != null)
-			{
-				return jArray.ToObject<T>();
-			}
-			throw new RpcClientParseException($"Unable to convert the result of type '{response.Result.GetType()}' to type '{typeof(T)}'");
 		}
 	}
 }

@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using edjCase.JsonRpc.Core;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace edjCase.JsonRpc.Router
@@ -171,14 +172,24 @@ namespace edjCase.JsonRpc.Router
 				return false;
 			}
 
-			for (int i = 0; i < parameterList.Count(); i++)
+			for (int i = 0; i < this.parameterInfoList.Count(); i++)
 			{
 				ParameterInfo parameterInfo = this.parameterInfoList[i];
-				object parameter = parameterList[i];
-				bool isMatch = RpcMethod.ParameterMatches(parameterInfo, parameter);
-				if (!isMatch)
+				if (parameterList.Count() <= i)
 				{
-					return false;
+					if (!parameterInfo.IsOptional)
+					{
+						return false;
+					}
+				}
+				else
+				{
+					object parameter = parameterList[i];
+					bool isMatch = RpcMethod.ParameterMatches(parameterInfo, parameter);
+					if (!isMatch)
+					{
+						return false;
+					}
 				}
 			}
 			return true;
