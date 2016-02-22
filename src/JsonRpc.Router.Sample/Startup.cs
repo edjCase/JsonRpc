@@ -55,7 +55,6 @@ namespace edjCase.JsonRpc.Router.Sample
 			app.UseJsonRpc(config =>
 			{
 				config.RoutePrefix = "RpcApi";
-				config.SetServiceProvider(app.ApplicationServices);
 				config.RegisterClassToRpcRoute<RpcMath>();
 				config.RegisterClassToRpcRoute<RpcString>("Strings");
 				config.RegisterClassToRpcRoute<RpcCommands>("Commands");

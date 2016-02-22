@@ -114,7 +114,7 @@ namespace edjCase.JsonRpc.Router
 					List<RpcRequest> requests = this.parser.ParseRequests(jsonString, this.configuration.JsonSerializerSettings);
 					this.logger?.LogInformation($"Processing {requests.Count} Rpc requests");
 
-					List<RpcResponse> responses = this.invoker.InvokeBatchRequest(requests, route, this.configuration.ServiceProvider, this.configuration.JsonSerializerSettings);
+					List<RpcResponse> responses = this.invoker.InvokeBatchRequest(requests, route, context.HttpContext.RequestServices, this.configuration.JsonSerializerSettings);
 
 					this.logger?.LogInformation($"Sending '{responses.Count}' Rpc responses");
 					await this.SetResponse(context, responses, this.configuration.JsonSerializerSettings);
