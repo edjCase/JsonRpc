@@ -1,10 +1,11 @@
-﻿using JsonRpc.Router.Defaults;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using edjCase.JsonRpc.Core;
+using edjCase.JsonRpc.Router.Defaults;
 using Xunit;
 
-namespace JsonRpc.Router.Tests
+namespace edjCase.JsonRpc.Router.Tests
 {
 	public class ParserTests
 	{
@@ -41,7 +42,7 @@ namespace JsonRpc.Router.Tests
 			Assert.NotNull(rpcRequest);
 			Assert.Equal(rpcRequest.Id, id);
 			Assert.Equal(rpcRequest.Method, method);
-			Assert.Equal(rpcRequest.JsonRpcVersion, "2.0");
+			Assert.Equal(rpcRequest.JsonRpcVersion, JsonRpcContants.JsonRpcVersion);
 			Assert.Equal(rpcRequest.ParameterList, parameters);
 		}
 
@@ -57,7 +58,7 @@ namespace JsonRpc.Router.Tests
 			Assert.NotNull(rpcRequest);
 			Assert.Equal(rpcRequest.Id, (long)1);
 			Assert.Equal(rpcRequest.Method, "datetime");
-			Assert.Equal(rpcRequest.JsonRpcVersion, "2.0");
+			Assert.Equal(rpcRequest.JsonRpcVersion, JsonRpcContants.JsonRpcVersion);
 			Assert.Equal(rpcRequest.ParameterList, new object[] { dateTime });
 		}
 
@@ -74,12 +75,12 @@ namespace JsonRpc.Router.Tests
 			Assert.Equal(rpcRequests.Count, 2);
 			Assert.Equal(rpcRequests[0].Id, "1");
 			Assert.Equal(rpcRequests[0].Method, "one");
-			Assert.Equal(rpcRequests[0].JsonRpcVersion, "2.0");
+			Assert.Equal(rpcRequests[0].JsonRpcVersion, JsonRpcContants.JsonRpcVersion);
 			Assert.Equal(rpcRequests[0].ParameterList, new object[] { "1" });
 
 			Assert.Equal(rpcRequests[1].Id, "2");
 			Assert.Equal(rpcRequests[1].Method, "two");
-			Assert.Equal(rpcRequests[1].JsonRpcVersion, "2.0");
+			Assert.Equal(rpcRequests[1].JsonRpcVersion, JsonRpcContants.JsonRpcVersion);
 			Assert.Equal(rpcRequests[1].ParameterList, new object[] { "2" });
 		}
 

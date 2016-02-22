@@ -7,9 +7,10 @@
 	"licenseUrl": "",
 
 	"dependencies": {
-		"JsonRpc.Router": "1.0.0-*",
-		"xunit": "2.1.0-beta4-*",
-		"xunit.runner.dnx": "2.1.0-beta4-*"
+		"JsonRpc.Router": "1.0.0-*",		
+		"xunit": "2.1.0",
+		"xunit.runner.dnx": "2.1.0-rc1-build204",
+		"Microsoft.Extensions.DependencyInjection": "1.0.0-rc1-final"
 	},
 
 	"commands": {
@@ -19,10 +20,10 @@
 	"frameworks": {
 		"dnxcore50": {
 			"dependencies": {
-				"System.Collections": "4.0.10",
-				"System.Runtime": "4.0.20",
-				"System.Threading": "4.0.10",
-				"Microsoft.CSharp": "4.0.0"
+				"System.Collections": "4.0.11-beta-23516",
+				"System.Runtime": "4.0.21-beta-23516",
+				"System.Threading": "4.0.11-beta-23516",
+				"Microsoft.CSharp": "4.0.1-beta-23516"
 			}
 		}
 	}

@@ -1,20 +1,39 @@
-﻿using JsonRpc.Router.Abstractions;
-using Microsoft.Framework.Logging;
-using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using edjCase.JsonRpc.Core;
+using edjCase.JsonRpc.Router.Abstractions;
+using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 
-namespace JsonRpc.Router.Defaults
+namespace edjCase.JsonRpc.Router.Defaults
 {
+	/// <summary>
+	/// Default Rpc parser that uses <see cref="Newtonsoft.Json"/>
+	/// </summary>
 	public class DefaultRpcParser : IRpcParser
 	{
+		/// <summary>
+		/// Optional logger for logging Rpc parsing
+		/// </summary>
 		public ILogger Logger { get; set; }
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="logger">Optional logger for logging Rpc parsing</param>
 		public DefaultRpcParser(ILogger logger = null)
 		{
 			this.Logger = logger;
 		}
 
+		/// <summary>
+		/// Indicates if the incoming request matches any predefined routes
+		/// </summary>
+		/// <param name="routes">Predefined routes for Rpc requests</param>
+		/// <param name="requestUrl">The current request url</param>
+		/// <param name="route">The matching route corresponding to the request url if found, otherwise it is null</param>
+		/// <returns>True if the request url matches any Rpc routes, otherwise False</returns>
 		public bool MatchesRpcRoute(RpcRouteCollection routes, string requestUrl, out RpcRoute route)
 		{
 			if (routes == null)
@@ -45,7 +64,14 @@ namespace JsonRpc.Router.Defaults
 			return false;
 		}
 
-		public List<RpcRequest> ParseRequests(string jsonString)
+
+		/// <summary>
+		/// Parses all the requests from the json in the request
+		/// </summary>
+		/// <param name="jsonString">Json from the http request</param>
+		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
+		/// <returns>List of Rpc requests that were parsed from the json</returns>
+		public List<RpcRequest> ParseRequests(string jsonString, JsonSerializerSettings jsonSerializerSettings = null)
 		{
 			this.Logger?.LogVerbose($"Attempting to parse Rpc request from the json string '{jsonString}'");
 			List<RpcRequest> rpcRequests;
@@ -57,12 +83,12 @@ namespace JsonRpc.Router.Defaults
 			{
 				if (!DefaultRpcParser.IsSingleRequest(jsonString))
 				{
-					rpcRequests = JsonConvert.DeserializeObject<List<RpcRequest>>(jsonString);
+					rpcRequests = JsonConvert.DeserializeObject<List<RpcRequest>>(jsonString, jsonSerializerSettings);
 				}
 				else
 				{
 					rpcRequests = new List<RpcRequest>();
-					RpcRequest rpcRequest = JsonConvert.DeserializeObject<RpcRequest>(jsonString);
+					RpcRequest rpcRequest = JsonConvert.DeserializeObject<RpcRequest>(jsonString, jsonSerializerSettings);
 					if (rpcRequest != null)
 					{
 						rpcRequests.Add(rpcRequest);
@@ -95,6 +121,11 @@ namespace JsonRpc.Router.Defaults
 			return rpcRequests;
 		}
 
+		/// <summary>
+		/// Detects if the json string is a single Rpc request versus a batch request
+		/// </summary>
+		/// <param name="jsonString">Json of Rpc request</param>
+		/// <returns>True if json is a single Rpc request, otherwise False</returns>
 		private static bool IsSingleRequest(string jsonString)
 		{
 			if (string.IsNullOrEmpty(jsonString))

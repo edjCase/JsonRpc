@@ -1,19 +1,20 @@
 {
-	"title": "JsonRpc DNX Router",
-	"version": "1.0.0-rc1-4",
-	"description": "A DNX IRouter implementation for Json Rpc v2 requests for Microsoft.AspNet.Routing.",
-	"summary": "A DNX Json RPC v2 router",
+	"title": "JsonRpc DNX Client",
+	"version": "1.0.0-rc1-3",
+	"description": "A DNX Client implementation for Json Rpc v2 requests.",
+	"summary": "A DNX Json RPC v2 client",
 	"authors": [ "Gekctek" ],
-	"tags": [ "JsonRpc Rpc AspNet Json-Rpc DNX" ],
+	"tags": [ "JsonRpc Rpc Json-Rpc DNX" ],
 	"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
 	"repository": { "type": "git" },
 	"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-	"releaseNotes": "Fixing IServiceProvider usage so that the controllers (or equivalent) dont need to be added to the services themselves, just their injected components",
+	"releaseNotes": "Changing RpcResponse object to better handle GetResult<> types",
 
 	"dependencies": {
+		"Newtonsoft.Json": "7.0.1",
 		"JsonRpc.Core": "1.0.0-rc1-*",
-		"Microsoft.AspNet.Routing": "1.0.0-rc1-final",
-		"Microsoft.Extensions.Logging.Abstractions": "1.0.0-rc1-final"
+		"System.Net.Http": "4.0.1-beta-23516",
+		"System.Runtime.InteropServices": "4.0.21-beta-23516"
 	},
 
 	"frameworks": {
@@ -26,6 +27,7 @@
 				"System.Threading": "4.0.11-beta-23516",
 				"System.IO.Compression": "4.1.0-beta-23516"
 			}
-		}
+		},
+		"net45": { }
 	}
 }

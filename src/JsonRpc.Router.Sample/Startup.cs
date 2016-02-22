@@ -1,10 +1,15 @@
-﻿using Microsoft.AspNet.Builder;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using edjCase.JsonRpc.Router.Sample.RpcRoutes;
+using Microsoft.AspNet.Builder;
 using Microsoft.AspNet.Hosting;
-using Microsoft.Framework.DependencyInjection;
-using JsonRpc.Router.Sample.RpcRoutes;
-using Microsoft.Framework.Logging;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Primitives;
 
-namespace JsonRpc.Router.Sample
+namespace edjCase.JsonRpc.Router.Sample
 {
 	public class Startup
 	{
@@ -25,9 +30,32 @@ namespace JsonRpc.Router.Sample
 		{
 			loggerFactory.MinimumLevel = LogLevel.Debug;
 			loggerFactory.AddProvider(new DebugLoggerProvider());
+
+			app.Use((httpContext, next) =>
+			{
+				KeyValuePair<string, StringValues> header = httpContext.Request.Headers.FirstOrDefault(h => h.Key == "Authorization");
+				if (header.Equals(default(KeyValuePair<string, StringValues>)))
+				{
+					return null;
+				}
+				if (!header.Value.Any() || !header.Value.First().StartsWith("Basic "))
+				{
+					return null;
+				}
+				string headerValue = header.Value.First().Substring(6);
+				byte[] valueBytes = Convert.FromBase64String(headerValue);
+				string[] usernamePassword = Encoding.UTF8.GetString(valueBytes).Split(':');
+				if (usernamePassword[0] == "Gekctek" && usernamePassword[1] == "Welc0me!")
+				{
+					return next();
+				}
+				return null;
+			});
+
 			app.UseJsonRpc(config =>
 			{
 				config.RoutePrefix = "RpcApi";
+				config.SetServiceProvider(app.ApplicationServices);
 				config.RegisterClassToRpcRoute<RpcMath>();
 				config.RegisterClassToRpcRoute<RpcString>("Strings");
 				config.RegisterClassToRpcRoute<RpcCommands>("Commands");

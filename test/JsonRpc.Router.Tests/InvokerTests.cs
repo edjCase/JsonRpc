@@ -1,12 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
-using JsonRpc.Router.Abstractions;
+using edjCase.JsonRpc.Core;
+using edjCase.JsonRpc.Router.Abstractions;
+using edjCase.JsonRpc.Router.Defaults;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
-using JsonRpc.Router.Defaults;
 
-namespace JsonRpc.Router.Tests
+namespace edjCase.JsonRpc.Router.Tests
 {
 	public class InvokerTests
 	{
@@ -14,43 +14,41 @@ namespace JsonRpc.Router.Tests
 		public void InvokeRequest_StringParam_ParseAsGuidType()
 		{
 			Guid randomGuid = Guid.NewGuid();
-			RpcRequest stringRequest = new RpcRequest("1", "2.0", "GuidTypeMethod", randomGuid.ToString());
+			RpcRequest stringRequest = new RpcRequest("1", "GuidTypeMethod", randomGuid.ToString());
 
 			RpcRoute route = new RpcRoute();
 			route.AddClass<TestRouteClass>();
 			IRpcInvoker invoker = new DefaultRpcInvoker();
-			RpcResponseBase stringResponse = invoker.InvokeRequest(stringRequest, route);
+			RpcResponse stringResponse = invoker.InvokeRequest(stringRequest, route);
 
-
-			RpcResultResponse stringResultResponse = Assert.IsType<RpcResultResponse>(stringResponse);
-			Assert.Equal(stringResultResponse.Result, randomGuid);
+			
+			Assert.Equal(stringResponse.Result, randomGuid);
 		}
 
 		[Fact]
 		public void InvokeRequest_AmbiguousRequest_ErrorResponse()
 		{
-			RpcRequest stringRequest = new RpcRequest("1", "2.0", "AmbiguousMethod", 1);
+			RpcRequest stringRequest = new RpcRequest("1", "AmbiguousMethod", 1);
 			RpcRoute route = new RpcRoute();
 			route.AddClass<TestRouteClass>();
 			IRpcInvoker invoker = new DefaultRpcInvoker();
-			RpcResponseBase response = invoker.InvokeRequest(stringRequest, route);
-
-			RpcErrorResponse errorResponse = Assert.IsType<RpcErrorResponse>(response);
-			Assert.NotNull(errorResponse.Error);
-			Assert.Equal(errorResponse.Error.Code, (int)RpcErrorCode.AmbiguousMethod);
+			RpcResponse response = invoker.InvokeRequest(stringRequest, route);
+			
+			Assert.NotNull(response.Error);
+			Assert.Equal(response.Error.Code, RpcErrorCode.AmbiguousMethod);
 		}
 
 		[Fact]
 		public void InvokeRequest_AsyncMethod_Valid()
 		{
-			RpcRequest stringRequest = new RpcRequest("1", "2.0", "AddAsync", 1, 1);
+			RpcRequest stringRequest = new RpcRequest("1", "AddAsync", 1, 1);
 			RpcRoute route = new RpcRoute();
 			route.AddClass<TestRouteClass>();
 			IRpcInvoker invoker = new DefaultRpcInvoker();
 
-			RpcResponseBase response = invoker.InvokeRequest(stringRequest, route);
+			RpcResponse response = invoker.InvokeRequest(stringRequest, route);
 
-			RpcResultResponse resultResponse = Assert.IsType<RpcResultResponse>(response);
+			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.NotNull(resultResponse.Result);
 			Assert.Equal(resultResponse.Result, 2);
 		}
@@ -58,14 +56,33 @@ namespace JsonRpc.Router.Tests
 		[Fact]
 		public void InvokeRequest_Int64RequestParam_ConvertToInt32Param()
 		{
-			RpcRequest stringRequest = new RpcRequest("1", "2.0", "IntParameter", (long)1);
+			RpcRequest stringRequest = new RpcRequest("1", "IntParameter", (long)1);
 			RpcRoute route = new RpcRoute();
 			route.AddClass<TestRouteClass>();
 			IRpcInvoker invoker = new DefaultRpcInvoker();
 
-			RpcResponseBase response = invoker.InvokeRequest(stringRequest, route);
+			RpcResponse response = invoker.InvokeRequest(stringRequest, route);
 
-			RpcResultResponse resultResponse = Assert.IsType<RpcResultResponse>(response);
+			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
+			Assert.NotNull(resultResponse.Result);
+			Assert.IsType<int>(resultResponse.Result);
+			Assert.Equal(resultResponse.Result, 1);
+		}
+
+		[Fact]
+		public void InvokeRequest_ServiceProvider_Pass()
+		{
+			RpcRequest stringRequest = new RpcRequest("1", "Test");
+			RpcRoute route = new RpcRoute();
+			route.AddClass<TestIoCRouteClass>();
+			IRpcInvoker invoker = new DefaultRpcInvoker();
+			IServiceCollection serviceCollection = new ServiceCollection();
+			serviceCollection.AddScoped<TestInjectionClass>();
+			serviceCollection.AddScoped<TestIoCRouteClass>();
+			IServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
+			RpcResponse response = invoker.InvokeRequest(stringRequest, route, serviceProvider);
+
+			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.NotNull(resultResponse.Result);
 			Assert.IsType<int>(resultResponse.Result);
 			Assert.Equal(resultResponse.Result, 1);
@@ -98,5 +115,23 @@ namespace JsonRpc.Router.Tests
 		{
 			return a;
 		}
+	}
+
+	public class TestIoCRouteClass
+	{
+		private TestInjectionClass test { get; }
+		public TestIoCRouteClass(TestInjectionClass test)
+		{
+			this.test = test;
+		}
+
+		public int Test()
+		{
+			return 1;
+		}
+	}
+	public class TestInjectionClass
+	{
+
 	}
 }
