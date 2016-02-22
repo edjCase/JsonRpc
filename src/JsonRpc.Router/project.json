@@ -1,6 +1,6 @@
 {
 	"title": "JsonRpc DNX Router",
-	"version": "1.0.0-rc1-4",
+	"version": "1.0.0-rc1-5",
 	"description": "A DNX IRouter implementation for Json Rpc v2 requests for Microsoft.AspNet.Routing.",
 	"summary": "A DNX Json RPC v2 router",
 	"authors": [ "Gekctek" ],
@@ -8,7 +8,7 @@
 	"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
 	"repository": { "type": "git" },
 	"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-	"releaseNotes": "Fixing IServiceProvider usage so that the controllers (or equivalent) dont need to be added to the services themselves, just their injected components",
+	"releaseNotes": "Fixing IoC scope so that it uses the HttpContext serviceprovider so it resets on new request.",
 
 	"dependencies": {
 		"JsonRpc.Core": "1.0.0-rc1-*",
