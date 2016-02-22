@@ -8,7 +8,7 @@
 	"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
 	"repository": { "type": "git" },
 	"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-	"releaseNotes": "Fixing IoC scope so that it uses the HttpContext serviceprovider so it resets on new request.",
+	"releaseNotes": "Fixing IoC scope so that it uses the HttpContext serviceprovider so it resets on new request. And now using net451/dotnet5.5 instead of dnx frameworks.",
 
 	"dependencies": {
 		"JsonRpc.Core": "1.0.0-rc1-*",
@@ -17,8 +17,8 @@
 	},
 
 	"frameworks": {
-		"dnx451": { },
-		"dnxcore50": {
+		"net451": { },
+		"dotnet5.5": {
 			"dependencies": {
 				"System.Collections": "4.0.11-beta-23516",
 				"System.Runtime": "4.0.21-beta-23516",
