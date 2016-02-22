@@ -1,6 +1,6 @@
 {
 	"title": "JsonRpc DNX Client",
-	"version": "1.0.0-rc1-3",
+	"version": "1.0.0-rc1-4",
 	"description": "A DNX Client implementation for Json Rpc v2 requests.",
 	"summary": "A DNX Json RPC v2 client",
 	"authors": [ "Gekctek" ],
@@ -8,7 +8,7 @@
 	"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
 	"repository": { "type": "git" },
 	"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-	"releaseNotes": "Changing RpcResponse object to better handle GetResult<> types",
+	"releaseNotes": "Now using net451/dotnet5.5 instead of dnx frameworks.",
 
 	"dependencies": {
 		"Newtonsoft.Json": "7.0.1",
@@ -18,8 +18,8 @@
 	},
 
 	"frameworks": {
-		"dnx451": { },
-		"dnxcore50": {
+		"net451": { },
+		"dotnet5.5": {
 			"dependencies": {
 				"System.Collections": "4.0.11-beta-23516",
 				"System.Runtime": "4.0.21-beta-23516",
@@ -27,7 +27,6 @@
 				"System.Threading": "4.0.11-beta-23516",
 				"System.IO.Compression": "4.1.0-beta-23516"
 			}
-		},
-		"net45": { }
+		}
 	}
 }
