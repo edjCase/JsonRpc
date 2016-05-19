@@ -1,6 +1,6 @@
 {
 	"title": "JsonRpc DNX Router",
-	"version": "1.0.0-rc1-7",
+	"version": "1.0.0-rc1-8",
 	"description": "A DNX IRouter implementation for Json Rpc v2 requests for Microsoft.AspNet.Routing.",
 	"summary": "A DNX Json RPC v2 router",
 	"authors": [ "Gekctek" ],
@@ -8,10 +8,10 @@
 	"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
 	"repository": { "type": "git" },
 	"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-	"releaseNotes": "Changing dotnet framework version to 54.",
+	"releaseNotes": "No longer swallowing internal server errors from invoking methods.",
 
 	"dependencies": {
-		"JsonRpc.Core": "1.0.0-rc1-*",
+		"JsonRpc.Core": "1.0.0-rc1-7",
 		"Microsoft.AspNet.Routing": "1.0.0-rc1-final",
 		"Microsoft.Extensions.Logging.Abstractions": "1.0.0-rc1-final"
 	},

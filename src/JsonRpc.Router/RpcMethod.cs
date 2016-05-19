@@ -88,14 +88,18 @@ namespace edjCase.JsonRpc.Router
 				parameters = this.ConvertParameters(parameters);
 
 				object returnObj = this.methodInfo.Invoke(obj, parameters);
-				
+
 				returnObj = RpcMethod.HandleAsyncResponses(returnObj);
-				
+
 				return returnObj;
 			}
-			catch (Exception)
+			catch (TargetInvocationException ex)
 			{
-				throw new RpcInvalidParametersException();
+				throw new RpcUnknownException(ex.Message);
+			}
+			catch (Exception ex)
+			{
+				throw new RpcInvalidParametersException(ex.Message);
 			}
 		}
 
