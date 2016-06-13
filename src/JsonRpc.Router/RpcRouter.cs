@@ -6,9 +6,10 @@ using System.Text;
 using System.Threading.Tasks;
 using edjCase.JsonRpc.Core;
 using edjCase.JsonRpc.Router.Abstractions;
-using Microsoft.AspNet.Routing;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using edjCase.JsonRpc.Router.Utilities;
 
 namespace edjCase.JsonRpc.Router
 {
@@ -114,17 +115,18 @@ namespace edjCase.JsonRpc.Router
 					List<RpcRequest> requests = this.parser.ParseRequests(jsonString, this.configuration.JsonSerializerSettings);
 					this.logger?.LogInformation($"Processing {requests.Count} Rpc requests");
 
-					List<RpcResponse> responses = this.invoker.InvokeBatchRequest(requests, route, this.configuration.ServiceProvider, this.configuration.JsonSerializerSettings);
+					List<RpcResponse> responses = this.invoker.InvokeBatchRequest(requests, route, context.HttpContext.RequestServices, this.configuration.JsonSerializerSettings);
 
 					this.logger?.LogInformation($"Sending '{responses.Count}' Rpc responses");
 					await this.SetResponse(context, responses, this.configuration.JsonSerializerSettings);
-					context.IsHandled = true;
+					Func<RouteContext, Task> reD = (c) => Task.FromResult(0);
+					context.MarkAsHandled();
 
 					this.logger?.LogInformation("Rpc request complete");
 				}
 				catch (RpcException ex)
 				{
-					context.IsHandled = true;
+					context.MarkAsHandled();
 					this.logger?.LogError("Error occurred when proccessing Rpc request. Sending Rpc error response", ex);
 					await this.SetErrorResponse(context, ex);
 					return;
@@ -133,8 +135,8 @@ namespace edjCase.JsonRpc.Router
 			catch (Exception ex)
 			{
 				string errorMessage = "Unknown exception occurred when trying to process Rpc request. Marking route unhandled";
-                this.logger?.LogError(errorMessage, ex);
-				context.IsHandled = false;
+				this.logger?.LogError(errorMessage, ex);
+				context.MarkAsHandled();
 			}
 		}
 
@@ -174,7 +176,7 @@ namespace edjCase.JsonRpc.Router
 			string acceptEncoding = context.HttpContext.Request.Headers["Accept-Encoding"];
 			if (!string.IsNullOrWhiteSpace(acceptEncoding))
 			{
-				string[] encodings = acceptEncoding.Split(new[] {',', ' '}, StringSplitOptions.RemoveEmptyEntries);
+				string[] encodings = acceptEncoding.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
 				foreach (string encoding in encodings)
 				{
 					CompressionType compressionType;
@@ -183,7 +185,7 @@ namespace edjCase.JsonRpc.Router
 					{
 						continue;
 					}
-					context.HttpContext.Response.Headers.Add("Content-Encoding", new[] {encoding});
+					context.HttpContext.Response.Headers.Add("Content-Encoding", new[] { encoding });
 					this.compressor.CompressText(context.HttpContext.Response.Body, resultJson, Encoding.UTF8, compressionType);
 					return;
 				}

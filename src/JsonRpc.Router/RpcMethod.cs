@@ -75,7 +75,7 @@ namespace edjCase.JsonRpc.Router
 			if (this.serviceProvider != null)
 			{
 				//Use service provider (if exists) to create instance
-				var objectFactory = ActivatorUtilities.CreateFactory(this.type, Type.EmptyTypes);
+				var objectFactory = ActivatorUtilities.CreateFactory(this.type, new Type[0]);
 				obj = objectFactory(this.serviceProvider, null);
 			}
 			if(obj == null)
@@ -88,14 +88,18 @@ namespace edjCase.JsonRpc.Router
 				parameters = this.ConvertParameters(parameters);
 
 				object returnObj = this.methodInfo.Invoke(obj, parameters);
-				
+
 				returnObj = RpcMethod.HandleAsyncResponses(returnObj);
-				
+
 				return returnObj;
 			}
-			catch (Exception)
+			catch (TargetInvocationException ex)
 			{
-				throw new RpcInvalidParametersException();
+				throw new RpcUnknownException(ex.Message);
+			}
+			catch (Exception ex)
+			{
+				throw new RpcInvalidParametersException(ex.Message);
 			}
 		}
 

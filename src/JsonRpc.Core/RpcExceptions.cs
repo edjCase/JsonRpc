@@ -81,7 +81,7 @@ namespace edjCase.JsonRpc.Core
 		internal RpcInvalidParametersException(RpcError error) : base(error)
 		{
 		}
-		public RpcInvalidParametersException() : base(RpcErrorCode.InvalidParams, "Parameters do not match")
+		public RpcInvalidParametersException(string message) : base(RpcErrorCode.InvalidParams, message)
 		{
 		}
 	}

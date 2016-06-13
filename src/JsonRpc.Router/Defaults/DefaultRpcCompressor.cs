@@ -36,7 +36,7 @@ namespace edjCase.JsonRpc.Router.Defaults
 		/// <param name="compressionType">Type of compression to be used when compressing</param>
 		public void CompressText(Stream outputStream, string text, Encoding encoding, CompressionType compressionType)
 		{
-			this.Logger?.LogVerbose($"Compressing the following text with the '{compressionType}' format: {text}");
+			this.Logger?.LogDebug($"Compressing the following text with the '{compressionType}' format: {text}");
 			switch (compressionType)
 			{
 				case CompressionType.Gzip:
@@ -62,7 +62,7 @@ namespace edjCase.JsonRpc.Router.Defaults
 				default:
 					throw new ArgumentOutOfRangeException(nameof(compressionType), compressionType, null);
 			}
-			this.Logger?.LogVerbose("Compression successful");
+			this.Logger?.LogDebug("Compression successful");
 		}
 	}
 }

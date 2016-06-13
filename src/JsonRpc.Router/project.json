@@ -1,31 +1,38 @@
 {
 	"title": "JsonRpc DNX Router",
-	"version": "1.0.0-rc1-4",
-	"description": "A DNX IRouter implementation for Json Rpc v2 requests for Microsoft.AspNet.Routing.",
-	"summary": "A DNX Json RPC v2 router",
+	"version": "1.0.0-rc2-001",
+	"description": "A AspNet Core IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing.",
+	"packOptions": {
+		"summary": "A Json RPC v2 router for AspNet Core",
+		"tags": [ "JsonRpc Rpc AspNet Json-Rpc DNX" ],
+		"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
+		"repository": { "type": "git" },
+		"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
+		"releaseNotes": "Upgrading to rc2"
+	},
 	"authors": [ "Gekctek" ],
-	"tags": [ "JsonRpc Rpc AspNet Json-Rpc DNX" ],
-	"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
-	"repository": { "type": "git" },
-	"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-	"releaseNotes": "Fixing IServiceProvider usage so that the controllers (or equivalent) dont need to be added to the services themselves, just their injected components",
 
 	"dependencies": {
-		"JsonRpc.Core": "1.0.0-rc1-*",
-		"Microsoft.AspNet.Routing": "1.0.0-rc1-final",
-		"Microsoft.Extensions.Logging.Abstractions": "1.0.0-rc1-final"
+		"JsonRpc.Core": "1.0.0-rc2-*",
+		"Microsoft.AspNetCore.Routing": "1.0.0-rc2-final",
+		"Microsoft.Extensions.Logging.Abstractions": "1.0.0-rc2-final"
 	},
 
 	"frameworks": {
-		"dnx451": { },
-		"dnxcore50": {
+		"net451": { },
+		"netstandard1.3": {
 			"dependencies": {
-				"System.Collections": "4.0.11-beta-23516",
-				"System.Runtime": "4.0.21-beta-23516",
-				"System.Runtime.Serialization.Primitives": "4.1.0-beta-23516",
-				"System.Threading": "4.0.11-beta-23516",
-				"System.IO.Compression": "4.1.0-beta-23516"
-			}
+				"System.Collections": "4.0.11-rc2-24027",
+				"System.Runtime": "4.1.0-rc2-24027",
+				"System.Runtime.Serialization.Primitives": "4.1.1-rc2-24027",
+				"System.Threading": "4.0.11-rc2-24027",
+				"System.IO.Compression": "4.1.0-rc2-24027"
+			},
+			"imports": [
+				"dotnet52",
+				"dnxcore50",
+				"portable-net45+win8"
+			]
 		}
 	}
 }

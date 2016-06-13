@@ -1,14 +1,16 @@
 ﻿{
 	"title": "JsonRpc DNX Client Sample",
-	"version": "1.0.0-rc1-1",
-	"description": "A DNX Client sample for Json Rpc v2 requests.",
-	"summary": "A DNX Json RPC v2 client sample",
+	"version": "1.0.0-rc2-001",
+	"description": "A Client sample for Json Rpc v2 requests for .Net Core.",
+	"packOptions": {
+		"summary": "A Json RPC v2 client sample for .Net Core",
+		"tags": [ "JsonRpc Rpc AspNet Json-Rpc .Net Core" ],
+		"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
+		"repository": { "type": "git" },
+		"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
+		"releaseNotes": "Upgrading to rc2"
+	},
 	"authors": [ "Gekctek" ],
-	"tags": [ "JsonRpc Rpc AspNet Json-Rpc DNX" ],
-	"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
-	"repository": {"type": "git"},
-	"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-	"releaseNotes": "Initial",
 
 	"dependencies": {
 		"JsonRpc.Client": {
@@ -16,21 +18,36 @@
 			"version": "1.0.0-*"
 		}
 	},
-	"commands": {
-		"run": "JsonRpc.Client.Sample"
-	},
 
 	"frameworks": {
 		"dnx451": { },
-		"dnxcore50": {
+		"netcoreapp1.0": {
 			"dependencies": {
-				"System.Collections": "4.0.11-beta-23516",
-				"System.Runtime": "4.0.21-beta-23516",
-				"System.Runtime.Serialization.Primitives": "4.1.0-beta-23516",
-				"System.Threading": "4.0.11-beta-23516",
-				"System.IO.Compression": "4.1.0-beta-23516",
-				"System.Console": "4.0.0-beta-23516"
-			}
+				"Microsoft.NETCore.App": {
+					"version": "1.0.0-rc2-3002702",
+					"type": "platform"
+				},
+				"System.Collections": "4.0.11-rc2-24027",
+				"System.Runtime": "4.1.0-rc2-24027",
+				"System.Runtime.Serialization.Primitives": "4.1.1-rc2-24027",
+				"System.Threading": "4.0.11-rc2-24027",
+				"System.IO.Compression": "4.1.0-rc2-24027",
+				"System.Console": "4.0.0-rc2-24027"
+			},
+			"imports": [
+				"dotnet52",
+				"dnxcore50",
+				"portable-net45+win8"
+			]
 		}
+	},
+
+	"buildOptions": {
+		"emitEntryPoint": true,
+		"preserveCompilationContext": true
+	},
+
+	"runtimeOptions": {
+		"gcServer": true
 	}
 }
