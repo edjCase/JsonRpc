@@ -1,14 +1,14 @@
 {
-	"title": "JsonRpc DNX Router",
-	"version": "1.0.0-rc2-001",
+	"title": "JsonRpc AspNet Core Router",
+	"version": "1.0.0-rc2-002",
 	"description": "A AspNet Core IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing.",
 	"packOptions": {
 		"summary": "A Json RPC v2 router for AspNet Core",
-		"tags": [ "JsonRpc Rpc AspNet Json-Rpc DNX" ],
+		"tags": [ "JsonRpc Rpc AspNet Json-Rpc .Net Core" ],
 		"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
 		"repository": { "type": "git" },
 		"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-		"releaseNotes": "Upgrading to rc2"
+		"releaseNotes": "Fixing void return type methods throwing errors when called"
 	},
 	"authors": [ "Gekctek" ],
 

@@ -1,5 +1,5 @@
 ﻿{
-	"title": "JsonRpc DNX Client Sample",
+	"title": "JsonRpc .Net Core Client Sample",
 	"version": "1.0.0-rc2-001",
 	"description": "A Client sample for Json Rpc v2 requests for .Net Core.",
 	"packOptions": {
