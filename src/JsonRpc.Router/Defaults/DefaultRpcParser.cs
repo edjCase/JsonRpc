@@ -44,7 +44,7 @@ namespace edjCase.JsonRpc.Router.Defaults
 			{
 				throw new ArgumentNullException(nameof(requestUrl));
 			}
-			this.Logger?.LogVerbose($"Attempting to match Rpc route for the request url '{requestUrl}'");
+			this.Logger?.LogDebug($"Attempting to match Rpc route for the request url '{requestUrl}'");
 			RpcPath requestPath = RpcPath.Parse(requestUrl);
 			RpcPath routePrefix = RpcPath.Parse(routes.RoutePrefix);
 			
@@ -54,12 +54,12 @@ namespace edjCase.JsonRpc.Router.Defaults
 				routePath = routePrefix.Add(routePath);
 				if (requestPath == routePath)
 				{
-					this.Logger?.LogVerbose($"Matched the request url '{requestUrl}' to the route '{rpcRoute.Name}'");
+					this.Logger?.LogDebug($"Matched the request url '{requestUrl}' to the route '{rpcRoute.Name}'");
 					route = rpcRoute;
 					return true;
 				}
 			}
-			this.Logger?.LogVerbose($"Failed to match the request url '{requestUrl}' to a route");
+			this.Logger?.LogDebug($"Failed to match the request url '{requestUrl}' to a route");
 			route = null;
 			return false;
 		}
@@ -73,7 +73,7 @@ namespace edjCase.JsonRpc.Router.Defaults
 		/// <returns>List of Rpc requests that were parsed from the json</returns>
 		public List<RpcRequest> ParseRequests(string jsonString, JsonSerializerSettings jsonSerializerSettings = null)
 		{
-			this.Logger?.LogVerbose($"Attempting to parse Rpc request from the json string '{jsonString}'");
+			this.Logger?.LogDebug($"Attempting to parse Rpc request from the json string '{jsonString}'");
 			List<RpcRequest> rpcRequests;
 			if (string.IsNullOrWhiteSpace(jsonString))
 			{
@@ -108,7 +108,7 @@ namespace edjCase.JsonRpc.Router.Defaults
 			{
 				throw new RpcInvalidRequestException("No rpc json requests found");
 			}
-			this.Logger?.LogVerbose($"Successfully parsed {rpcRequests.Count} Rpc request(s)");
+			this.Logger?.LogDebug($"Successfully parsed {rpcRequests.Count} Rpc request(s)");
 			HashSet<object> uniqueIds = new HashSet<object>();
 			foreach (RpcRequest rpcRequest in rpcRequests)
 			{

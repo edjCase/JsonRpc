@@ -37,7 +37,7 @@ namespace edjCase.JsonRpc.Router.Defaults
 		/// <returns>List of Rpc responses for the requests</returns>
 		public List<RpcResponse> InvokeBatchRequest(List<RpcRequest> requests, RpcRoute route, IServiceProvider serviceProvider = null, JsonSerializerSettings jsonSerializerSettings = null)
 		{
-			this.Logger?.LogVerbose($"Invoking '{requests.Count}' batch requests");
+			this.Logger?.LogDebug($"Invoking '{requests.Count}' batch requests");
 			var invokingTasks = new List<Task<RpcResponse>>();
 			foreach (RpcRequest request in requests)
 			{
@@ -52,7 +52,7 @@ namespace edjCase.JsonRpc.Router.Defaults
 				.Where(r => r != null)
 				.ToList();
 
-			this.Logger?.LogVerbose($"Finished '{requests.Count}' batch requests");
+			this.Logger?.LogDebug($"Finished '{requests.Count}' batch requests");
 
 			return responses;
 		}
@@ -83,7 +83,7 @@ namespace edjCase.JsonRpc.Router.Defaults
 				return this.GetUnknownExceptionReponse(request, ex);
 			}
 
-			this.Logger?.LogVerbose($"Invoking request with id '{request.Id}'");
+			this.Logger?.LogDebug($"Invoking request with id '{request.Id}'");
 			RpcResponse rpcResponse;
 			try
 			{
@@ -95,9 +95,9 @@ namespace edjCase.JsonRpc.Router.Defaults
 				object[] parameterList;
 				RpcMethod rpcMethod = this.GetMatchingMethod(route, request, out parameterList, serviceProvider, jsonSerializerSettings);
 
-				this.Logger?.LogVerbose($"Attempting to invoke method '{request.Method}'");
+				this.Logger?.LogDebug($"Attempting to invoke method '{request.Method}'");
 				object result = rpcMethod.Invoke(parameterList);
-				this.Logger?.LogVerbose($"Finished invoking method '{request.Method}'");
+				this.Logger?.LogDebug($"Finished invoking method '{request.Method}'");
 
 				JsonSerializer jsonSerializer = JsonSerializer.Create(jsonSerializerSettings);
 				JToken resultJToken = JToken.FromObject(result, jsonSerializer);
@@ -116,11 +116,11 @@ namespace edjCase.JsonRpc.Router.Defaults
 
 			if (request.Id != null)
 			{
-				this.Logger?.LogVerbose($"Finished request with id '{request.Id}'");
+				this.Logger?.LogDebug($"Finished request with id '{request.Id}'");
 				//Only give a response if there is an id
 				return rpcResponse;
 			}
-			this.Logger?.LogVerbose($"Finished request with no id. Not returning a response");
+			this.Logger?.LogDebug($"Finished request with no id. Not returning a response");
 			return null;
 		}
 
@@ -167,7 +167,7 @@ namespace edjCase.JsonRpc.Router.Defaults
 			{
 				throw new ArgumentNullException(nameof(request));
 			}
-			this.Logger?.LogVerbose($"Attempting to match Rpc request to a method '{request.Method}'");
+			this.Logger?.LogDebug($"Attempting to match Rpc request to a method '{request.Method}'");
 			List<RpcMethod> methods = DefaultRpcInvoker.GetRpcMethods(route, serviceProvider, jsonSerializerSettings);
 
 			methods = methods
@@ -221,7 +221,7 @@ namespace edjCase.JsonRpc.Router.Defaults
 			{
 				throw new RpcMethodNotFoundException();
 			}
-			this.Logger?.LogVerbose("Request was matched to a method");
+			this.Logger?.LogDebug("Request was matched to a method");
 			return rpcMethod;
 		}
 

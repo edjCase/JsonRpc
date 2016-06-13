@@ -11,31 +11,17 @@ namespace edjCase.JsonRpc.Client.Sample
 {
 	public class Program
 	{
-		public async Task Main(string[] args)
+		public static void Main(string[] args)
 		{
 			try
 			{
-				AuthenticationHeaderValue authHeaderValue = AuthenticationHeaderValue.Parse("Basic R2VrY3RlazpXZWxjMG1lIQ==");
-				RpcClient client = new RpcClient(new Uri("http://localhost:5000/RpcApi/"), authHeaderValue);
-				RpcRequest request = new RpcRequest("Id1", "CharacterCount", "Test");
-				RpcResponse response = await client.SendRequestAsync(request, "Strings");
-
-				List<RpcRequest> requests = new List<RpcRequest>
+				Program.Run().Wait();
+			}
+			catch (AggregateException aEx)
+			{
+				foreach (Exception exception in aEx.InnerExceptions)
 				{
-					request,
-					new RpcRequest("id2", "CharacterCount", "Test2"),
-					new RpcRequest("id3", "CharacterCount", "Test23")
-				};
-				List<RpcResponse> bulkResponse = await client.SendBulkRequestAsync(requests, "Strings");
-
-				IntegerFromSpace responseValue = response.GetResult<IntegerFromSpace>();
-				if (responseValue == null)
-				{
-					Console.WriteLine("null");
-				}
-				else
-				{
-					Console.WriteLine(responseValue.Test);
+					Console.WriteLine(exception.Message);
 				}
 			}
 			catch (Exception ex)
@@ -43,6 +29,32 @@ namespace edjCase.JsonRpc.Client.Sample
 				Console.WriteLine(ex.Message);
 			}
 			Console.ReadLine();
+		}
+
+		public static async Task Run()
+		{
+			AuthenticationHeaderValue authHeaderValue = AuthenticationHeaderValue.Parse("Basic R2VrY3RlazpXZWxjMG1lIQ==");
+			RpcClient client = new RpcClient(new Uri("http://localhost:62390/RpcApi/"), authHeaderValue);
+			RpcRequest request = new RpcRequest("Id1", "CharacterCount", "Test");
+			RpcResponse response = await client.SendRequestAsync(request, "Strings");
+
+			List<RpcRequest> requests = new List<RpcRequest>
+				{
+					request,
+					new RpcRequest("id2", "CharacterCount", "Test2"),
+					new RpcRequest("id3", "CharacterCount", "Test23")
+				};
+			List<RpcResponse> bulkResponse = await client.SendBulkRequestAsync(requests, "Strings");
+
+			IntegerFromSpace responseValue = response.GetResult<IntegerFromSpace>();
+			if (responseValue == null)
+			{
+				Console.WriteLine("null");
+			}
+			else
+			{
+				Console.WriteLine(responseValue.Test);
+			}
 		}
 	}
 

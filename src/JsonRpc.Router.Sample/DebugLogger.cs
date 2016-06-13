@@ -13,18 +13,13 @@ namespace edjCase.JsonRpc.Router.Sample
 			this.Name = name;
 			this.LogLevel = logLevel;
 		}
-
-		public IDisposable BeginScopeImpl(object state)
-		{
-			return null;
-		}
-
+		
 		public bool IsEnabled(LogLevel logLevel)
 		{
 			return logLevel >= this.LogLevel;
 		}
-
-		public void Log(LogLevel logLevel, int eventId, object state, Exception exception, Func<object, Exception, string> formatter)
+		
+		public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
 		{
 			if (!this.IsEnabled(logLevel))
 			{
@@ -33,6 +28,11 @@ namespace edjCase.JsonRpc.Router.Sample
 			string formattedException = formatter.Invoke(state, exception);
 			string logMessage = $"[{logLevel}] " + formattedException;
 			Debug.WriteLine(logMessage);
+		}
+
+		public IDisposable BeginScope<TState>(TState state)
+		{
+			return null;
 		}
 	}
 }

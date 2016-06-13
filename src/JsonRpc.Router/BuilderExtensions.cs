@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 // ReSharper disable once CheckNamespace
-namespace Microsoft.AspNet.Builder
+namespace Microsoft.AspNetCore.Builder
 {
 	/// <summary>
 	/// Extension class to add JsonRpc router to Asp.Net pipeline

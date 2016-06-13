@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using edjCase.JsonRpc.Router.Sample.RpcRoutes;
-using Microsoft.AspNet.Builder;
-using Microsoft.AspNet.Hosting;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
+using System.IO;
 
 namespace edjCase.JsonRpc.Router.Sample
 {
@@ -22,13 +23,14 @@ namespace edjCase.JsonRpc.Router.Sample
 		// Use this method to add services to the container
 		public void ConfigureServices(IServiceCollection services)
 		{
-			services.AddJsonRpc();
+			services
+				.AddJsonRpc()
+				.AddRouting();
 		}
 
 		// Configure is called after ConfigureServices is called.
 		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
 		{
-			loggerFactory.MinimumLevel = LogLevel.Debug;
 			loggerFactory.AddProvider(new DebugLoggerProvider());
 
 			app.Use((httpContext, next) =>
@@ -44,7 +46,7 @@ namespace edjCase.JsonRpc.Router.Sample
 				}
 				string headerValue = header.Value.First().Substring(6);
 				byte[] valueBytes = Convert.FromBase64String(headerValue);
-				string[] usernamePassword = Encoding.UTF8.GetString(valueBytes).Split(':');
+				string[] usernamePassword = Encoding.UTF8.GetString(valueBytes, 0, valueBytes.Length).Split(':');
 				if (usernamePassword[0] == "Gekctek" && usernamePassword[1] == "Welc0me!")
 				{
 					return next();
@@ -60,6 +62,21 @@ namespace edjCase.JsonRpc.Router.Sample
 				config.RegisterClassToRpcRoute<RpcCommands>("Commands");
 				config.RegisterClassToRpcRoute<RpcMath>("Math");
 			});
+		}
+	}
+
+	public class Program
+	{
+		public static void Main(string[] args)
+		{
+			var host = new WebHostBuilder()
+				.UseKestrel()
+				.UseContentRoot(Directory.GetCurrentDirectory())
+				.UseIISIntegration()
+				.UseStartup<Startup>()
+				.Build();
+
+			host.Run();
 		}
 	}
 }
