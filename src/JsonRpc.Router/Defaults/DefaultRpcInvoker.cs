@@ -42,7 +42,11 @@ namespace edjCase.JsonRpc.Router.Defaults
 			foreach (RpcRequest request in requests)
 			{
 				Task<RpcResponse> invokingTask = Task.Run(() => this.InvokeRequest(request, route, serviceProvider, jsonSerializerSettings));
-				invokingTasks.Add(invokingTask);
+				if(request.Id != null)
+				{
+					//Only wait for non-notification requests
+					invokingTasks.Add(invokingTask);
+				}
 			}
 
 			Task.WaitAll(invokingTasks.Cast<Task>().ToArray());
