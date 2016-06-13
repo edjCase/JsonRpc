@@ -20,7 +20,7 @@ namespace edjCase.JsonRpc.Router.Defaults
 		/// Optional logger for logging Rpc invocation
 		/// </summary>
 		public ILogger Logger { get; set; }
-		
+
 		/// <param name="logger">Optional logger for logging Rpc invocation</param>
 		public DefaultRpcInvoker(ILogger logger = null)
 		{
@@ -42,7 +42,7 @@ namespace edjCase.JsonRpc.Router.Defaults
 			foreach (RpcRequest request in requests)
 			{
 				Task<RpcResponse> invokingTask = Task.Run(() => this.InvokeRequest(request, route, serviceProvider, jsonSerializerSettings));
-				if(request.Id != null)
+				if (request.Id != null)
 				{
 					//Only wait for non-notification requests
 					invokingTasks.Add(invokingTask);
@@ -95,7 +95,7 @@ namespace edjCase.JsonRpc.Router.Defaults
 				{
 					throw new RpcInvalidRequestException($"Request must be jsonrpc version '{JsonRpcContants.JsonRpcVersion}'");
 				}
-				
+
 				object[] parameterList;
 				RpcMethod rpcMethod = this.GetMatchingMethod(route, request, out parameterList, serviceProvider, jsonSerializerSettings);
 
@@ -104,7 +104,8 @@ namespace edjCase.JsonRpc.Router.Defaults
 				this.Logger?.LogDebug($"Finished invoking method '{request.Method}'");
 
 				JsonSerializer jsonSerializer = JsonSerializer.Create(jsonSerializerSettings);
-				JToken resultJToken = JToken.FromObject(result, jsonSerializer);
+
+				JToken resultJToken = result != null ? JToken.FromObject(result, jsonSerializer) : null;
 				rpcResponse = new RpcResponse(request.Id, resultJToken);
 			}
 			catch (RpcException ex)

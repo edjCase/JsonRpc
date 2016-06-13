@@ -9,6 +9,10 @@ namespace edjCase.JsonRpc.Router.Sample.RpcRoutes
 			return id != Guid.Empty;
 		}
 		
+		public void Test()
+		{
+
+		}
 
 		private void HiddenMethod()
 		{
