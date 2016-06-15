@@ -1,5 +1,5 @@
 # JsonRpc.Router
-A DNX IRouter implementation for Json Rpc v2 requests for Microsoft.AspNet.Routing. (frameworks: dnx451, dnxcore50)
+A DNX IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing. (frameworks: dnx451, dnxcore50)
 
 The requirements/specifications are all based off of the [Json Rpc 2.0 Specification](http://www.jsonrpc.org/specification)
 
@@ -16,12 +16,13 @@ Install-Package JsonRpc.Router -Pre
 ```
 
 ## Usage
-Create a AspNet 5/Dnx Web Application, reference this library and in the `Startup` class configure the following:
+Create a ASP.NET Core Web Application, reference this library and in the `Startup` class configure the following:
 
 Add the dependency injected services in the `ConfigureServices` method:
 ```cs
 public void ConfigureServices(IServiceCollection services)
 {
+	services.AddRouting();
 	services.AddJsonRpc();
 	//Adds default IRpcInvoker, IRpcParser, IRpcCompressor implementations to the services collection.
 	//(Can be overridden by custom implementations if desired)
@@ -41,6 +42,8 @@ public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerF
 	});
 }
 ```
+also, you can set JsonSerializerSettings via `SetJsonSerializerSettings` method.
+
 Examples of Rpc Classes:
 ```cs
 //Classes can be named anything and be located anywhere in the project/solution
