@@ -1,5 +1,5 @@
 # JsonRpc.Router
-A DNX IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing. (frameworks: dnx451, dnxcore50)
+A .Net Core IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing. (frameworks: dnx451, netstandard1.3)
 
 The requirements/specifications are all based off of the [Json Rpc 2.0 Specification](http://www.jsonrpc.org/specification)
 
