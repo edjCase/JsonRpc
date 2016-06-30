@@ -8,13 +8,13 @@
 		"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
 		"repository": { "type": "git" },
 		"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-		"releaseNotes": "Upgrading to rc2."
+		"releaseNotes": "Upgrading to RTM."
 	},
 	"authors": [ "Gekctek" ],
 
 	"dependencies": {
-		"Newtonsoft.Json": "7.0.1",
-		"JsonRpc.Core": "1.0.0-rc2-*"
+		"Newtonsoft.Json": "9.0.1",
+		"JsonRpc.Core": "1.0.0",
 	},
 
 	"frameworks": {
@@ -25,12 +25,12 @@
 		},
 		"netstandard1.1": {
 			"dependencies": {
-				"System.Collections": "4.0.11-rc2-24027",
-				"System.Runtime": "4.1.0-rc2-24027",
-				"System.Runtime.Serialization.Primitives": "4.1.1-rc2-24027",
-				"System.Threading": "4.0.11-rc2-24027",
-				"System.IO.Compression": "4.1.0-rc2-24027",
-				"System.Net.Http": "4.0.1-rc2-24027"
+				"System.Collections": "4.0.11",
+				"System.Runtime": "4.1.0",
+				"System.Runtime.Serialization.Primitives": "4.1.1",
+				"System.Threading": "4.0.11",
+				"System.IO.Compression": "4.1.0",
+				"System.Net.Http": "4.1.0"
 			},
 			"imports": [
 				"dotnet52",

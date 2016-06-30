@@ -1,6 +1,6 @@
 {
 	"title": "JsonRpc AspNet Core Router",
-	"version": "1.0.0-rc2-002",
+	"version": "1.0.0",
 	"description": "A AspNet Core IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing.",
 	"packOptions": {
 		"summary": "A Json RPC v2 router for AspNet Core",
@@ -8,25 +8,25 @@
 		"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
 		"repository": { "type": "git" },
 		"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-		"releaseNotes": "Fixing void return type methods throwing errors when called"
+		"releaseNotes": "Upgrading to RTM"
 	},
 	"authors": [ "Gekctek" ],
 
 	"dependencies": {
-		"JsonRpc.Core": "1.0.0-rc2-*",
-		"Microsoft.AspNetCore.Routing": "1.0.0-rc2-final",
-		"Microsoft.Extensions.Logging.Abstractions": "1.0.0-rc2-final"
+		"JsonRpc.Core": "1.0.0",
+		"Microsoft.AspNetCore.Routing": "1.0.0",
+		"Microsoft.Extensions.Logging.Abstractions": "1.0.0"
 	},
 
 	"frameworks": {
 		"net451": { },
 		"netstandard1.3": {
 			"dependencies": {
-				"System.Collections": "4.0.11-rc2-24027",
-				"System.Runtime": "4.1.0-rc2-24027",
-				"System.Runtime.Serialization.Primitives": "4.1.1-rc2-24027",
-				"System.Threading": "4.0.11-rc2-24027",
-				"System.IO.Compression": "4.1.0-rc2-24027"
+				"System.Collections": "4.0.11",
+				"System.Runtime": "4.1.0",
+				"System.Runtime.Serialization.Primitives": "4.1.1",
+				"System.Threading": "4.0.11",
+				"System.IO.Compression": "4.1.0"
 			},
 			"imports": [
 				"dotnet52",

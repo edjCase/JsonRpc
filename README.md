@@ -1,18 +1,18 @@
 # JsonRpc.Router
-A .Net Core IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing. (frameworks: dnx451, netstandard1.3)
+A .Net Core IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing. (frameworks: net451, netstandard1.3)
 
 The requirements/specifications are all based off of the [Json Rpc 2.0 Specification](http://www.jsonrpc.org/specification)
 
 ## Installation
-##### NuGet: [JsonRpc.Router](https://www.nuget.org/packages/JsonRpc.Router/)
+##### NuGet: [JsonRpc.Router](https://www.nuget.org/packages/EdjCase.JsonRpc.Router/)
 
 using nuget command line:
 ```cs
-Install-Package JsonRpc.Router
+Install-Package EdjCase.JsonRpc.Router
 ```
 or for pre-release versions:
 ```cs
-Install-Package JsonRpc.Router -Pre
+Install-Package EdjCase.JsonRpc.Router -Pre
 ```
 
 ## Usage
@@ -22,10 +22,11 @@ Add the dependency injected services in the `ConfigureServices` method:
 ```cs
 public void ConfigureServices(IServiceCollection services)
 {
-	services.AddRouting();
-	services.AddJsonRpc();
-	//Adds default IRpcInvoker, IRpcParser, IRpcCompressor implementations to the services collection.
-	//(Can be overridden by custom implementations if desired)
+	services
+	    .AddJsonRpc()
+    	//Adds default IRpcInvoker, IRpcParser, IRpcCompressor implementations to the services collection.
+    	//(Can be overridden by custom implementations if desired)
+	    .AddRouting(); //Adds services for routing requests
 }
 ```
 
@@ -98,7 +99,6 @@ If you do not want to contribute directly, feel free to do bug/feature requests 
 
  - Better sample app
  - Performance testing
- - Keep up to date with latest aspnet beta
 
 License
 ----
