@@ -95,11 +95,11 @@ namespace EdjCase.JsonRpc.Router
 			}
 			catch (TargetInvocationException ex)
 			{
-				throw new RpcUnknownException(ex.Message);
+				throw new RpcUnknownException("Unknown exception when running rpc method.", ex);
 			}
 			catch (Exception ex)
 			{
-				throw new RpcInvalidParametersException(ex.Message);
+				throw new RpcInvalidParametersException("Unable to call method. Most likely invalid parameters for method.", ex);
 			}
 		}
 

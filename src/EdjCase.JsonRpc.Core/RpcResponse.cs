@@ -86,7 +86,10 @@ namespace EdjCase.JsonRpc.Core
 		}
 
 		/// <param name="exception">Exception from Rpc request</param>
-		public RpcError(RpcException exception)
+		/// <param name="showServerExceptions">
+		/// Optional. If true the inner exceptions to errors (possibly from server code) will be shown. Defaults to false.
+		/// </param>
+		public RpcError(RpcException exception, bool showServerExceptions)//TODO
 		{
 			if (exception == null)
 			{
@@ -94,6 +97,10 @@ namespace EdjCase.JsonRpc.Core
 			}
 			this.Code =  exception.ErrorCode;
 			this.Message = exception.Message;
+			if (showServerExceptions && exception.InnerException != null)
+			{
+				this.Message += "\tInner Exception: " + exception.InnerException.Message;
+			}
 			this.Data = exception.RpcData;
 		}
 

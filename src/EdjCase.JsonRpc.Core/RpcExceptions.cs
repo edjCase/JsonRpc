@@ -15,16 +15,17 @@ namespace EdjCase.JsonRpc.Core
 		/// Custom data attached to the error if needed
 		/// </summary>
 		public object RpcData { get; }
-		
+
 		/// <param name="errorCode">Rpc error code</param>
 		/// <param name="message">Error message</param>
 		/// <param name="data">Custom data if needed for error response</param>
-		protected RpcException(RpcErrorCode errorCode, string message, object data = null) : base(message)
+		/// <param name="innerException">Inner exception (optional)</param>
+		protected RpcException(RpcErrorCode errorCode, string message, object data = null, Exception innerException = null) : base(message, innerException)
 		{
 			this.ErrorCode = errorCode;
 			this.RpcData = data;
 		}
-
+		
 		/// <param name="error">Rpc error to make into an exception</param>
 		protected RpcException(RpcError error) : this(error.Code, error.Message, error.Data)
 		{
@@ -81,7 +82,7 @@ namespace EdjCase.JsonRpc.Core
 		internal RpcInvalidParametersException(RpcError error) : base(error)
 		{
 		}
-		public RpcInvalidParametersException(string message) : base(RpcErrorCode.InvalidParams, message)
+		public RpcInvalidParametersException(string message, Exception innerException = null) : base(RpcErrorCode.InvalidParams, message, null, innerException)
 		{
 		}
 	}
@@ -96,7 +97,8 @@ namespace EdjCase.JsonRpc.Core
 		}
 
 		/// <param name="message">Error message</param>
-		public RpcUnknownException(string message) : base(RpcErrorCode.InternalError, message)
+		/// <param name="innerException">Inner exception (optional)</param>
+		public RpcUnknownException(string message, Exception innerException = null) : base(RpcErrorCode.InternalError, message, null, innerException)
 		{
 		}
 	}

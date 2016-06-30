@@ -21,11 +21,21 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// </summary>
 		public ILogger Logger { get; set; }
 
+		/// <summary>
+		/// Optional. If true the inner exceptions to errors (possibly from server code) will be shown. Defaults to false.
+		/// </summary>
+		public bool ShowServerExceptions { get; set; }
+
 		/// <param name="logger">Optional logger for logging Rpc invocation</param>
-		public DefaultRpcInvoker(ILogger logger = null)
+		/// <param name="showServerExceptions">
+		/// Optional. If true the inner exceptions to errors (possibly from server code) will be shown. Defaults to false.
+		/// </param>
+		public DefaultRpcInvoker(ILogger logger = null, bool showServerExceptions = false)
 		{
 			this.Logger = logger;
+			this.ShowServerExceptions = showServerExceptions;
 		}
+
 
 		/// <summary>
 		/// Call the incoming Rpc requests methods and gives the appropriate respones
@@ -111,7 +121,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			catch (RpcException ex)
 			{
 				this.Logger?.LogError("An Rpc error occurred. Returning an Rpc error response", ex);
-				RpcError error = new RpcError(ex);
+				RpcError error = new RpcError(ex, this.ShowServerExceptions);
 				rpcResponse = new RpcResponse(request.Id, error);
 			}
 			catch (Exception ex)
@@ -138,13 +148,9 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		private RpcResponse GetUnknownExceptionReponse(RpcRequest request, Exception ex)
 		{
 			this.Logger?.LogError("An unknown error occurred. Returning an Rpc error response", ex);
-#if DEBUG
-			string message = ex.Message;
-#else
-			string message = "An internal server error has occurred";
-#endif
-			RpcUnknownException exception = new RpcUnknownException(message);
-			RpcError error = new RpcError(exception);
+
+			RpcUnknownException exception = new RpcUnknownException("An internal server error has occurred", ex);
+			RpcError error = new RpcError(exception, this.ShowServerExceptions);
 			if (request?.Id == null)
 			{
 				return null;

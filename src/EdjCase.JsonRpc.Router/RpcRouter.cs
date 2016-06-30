@@ -119,7 +119,6 @@ namespace EdjCase.JsonRpc.Router
 
 					this.logger?.LogInformation($"Sending '{responses.Count}' Rpc responses");
 					await this.SetResponse(context, responses, this.configuration.JsonSerializerSettings);
-					Func<RouteContext, Task> reD = (c) => Task.FromResult(0);
 					context.MarkAsHandled();
 
 					this.logger?.LogInformation("Rpc request complete");
@@ -129,7 +128,6 @@ namespace EdjCase.JsonRpc.Router
 					context.MarkAsHandled();
 					this.logger?.LogError("Error occurred when proccessing Rpc request. Sending Rpc error response", ex);
 					await this.SetErrorResponse(context, ex);
-					return;
 				}
 			}
 			catch (Exception ex)
@@ -150,7 +148,7 @@ namespace EdjCase.JsonRpc.Router
 		{
 			var responses = new List<RpcResponse>
 			{
-				new RpcResponse(null, new RpcError(exception))
+				new RpcResponse(null, new RpcError(exception, this.configuration.ShowServerExceptions))
 			};
 			await this.SetResponse(context, responses, this.configuration.JsonSerializerSettings);
 		}

@@ -27,7 +27,12 @@ namespace EdjCase.JsonRpc.Router
 			get { return this.Routes.RoutePrefix; }
 			set { this.Routes.RoutePrefix = value; }
 		}
-		
+
+		/// <summary>
+		/// If true will show exception messages that the server rpc methods throw. Defaults to false
+		/// </summary>
+		public bool ShowServerExceptions { get; set; }
+
 		/// <param name="routePrefix">Optional prefix for all the routes</param>
 		public RpcRouterConfiguration(string routePrefix = null)
 		{
