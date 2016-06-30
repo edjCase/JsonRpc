@@ -1,0 +1,39 @@
+{
+	"version": "1.0.0-*",
+	"description": "JsonRpc.Router.Tests Class Library",
+	"authors": [ "Gekctek" ],
+
+	"dependencies": {
+		"EdjCase.JsonRpc.Router": "1.0.0",
+		"xunit": "2.1.0",
+		"xunit.runner.dnx": "2.1.0-rc1-build204",
+		"Microsoft.Extensions.DependencyInjection": "1.0.0"
+	},
+
+	"commands": {
+		"test": "xunit.runner.dnx"
+	},
+
+	"frameworks": {
+		"netcoreapp1.0": {
+			"dependencies": {
+				"Microsoft.NETCore.App": {
+					"version": "1.0.0",
+					"type": "platform"
+				},
+				"System.Collections": "4.0.11",
+				"System.Runtime": "4.1.0",
+				"System.Threading": "4.0.11",
+				"Microsoft.CSharp": "4.0.1"
+			},
+			"imports": [
+				"dotnet5.6",
+				"dnxcore50",
+				"portable-net45+win8"
+			]
+		}
+	},
+	"runtimes": {
+		"win10-x64": { }
+	}
+}
