@@ -5,6 +5,7 @@ using EdjCase.JsonRpc.Core;
 using EdjCase.JsonRpc.Router.Abstractions;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using EdjCase.JsonRpc.Router.Utilities;
 
 namespace EdjCase.JsonRpc.Router.Defaults
 {
@@ -98,9 +99,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			catch (Exception ex) when (!(ex is RpcException))
 			{
 				string errorMessage = "Unable to parse json request into an rpc format.";
-#if DEBUG
-				errorMessage += "\tException: " + ex.Message;
-#endif
+				this.Logger?.LogException(ex, errorMessage);
 				throw new RpcInvalidRequestException(errorMessage);
 			}
 

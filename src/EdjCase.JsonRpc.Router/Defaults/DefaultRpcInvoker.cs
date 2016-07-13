@@ -8,6 +8,7 @@ using EdjCase.JsonRpc.Router.Abstractions;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using EdjCase.JsonRpc.Router.Utilities;
 
 namespace EdjCase.JsonRpc.Router.Defaults
 {
@@ -120,7 +121,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 			catch (RpcException ex)
 			{
-				this.Logger?.LogError("An Rpc error occurred. Returning an Rpc error response", ex);
+				this.Logger?.LogException(ex, "An Rpc error occurred. Returning an Rpc error response");
 				RpcError error = new RpcError(ex, this.ShowServerExceptions);
 				rpcResponse = new RpcResponse(request.Id, error);
 			}
@@ -147,7 +148,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <returns>Rpc error response from the exception</returns>
 		private RpcResponse GetUnknownExceptionReponse(RpcRequest request, Exception ex)
 		{
-			this.Logger?.LogError("An unknown error occurred. Returning an Rpc error response", ex);
+			this.Logger?.LogException(ex, "An unknown error occurred. Returning an Rpc error response");
 
 			RpcUnknownException exception = new RpcUnknownException("An internal server error has occurred", ex);
 			RpcError error = new RpcError(exception, this.ShowServerExceptions);

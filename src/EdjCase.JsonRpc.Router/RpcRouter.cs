@@ -126,14 +126,14 @@ namespace EdjCase.JsonRpc.Router
 				catch (RpcException ex)
 				{
 					context.MarkAsHandled();
-					this.logger?.LogError("Error occurred when proccessing Rpc request. Sending Rpc error response", ex);
+					this.logger?.LogException(ex, "Error occurred when proccessing Rpc request. Sending Rpc error response");
 					await this.SetErrorResponse(context, ex);
 				}
 			}
 			catch (Exception ex)
 			{
 				string errorMessage = "Unknown exception occurred when trying to process Rpc request. Marking route unhandled";
-				this.logger?.LogError(errorMessage, ex);
+				this.logger?.LogException(ex, errorMessage);
 				context.MarkAsHandled();
 			}
 		}
