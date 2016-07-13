@@ -1,8 +1,8 @@
 SET configuration=Release
 SET out=C:/Publish
 
-call dnu pack ./src/JsonRpc.Core --configuration %configuration% --out "%out%/JsonRpc.Core"
+call dotnet pack ./src/EdjCase.JsonRpc.Core -c %configuration% -o "%out%/EdjCase.JsonRpc.Core"
 
-call dnu pack ./src/JsonRpc.Router --configuration %configuration% --out "%out%/JsonRpc.Router"
+call dotnet pack ./src/EdjCase.JsonRpc.Router -c %configuration% -o "%out%/EdjCase.JsonRpc.Router"
 
-call dnu pack ./src/JsonRpc.Client --configuration %configuration% --out "%out%/JsonRpc.Client"
+call dotnet pack ./src/EdjCase.JsonRpc.Client -c %configuration% -o "%out%/EdjCase.JsonRpc.Client"

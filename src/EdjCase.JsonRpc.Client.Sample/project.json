@@ -1,21 +1,19 @@
 ﻿{
 	"title": "JsonRpc .Net Core Client Sample",
-	"version": "1.0.0",
 	"description": "A Client sample for Json Rpc v2 requests for .Net Core.",
 	"packOptions": {
 		"summary": "A Json RPC v2 client sample for .Net Core",
 		"tags": [ "JsonRpc Rpc AspNet Json-Rpc .Net Core" ],
-		"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
+		"projectUrl": "https://github.com/edjCase/JsonRpc",
 		"repository": { "type": "git" },
-		"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-		"releaseNotes": "Upgrading to RTM"
+		"licenseUrl": "https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE",
+		"releaseNotes": "Unifying version numbers."
 	},
 	"authors": [ "Gekctek" ],
 
 	"dependencies": {
 		"EdjCase.JsonRpc.Client": {
-			"target": "project",
-			"version": "1.0.0"
+			"target": "project"
 		}
 	},
 

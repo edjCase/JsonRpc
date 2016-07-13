@@ -1,16 +1,14 @@
 {
 	"webroot": "wwwroot",
-	"version": "1.0.0",
 
 	"dependencies": {
 		"Microsoft.AspNetCore.Server.Kestrel": "1.0.0",
 		"Microsoft.AspNetCore.Server.IISIntegration": "1.0.0",
-		"EdjCase.JsonRpc.Router": "1.0.0"
+		"EdjCase.JsonRpc.Router": {
+			"target": "project"
+		}
 	},
-
-	"commands": {
-	},
-
+	
 	"frameworks": {
 		"dnx451": { },
 		"netcoreapp1.0": {

@@ -1,13 +1,13 @@
 {
-	"version": "1.0.1",
+	"version": "1.0.3",
 	"description": "The core library used by JsonRpc client/router.",
 	"packOptions": {
 		"summary": "A Json RPC v2 core library for .Net Core",
 		"tags": [ "JsonRpc Rpc Json-Rpc .Net Core" ],
-		"projectUrl": "https://github.com/Gekctek/JsonRpc.Router",
+		"projectUrl": "https://github.com/edjCase/JsonRpc",
 		"repository": { "type": "git" },
-		"licenseUrl": "https://raw.githubusercontent.com/Gekctek/JsonRpc.Router/master/LICENSE",
-		"releaseNotes": "Fixing internal error messages not showing in the response."
+		"licenseUrl": "https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE",
+		"releaseNotes": "Unifying version numbers."
 	},
 	"authors": [ "Gekctek" ],
 
