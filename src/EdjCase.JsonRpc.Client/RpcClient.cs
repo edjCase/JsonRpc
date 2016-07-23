@@ -65,7 +65,7 @@ namespace EdjCase.JsonRpc.Client
 			{
 				throw new ArgumentNullException(nameof(request));
 			}
-			return await this.SendAsync<RpcRequest, RpcResponse>(request, route);
+			return await this.SendAsync<RpcRequest, RpcResponse>(request, route).ConfigureAwait(false);
 		}
 
 		/// <summary>
@@ -75,14 +75,14 @@ namespace EdjCase.JsonRpc.Client
 		/// <param name="route">(Optional) Route that will append to the base url if the request method call is not located at the base route</param>
 		/// <param name="paramList">List of parameters (in order) for the rpc method</param>
 		/// <returns>The rpc response for the sent request</returns>
-		public Task<RpcResponse> SendRequestAsync(string method, string route = null, params object[] paramList)
+		public async Task<RpcResponse> SendRequestAsync(string method, string route = null, params object[] paramList)
 		{
 			if (string.IsNullOrWhiteSpace(method))
 			{
 				throw new ArgumentNullException(nameof(method));
 			}
 			RpcRequest request= new RpcRequest(Guid.NewGuid().ToString(), method, paramList);
-			return this.SendRequestAsync(request, route);
+			return await this.SendRequestAsync(request, route).ConfigureAwait(false);
 		}
 
 		/// <summary>
@@ -98,7 +98,7 @@ namespace EdjCase.JsonRpc.Client
 				throw new ArgumentNullException(nameof(requests));
 			}
 			List<RpcRequest> requestList = requests.ToList();
-			return await this.SendAsync<List<RpcRequest>, List<RpcResponse>>(requestList, route);
+			return await this.SendAsync<List<RpcRequest>, List<RpcResponse>>(requestList, route).ConfigureAwait(false); ;
 		}
 
 		/// <summary>
