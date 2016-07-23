@@ -117,7 +117,7 @@ namespace EdjCase.JsonRpc.Client
 
 					string rpcRequestJson = JsonConvert.SerializeObject(request, this.JsonSerializerSettings);
 					HttpContent httpContent = new StringContent(rpcRequestJson, this.Encoding ?? Encoding.UTF8, this.ContentType ?? "application/json");
-					HttpResponseMessage httpResponseMessage = await httpClient.PostAsync(route, httpContent);
+					HttpResponseMessage httpResponseMessage = await httpClient.PostAsync(route, httpContent).ConfigureAwait(false);
 					httpResponseMessage.EnsureSuccessStatusCode();
 
 					string responseJson = await httpResponseMessage.Content.ReadAsStringAsync();
