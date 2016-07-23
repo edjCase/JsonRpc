@@ -1,5 +1,5 @@
 {
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"description": "A .Net Core Client implementation for Json Rpc v2 requests.",
 	"packOptions": {
 		"summary": "A Json RPC v2 client for .Net Core",
