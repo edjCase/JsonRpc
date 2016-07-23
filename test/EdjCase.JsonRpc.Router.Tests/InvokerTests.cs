@@ -5,6 +5,7 @@ using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Defaults;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Newtonsoft.Json.Linq;
 
 namespace EdjCase.JsonRpc.Router.Tests
 {
@@ -65,8 +66,8 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.NotNull(resultResponse.Result);
-			Assert.IsType<int>(resultResponse.Result);
-			Assert.Equal(resultResponse.Result, 1);
+			Assert.Equal(JTokenType.Integer, resultResponse.Result.Type);
+			Assert.Equal(resultResponse.Result.Value<int>(), 1);
 		}
 
 		[Fact]
@@ -84,8 +85,8 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.NotNull(resultResponse.Result);
-			Assert.IsType<int>(resultResponse.Result);
-			Assert.Equal(resultResponse.Result, 1);
+			Assert.Equal(JTokenType.Integer, resultResponse.Result.Type);
+			Assert.Equal(resultResponse.Result.Value<int>(), 1);
 		}
 	}
 

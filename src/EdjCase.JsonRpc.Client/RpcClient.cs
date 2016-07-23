@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Text;
 
 namespace EdjCase.JsonRpc.Client
 {
@@ -30,15 +31,26 @@ namespace EdjCase.JsonRpc.Client
 		/// for rpc requests
 		/// </summary>
 		public JsonSerializerSettings JsonSerializerSettings { get; set; }
+		/// <summary>
+		/// Request encoding type for json content. If null, will default to UTF-8 
+		/// </summary>
+		public Encoding Encoding { get; set; }
+		/// <summary>
+		/// Request content type for json content. If null, will default to application/json
+		/// </summary>
+		public string ContentType { get; set; }
 
 		/// <param name="baseUrl">Base url for the rpc server</param>
 		/// <param name="authHeaderValue">Http authentication header for rpc request</param>
 		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
-		public RpcClient(Uri baseUrl, AuthenticationHeaderValue authHeaderValue = null, JsonSerializerSettings jsonSerializerSettings = null)
+		public RpcClient(Uri baseUrl, AuthenticationHeaderValue authHeaderValue = null, JsonSerializerSettings jsonSerializerSettings = null, 
+			Encoding encoding = null, string contentType = null)
 		{
 			this.BaseUrl = baseUrl;
 			this.AuthHeaderValue = authHeaderValue;
 			this.JsonSerializerSettings = jsonSerializerSettings;
+			this.Encoding = encoding;
+			this.ContentType = contentType;
 		}
 
 		/// <summary>
@@ -104,7 +116,7 @@ namespace EdjCase.JsonRpc.Client
 					httpClient.BaseAddress = this.BaseUrl;
 
 					string rpcRequestJson = JsonConvert.SerializeObject(request, this.JsonSerializerSettings);
-					HttpContent httpContent = new StringContent(rpcRequestJson);
+					HttpContent httpContent = new StringContent(rpcRequestJson, this.Encoding ?? Encoding.UTF8, this.ContentType ?? "application/json");
 					HttpResponseMessage httpResponseMessage = await httpClient.PostAsync(route, httpContent);
 					httpResponseMessage.EnsureSuccessStatusCode();
 
@@ -119,8 +131,7 @@ namespace EdjCase.JsonRpc.Client
 						RpcResponse rpcResponse = JsonConvert.DeserializeObject<RpcResponse>(responseJson, this.JsonSerializerSettings);
 						if (rpcResponse == null)
 						{
-							throw new RpcClientUnknownException(
-								$"Unable to parse response from the rpc server. Response Json: {responseJson}");
+							throw new RpcClientUnknownException($"Unable to parse response from the rpc server. Response Json: {responseJson}");
 						}
 						throw rpcResponse.Error.CreateException();
 					}
