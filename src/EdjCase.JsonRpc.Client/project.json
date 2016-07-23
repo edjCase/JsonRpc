@@ -7,7 +7,7 @@
 		"projectUrl": "https://github.com/edjCase/JsonRpc",
 		"repository": { "type": "git" },
 		"licenseUrl": "https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE",
-		"releaseNotes": "Unifying version numbers."
+		"releaseNotes": "Adding content type and encoding optins to client. Fixing deadlocking issue with async methods."
 	},
 	"authors": [ "Gekctek" ],
 
