@@ -33,6 +33,12 @@ namespace Microsoft.AspNetCore.Builder
 
 			RpcRouterConfiguration configuration = new RpcRouterConfiguration();
 			configureRouter.Invoke(configuration);
+#if !NETSTANDARD1_3
+			if (configuration.AutoRegisterControllers)
+			{
+				configuration.Routes.AddControllerRoutes();
+			}
+#endif
 			if (configuration.Routes.Count < 1)
 			{
 				throw new RpcConfigurationException("At least on class/route must be configured for router to work.");
@@ -55,6 +61,7 @@ namespace Microsoft.AspNetCore.Builder
 		public static IServiceCollection AddJsonRpc(this IServiceCollection serviceCollection)
 		{
 			return serviceCollection
+				.AddRouting()
 				.AddSingleton<IRpcInvoker, DefaultRpcInvoker>(sp =>
 				{
 					ILoggerFactory loggerrFactory = sp.GetService<ILoggerFactory>();

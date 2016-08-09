@@ -10,10 +10,6 @@ using nuget command line:
 ```cs
 Install-Package EdjCase.JsonRpc.Router
 ```
-or for pre-release versions:
-```cs
-Install-Package EdjCase.JsonRpc.Router -Pre
-```
 
 ## Usage
 Create a ASP.NET Core Web Application, reference this library and in the `Startup` class configure the following:
@@ -23,10 +19,9 @@ Add the dependency injected services in the `ConfigureServices` method:
 public void ConfigureServices(IServiceCollection services)
 {
 	services
-	    .AddJsonRpc()
     	//Adds default IRpcInvoker, IRpcParser, IRpcCompressor implementations to the services collection.
     	//(Can be overridden by custom implementations if desired)
-	    .AddRouting(); //Adds services for routing requests
+	    .AddJsonRpc();
 }
 ```
 
@@ -39,13 +34,14 @@ public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerF
 		config.RoutePrefix = "RpcApi"; //(optional) changes base url from '/' to '/RpcApi/'
 		config.RegisterClassToRpcRoute<RpcClass1>(); //Access RpcClass1 public methods at '/RpcApi/'
 		config.RegisterClassToRpcRoute<RpcClass2>("Class2"); //Access RpcClass2 public methods at '/RpcApi/Class2'
-		//Note RegisterClassToRpcRoute must be called at least once for the Api to work
 	});
 }
 ```
 also, you can set JsonSerializerSettings via `SetJsonSerializerSettings` method.
 
-Examples of Rpc Classes:
+## Examples of Rpc Classes:
+
+For all frameworks:
 ```cs
 //Classes can be named anything and be located anywhere in the project/solution
 //The way to associate them to the api is to use the RegisterClassToRpcRoute<T> method in
@@ -75,7 +71,22 @@ public class RpcClass1
     }
 }
 ```
+
+For netstadard 1.6+ and full .net framework only:
+```cs
+[RpcRoute("TestMethods")] //Optional, if not specified the route name would be 'Test' (based off the controller type name)
+public class TestController : RpcController
+{
+	public int Add(int a, int b)
+	{
+		return a + b;
+	}
+}
+```
+
 Any method in the registered class that is a public instance method will be accessable through the Json Rpc Api.
+
+The controllers and manual registration CAN be used at the same time. Mix and match as needed.
 
 Bulk requests are supported (as specificed in JsonRpc 2.0 docs) and will all be run asynchronously. The responses may be in a different order than the requests.
 

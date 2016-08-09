@@ -2,6 +2,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+#if !NETSTANDARD1_3
+using System.Reflection;
+using Microsoft.Extensions.DependencyModel;
+#endif
 
 namespace EdjCase.JsonRpc.Router
 {
@@ -33,6 +37,17 @@ namespace EdjCase.JsonRpc.Router
 		public bool AddClass<T>()
 		{
 			Type type = typeof (T);
+			return this.AddClass(type);
+		}
+
+
+		/// <summary>
+		/// Registers a class type to this route to allow its methods to be used in the Rpc api
+		/// </summary>
+		/// <param name="type">Class type to register under this route</param>
+		/// <returns>True if the class was added to the registered classes, False if it already is registered</returns>
+		public bool AddClass(Type type)
+		{
 			if (this.types.Any(t => t == type))
 			{
 				return false;
@@ -40,6 +55,7 @@ namespace EdjCase.JsonRpc.Router
 			this.types.Add(type);
 			return true;
 		}
+
 
 		/// <summary>
 		/// Returns the list of classes registered in this route
@@ -113,7 +129,52 @@ namespace EdjCase.JsonRpc.Router
 				throw new ArgumentException($"Route with the name '{route.Name}' already exists");
 			}
 			this.routeList.Add(route);
-		} 
+		}
+
+#if !NETSTANDARD1_3
+		/// <summary>
+		/// Adds all types that inherit <see cref="RpcController"/> to the route collection.
+		/// Controllers defaults to the controller name for the route unless configured otherwise
+		/// </summary>
+		public void AddControllerRoutes()
+		{
+			Type rpcControllerType = typeof(RpcController);
+			DependencyContext depedencyContext = DependencyContext.Default;
+			IEnumerable<TypeInfo> controllerTypes = depedencyContext.RuntimeLibraries
+				.SelectMany(l => l.GetDefaultAssemblyNames(depedencyContext))
+				.Select(Assembly.Load)
+				.SelectMany(a => a.DefinedTypes)
+				.Where(t => !t.IsAbstract && t.IsSubclassOf(rpcControllerType));
+
+			foreach (TypeInfo controllerType in controllerTypes)
+			{
+				var attribute = controllerType.GetCustomAttribute<RpcRouteAttribute>(true);
+				string routeName;
+				if (attribute == null)
+				{
+					if (controllerType.Name.EndsWith("Controller"))
+					{
+						routeName = controllerType.Name.Substring(0, controllerType.Name.IndexOf("Controller"));
+					}
+					else
+					{
+						routeName = controllerType.Name;
+					}
+				}
+				else
+				{
+					routeName = attribute.RouteName;
+				}
+				RpcRoute route = this.GetByName(routeName);
+				if(route == null)
+				{
+					route = new RpcRoute(routeName);
+					this.Add(route);
+				}
+				route.AddClass(controllerType.AsType());
+			}
+		}
+#endif
 
 		/// <summary>
 		/// Clears the collection of all routes

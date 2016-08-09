@@ -1,5 +1,5 @@
 {
-	"version": "1.0.4",
+	"version": "1.1.0",
 	"description": "A AspNet Core IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing.",
 	"packOptions": {
 		"summary": "A Json RPC v2 router for AspNet Core",
@@ -7,7 +7,7 @@
 		"projectUrl": "https://github.com/edjCase/JsonRpc",
 		"repository": { "type": "git" },
 		"licenseUrl": "https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE",
-		"releaseNotes": "Using NetStardard.Library reference."
+		"releaseNotes": "Adding RpcController class that auto adds methods if inherited."
 	},
 	"authors": [ "Gekctek" ],
 
@@ -21,9 +21,26 @@
 	},
 
 	"frameworks": {
-		"net451": {},
+		"net451": {
+			"dependencies": {
+				"Microsoft.Extensions.DependencyModel": "1.0.0"
+			}
+		},
+		"netstandard1.6": {
+			"dependencies": {
+				"Microsoft.Extensions.DependencyModel": "1.0.0",
+				"System.IO.Compression": "4.1.0"
+			},
+			"imports": [
+				"dotnet52",
+				"dnxcore50",
+				"portable-net45+win8"
+			]
+		},
 		"netstandard1.3": {
-			"dependencies": {},
+			"dependencies": {
+				"System.IO.Compression": "4.1.0"
+			},
 			"imports": [
 				"dotnet52",
 				"dnxcore50",

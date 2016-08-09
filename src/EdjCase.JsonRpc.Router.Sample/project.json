@@ -10,7 +10,7 @@
 	},
 	
 	"frameworks": {
-		"dnx451": { },
+		"net451": { },
 		"netcoreapp1.0": {
 			"dependencies": {
 				"Microsoft.NETCore.App": {

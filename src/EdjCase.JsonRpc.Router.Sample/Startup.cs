@@ -61,6 +61,7 @@ namespace EdjCase.JsonRpc.Router.Sample
 				config.RegisterClassToRpcRoute<RpcString>("Strings");
 				config.RegisterClassToRpcRoute<RpcCommands>("Commands");
 				config.RegisterClassToRpcRoute<RpcMath>("Math");
+				config.AutoRegisterControllers = true;
 			});
 		}
 	}

@@ -33,6 +33,14 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		public bool ShowServerExceptions { get; set; }
 
+#if !NETSTANDARD1_3
+		/// <summary>
+		/// If true will automatically add all types that are subclasses of <see cref="RpcController"/>
+		/// and use the optional attribute configuration(s) on them 
+		/// </summary>
+		public bool AutoRegisterControllers { get; set; } = true;
+#endif
+
 		/// <param name="routePrefix">Optional prefix for all the routes</param>
 		public RpcRouterConfiguration(string routePrefix = null)
 		{
