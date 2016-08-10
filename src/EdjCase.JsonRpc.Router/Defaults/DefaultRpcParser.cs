@@ -15,17 +15,17 @@ namespace EdjCase.JsonRpc.Router.Defaults
 	public class DefaultRpcParser : IRpcParser
 	{
 		/// <summary>
-		/// Optional logger for logging Rpc parsing
+		/// Logger for logging Rpc parsing
 		/// </summary>
-		public ILogger Logger { get; set; }
+		private ILogger<DefaultRpcParser> logger { get; set; }
 
 		/// <summary>
 		/// 
 		/// </summary>
 		/// <param name="logger">Optional logger for logging Rpc parsing</param>
-		public DefaultRpcParser(ILogger logger = null)
+		public DefaultRpcParser(ILogger<DefaultRpcParser> logger)
 		{
-			this.Logger = logger;
+			this.logger = logger;
 		}
 
 		/// <summary>
@@ -45,7 +45,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			{
 				throw new ArgumentNullException(nameof(requestUrl));
 			}
-			this.Logger?.LogDebug($"Attempting to match Rpc route for the request url '{requestUrl}'");
+			this.logger?.LogDebug($"Attempting to match Rpc route for the request url '{requestUrl}'");
 			RpcPath requestPath = RpcPath.Parse(requestUrl);
 			RpcPath routePrefix = RpcPath.Parse(routes.RoutePrefix);
 			
@@ -55,12 +55,12 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				routePath = routePrefix.Add(routePath);
 				if (requestPath == routePath)
 				{
-					this.Logger?.LogDebug($"Matched the request url '{requestUrl}' to the route '{rpcRoute.Name}'");
+					this.logger?.LogDebug($"Matched the request url '{requestUrl}' to the route '{rpcRoute.Name}'");
 					route = rpcRoute;
 					return true;
 				}
 			}
-			this.Logger?.LogDebug($"Failed to match the request url '{requestUrl}' to a route");
+			this.logger?.LogDebug($"Failed to match the request url '{requestUrl}' to a route");
 			route = null;
 			return false;
 		}
@@ -74,7 +74,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <returns>List of Rpc requests that were parsed from the json</returns>
 		public List<RpcRequest> ParseRequests(string jsonString, JsonSerializerSettings jsonSerializerSettings = null)
 		{
-			this.Logger?.LogDebug($"Attempting to parse Rpc request from the json string '{jsonString}'");
+			this.logger?.LogDebug($"Attempting to parse Rpc request from the json string '{jsonString}'");
 			List<RpcRequest> rpcRequests;
 			if (string.IsNullOrWhiteSpace(jsonString))
 			{
@@ -99,7 +99,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			catch (Exception ex) when (!(ex is RpcException))
 			{
 				string errorMessage = "Unable to parse json request into an rpc format.";
-				this.Logger?.LogException(ex, errorMessage);
+				this.logger?.LogException(ex, errorMessage);
 				throw new RpcInvalidRequestException(errorMessage);
 			}
 
@@ -107,7 +107,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			{
 				throw new RpcInvalidRequestException("No rpc json requests found");
 			}
-			this.Logger?.LogDebug($"Successfully parsed {rpcRequests.Count} Rpc request(s)");
+			this.logger?.LogDebug($"Successfully parsed {rpcRequests.Count} Rpc request(s)");
 			HashSet<object> uniqueIds = new HashSet<object>();
 			foreach (RpcRequest rpcRequest in rpcRequests)
 			{

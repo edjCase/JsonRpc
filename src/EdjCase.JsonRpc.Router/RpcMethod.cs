@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using EdjCase.JsonRpc.Core;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -19,6 +20,15 @@ namespace EdjCase.JsonRpc.Router
 		/// The method's configured request route it can be called from
 		/// </summary>
 		public RpcRoute Route { get; }
+		/// <summary>
+		/// Authorize data list that will be checked for the method for authorization.
+		/// If empty, no authorization will be run
+		/// </summary>
+		public List<IAuthorizeData> AuthorizeDataList { get; }
+		/// <summary>
+		/// If true, bypasses authorization check
+		/// </summary>
+		public bool AllowAnonymous { get; }
 		/// <summary>
 		/// The name of the method
 		/// </summary>
@@ -61,6 +71,9 @@ namespace EdjCase.JsonRpc.Router
 			this.parameterInfoList = methodInfo.GetParameters();
 			this.serviceProvider = serviceProvider;
 			this.jsonSerializerSettings = jsonSerializerSettings;
+			IEnumerable<Attribute> customAttributes = type.GetTypeInfo().GetCustomAttributes();
+			this.AuthorizeDataList = customAttributes.OfType<IAuthorizeData>().ToList();
+			this.AllowAnonymous = customAttributes.OfType<IAllowAnonymous>().Any();
 		}
 
 		/// <summary>
@@ -69,7 +82,7 @@ namespace EdjCase.JsonRpc.Router
 		/// <exception cref="RpcInvalidParametersException">Thrown when conversion of parameters fails or when invoking the method is not compatible with the parameters</exception>
 		/// <param name="parameters">List of parameters to invoke the method with</param>
 		/// <returns>The result of the invoked method</returns>
-		public object Invoke(params object[] parameters)
+		public async Task<object> InvokeAsync(params object[] parameters)
 		{
 			object obj = null;
 			if (this.serviceProvider != null)
@@ -89,7 +102,7 @@ namespace EdjCase.JsonRpc.Router
 
 				object returnObj = this.methodInfo.Invoke(obj, parameters);
 
-				returnObj = RpcMethod.HandleAsyncResponses(returnObj);
+				returnObj = await RpcMethod.HandleAsyncResponses(returnObj);
 
 				return returnObj;
 			}
@@ -108,21 +121,21 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		/// <param name="returnObj">The result of a invoked method</param>
 		/// <returns>Awaits a Task and returns its result if object is a Task, otherwise returns the same object given</returns>
-		private static object HandleAsyncResponses(object returnObj)
+		private static async Task<object> HandleAsyncResponses(object returnObj)
 		{
 			Task task = returnObj as Task;
 			if (task == null) //Not async request
 			{
 				return returnObj;
 			}
+			await task;
 			PropertyInfo propertyInfo = task.GetType().GetProperty("Result");
 			if (propertyInfo != null)
 			{
 				//Type of Task<T>. Wait for result then return it
 				return propertyInfo.GetValue(returnObj);
 			}
-			//Just of type Task with no return result
-			task.GetAwaiter().GetResult();
+			//Just of type Task with no return result			
 			return null;
 		}
 

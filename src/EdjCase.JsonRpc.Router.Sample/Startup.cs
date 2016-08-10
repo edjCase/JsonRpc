@@ -9,6 +9,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using System.IO;
+using Microsoft.AspNetCore.Authentication;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http.Authentication;
+using System.Threading.Tasks;
 
 namespace EdjCase.JsonRpc.Router.Sample
 {
@@ -24,8 +28,8 @@ namespace EdjCase.JsonRpc.Router.Sample
 		public void ConfigureServices(IServiceCollection services)
 		{
 			services
-				.AddJsonRpc()
-				.AddRouting();
+				.AddBasicAuth()
+				.AddJsonRpc();
 		}
 
 		// Configure is called after ConfigureServices is called.
@@ -33,25 +37,25 @@ namespace EdjCase.JsonRpc.Router.Sample
 		{
 			loggerFactory.AddProvider(new DebugLoggerProvider());
 
-			app.Use((httpContext, next) =>
+			app.UseBasicAuth(options =>
 			{
-				KeyValuePair<string, StringValues> header = httpContext.Request.Headers.FirstOrDefault(h => h.Key == "Authorization");
-				if (header.Equals(default(KeyValuePair<string, StringValues>)))
+				options.AutomaticAuthenticate = true;
+				options.AutomaticChallenge = true;
+				options.AuthenticateCredential = authInfo =>
 				{
-					return null;
-				}
-				if (!header.Value.Any() || !header.Value.First().StartsWith("Basic "))
-				{
-					return null;
-				}
-				string headerValue = header.Value.First().Substring(6);
-				byte[] valueBytes = Convert.FromBase64String(headerValue);
-				string[] usernamePassword = Encoding.UTF8.GetString(valueBytes, 0, valueBytes.Length).Split(':');
-				if (usernamePassword[0] == "Gekctek" && usernamePassword[1] == "Welc0me!")
-				{
-					return next();
-				}
-				return null;
+					if (authInfo.Credential.Username == "Gekctek" && authInfo.Credential.Password == "Welc0me!")
+					{
+						var claims = new List<Claim>
+						{
+							new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())
+						};
+						var identity = new ClaimsIdentity(claims, "Basic");
+						var principal = new ClaimsPrincipal(identity);
+						var properties = new AuthenticationProperties();
+						return Task.FromResult(new AuthenticationTicket(principal, properties, "Basic"));
+					}
+					return Task.FromResult<AuthenticationTicket>(null);
+				};
 			});
 
 			app.UseJsonRpc(config =>

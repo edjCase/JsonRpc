@@ -13,17 +13,17 @@ namespace EdjCase.JsonRpc.Router.Defaults
 	public class DefaultRpcCompressor : IRpcCompressor
 	{
 		/// <summary>
-		/// Optional logger for logging the compression requests
+		/// Logger for logging the compression requests
 		/// </summary>
-		public ILogger Logger { get; set; }
+		private ILogger<DefaultRpcCompressor> logger { get; set; }
 
 		/// <summary>
 		/// 
 		/// </summary>
 		/// <param name="logger">Optional logger for logging the compression requests</param>
-		public DefaultRpcCompressor(ILogger logger = null)
+		public DefaultRpcCompressor(ILogger<DefaultRpcCompressor> logger)
 		{
-			this.Logger = logger;
+			this.logger = logger;
 		}
 
 
@@ -36,7 +36,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <param name="compressionType">Type of compression to be used when compressing</param>
 		public void CompressText(Stream outputStream, string text, Encoding encoding, CompressionType compressionType)
 		{
-			this.Logger?.LogDebug($"Compressing the following text with the '{compressionType}' format: {text}");
+			this.logger?.LogDebug($"Compressing the following text with the '{compressionType}' format: {text}");
 			switch (compressionType)
 			{
 				case CompressionType.Gzip:
@@ -62,7 +62,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				default:
 					throw new ArgumentOutOfRangeException(nameof(compressionType), compressionType, null);
 			}
-			this.Logger?.LogDebug("Compression successful");
+			this.logger?.LogDebug("Compression successful");
 		}
 	}
 }

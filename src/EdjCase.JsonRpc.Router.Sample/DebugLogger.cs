@@ -8,7 +8,7 @@ namespace EdjCase.JsonRpc.Router.Sample
 	{
 		public string Name { get; }
 		public LogLevel LogLevel { get; set; }
-		public DebugLogger(string name, LogLevel logLevel = LogLevel.Information)
+		public DebugLogger(string name, LogLevel logLevel = LogLevel.Debug)
 		{
 			this.Name = name;
 			this.LogLevel = logLevel;

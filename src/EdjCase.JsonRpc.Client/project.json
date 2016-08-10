@@ -16,14 +16,15 @@
 		"Newtonsoft.Json": "9.0.1",
 		"EdjCase.JsonRpc.Core": {
 			"target": "project"
-		},
-		"System.Net.Http": "4.1.0"
+		}
 	},
 
 	"frameworks": {
 		"net451": {},
 		"netstandard1.1": {
-			"dependencies": {},
+			"dependencies": {
+				"System.Net.Http": "4.1.0"
+			},
 			"imports": [
 				"dotnet52",
 				"dnxcore50",

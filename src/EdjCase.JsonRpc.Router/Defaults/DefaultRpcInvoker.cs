@@ -9,6 +9,9 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using EdjCase.JsonRpc.Router.Utilities;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 
 namespace EdjCase.JsonRpc.Router.Defaults
 {
@@ -18,23 +21,35 @@ namespace EdjCase.JsonRpc.Router.Defaults
 	public class DefaultRpcInvoker : IRpcInvoker
 	{
 		/// <summary>
-		/// Optional logger for logging Rpc invocation
+		/// Logger for logging Rpc invocation
 		/// </summary>
-		public ILogger Logger { get; set; }
+		private ILogger<DefaultRpcInvoker> logger { get; }
 
 		/// <summary>
-		/// Optional. If true the inner exceptions to errors (possibly from server code) will be shown. Defaults to false.
+		/// AspNet service to authorize requests
 		/// </summary>
-		public bool ShowServerExceptions { get; set; }
+		private IAuthorizationService authorizationService { get; }
+		/// <summary>
+		/// Provides authorization policies for the authroziation service
+		/// </summary>
+		private IAuthorizationPolicyProvider policyProvider { get; }
 
+		/// <summary>
+		/// Configuration data for the router
+		/// </summary>
+		private RpcRouterConfiguration configuration { get; }
+
+
+		/// <param name="authorizationService">Service that authorizes each method for use if configured</param>
+		/// <param name="policyProvider">Provides authorization policies for the authroziation service</param>
 		/// <param name="logger">Optional logger for logging Rpc invocation</param>
-		/// <param name="showServerExceptions">
-		/// Optional. If true the inner exceptions to errors (possibly from server code) will be shown. Defaults to false.
-		/// </param>
-		public DefaultRpcInvoker(ILogger logger = null, bool showServerExceptions = false)
+		/// <param name="configuration">Configuration data for the router</param>
+		public DefaultRpcInvoker(IAuthorizationService authorizationService, IAuthorizationPolicyProvider policyProvider, ILogger<DefaultRpcInvoker> logger, IOptions<RpcRouterConfiguration> configuration)
 		{
-			this.Logger = logger;
-			this.ShowServerExceptions = showServerExceptions;
+			this.authorizationService = authorizationService;
+			this.policyProvider = policyProvider;
+			this.logger = logger;
+			this.configuration = configuration.Value;
 		}
 
 
@@ -43,16 +58,16 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// </summary>
 		/// <param name="requests">List of Rpc requests</param>
 		/// <param name="route">Rpc route that applies to the current request</param>
-		/// <param name="serviceProvider">(Optional)IoC Container for rpc method controllers</param>
+		/// <param name="httpContext">The context of the current http request</param>
 		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <returns>List of Rpc responses for the requests</returns>
-		public List<RpcResponse> InvokeBatchRequest(List<RpcRequest> requests, RpcRoute route, IServiceProvider serviceProvider = null, JsonSerializerSettings jsonSerializerSettings = null)
+		public async Task<List<RpcResponse>> InvokeBatchRequestAsync(List<RpcRequest> requests, RpcRoute route, HttpContext httpContext, JsonSerializerSettings jsonSerializerSettings = null)
 		{
-			this.Logger?.LogDebug($"Invoking '{requests.Count}' batch requests");
+			this.logger?.LogDebug($"Invoking '{requests.Count}' batch requests");
 			var invokingTasks = new List<Task<RpcResponse>>();
 			foreach (RpcRequest request in requests)
 			{
-				Task<RpcResponse> invokingTask = Task.Run(() => this.InvokeRequest(request, route, serviceProvider, jsonSerializerSettings));
+				Task<RpcResponse> invokingTask = Task.Run(async () => await this.InvokeRequestAsync(request, route, httpContext, jsonSerializerSettings));
 				if (request.Id != null)
 				{
 					//Only wait for non-notification requests
@@ -60,14 +75,14 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				}
 			}
 
-			Task.WaitAll(invokingTasks.Cast<Task>().ToArray());
+			await Task.WhenAll(invokingTasks.ToArray());
 
 			List<RpcResponse> responses = invokingTasks
 				.Select(t => t.Result)
 				.Where(r => r != null)
 				.ToList();
 
-			this.Logger?.LogDebug($"Finished '{requests.Count}' batch requests");
+			this.logger?.LogDebug($"Finished '{requests.Count}' batch requests");
 
 			return responses;
 		}
@@ -77,10 +92,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// </summary>
 		/// <param name="request">Rpc request</param>
 		/// <param name="route">Rpc route that applies to the current request</param>
-		/// <param name="serviceProvider">(Optional)IoC Container for rpc method controllers</param>
+		/// <param name="httpContext">The context of the current http request</param>
 		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <returns>An Rpc response for the request</returns>
-		public RpcResponse InvokeRequest(RpcRequest request, RpcRoute route, IServiceProvider serviceProvider = null, JsonSerializerSettings jsonSerializerSettings = null)
+		public async Task<RpcResponse> InvokeRequestAsync(RpcRequest request, RpcRoute route, HttpContext httpContext, JsonSerializerSettings jsonSerializerSettings = null)
 		{
 			try
 			{
@@ -98,7 +113,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				return this.GetUnknownExceptionReponse(request, ex);
 			}
 
-			this.Logger?.LogDebug($"Invoking request with id '{request.Id}'");
+			this.logger?.LogDebug($"Invoking request with id '{request.Id}'");
 			RpcResponse rpcResponse;
 			try
 			{
@@ -108,21 +123,32 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				}
 
 				object[] parameterList;
-				RpcMethod rpcMethod = this.GetMatchingMethod(route, request, out parameterList, serviceProvider, jsonSerializerSettings);
+				RpcMethod rpcMethod = this.GetMatchingMethod(route, request, out parameterList, httpContext.RequestServices, jsonSerializerSettings);
 
-				this.Logger?.LogDebug($"Attempting to invoke method '{request.Method}'");
-				object result = rpcMethod.Invoke(parameterList);
-				this.Logger?.LogDebug($"Finished invoking method '{request.Method}'");
+				bool isAuthorized = await this.IsAuthorizedAsync(rpcMethod, httpContext);
 
-				JsonSerializer jsonSerializer = JsonSerializer.Create(jsonSerializerSettings);
+				if (isAuthorized)
+				{
 
-				JToken resultJToken = result != null ? JToken.FromObject(result, jsonSerializer) : null;
-				rpcResponse = new RpcResponse(request.Id, resultJToken);
+					this.logger?.LogDebug($"Attempting to invoke method '{request.Method}'");
+					object result = await rpcMethod.InvokeAsync(parameterList);
+					this.logger?.LogDebug($"Finished invoking method '{request.Method}'");
+
+					JsonSerializer jsonSerializer = JsonSerializer.Create(jsonSerializerSettings);
+
+					JToken resultJToken = result != null ? JToken.FromObject(result, jsonSerializer) : null;
+					rpcResponse = new RpcResponse(request.Id, resultJToken);
+				}
+				else
+				{
+					var authError = new RpcError(RpcErrorCode.InvalidRequest, "Unauthorized");
+					rpcResponse = new RpcResponse(request.Id, authError);
+				}
 			}
 			catch (RpcException ex)
 			{
-				this.Logger?.LogException(ex, "An Rpc error occurred. Returning an Rpc error response");
-				RpcError error = new RpcError(ex, this.ShowServerExceptions);
+				this.logger?.LogException(ex, "An Rpc error occurred. Returning an Rpc error response");
+				RpcError error = new RpcError(ex, this.configuration.ShowServerExceptions);
 				rpcResponse = new RpcResponse(request.Id, error);
 			}
 			catch (Exception ex)
@@ -132,12 +158,43 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 			if (request.Id != null)
 			{
-				this.Logger?.LogDebug($"Finished request with id '{request.Id}'");
+				this.logger?.LogDebug($"Finished request with id '{request.Id}'");
 				//Only give a response if there is an id
 				return rpcResponse;
 			}
-			this.Logger?.LogDebug($"Finished request with no id. Not returning a response");
+			this.logger?.LogDebug($"Finished request with no id. Not returning a response");
 			return null;
+		}
+
+		private async Task<bool> IsAuthorizedAsync(RpcMethod rpcMethod, HttpContext httpContext)
+		{
+			if (rpcMethod.AuthorizeDataList.Any())
+			{
+				if (rpcMethod.AllowAnonymous)
+				{
+					this.logger?.LogDebug("Skipping authorization. Allow anonymous specified for method.");
+				}
+				else
+				{
+					this.logger?.LogDebug($"Running authorization for method.");
+					AuthorizationPolicy policy = await AuthorizationPolicy.CombineAsync(this.policyProvider, rpcMethod.AuthorizeDataList);
+					bool passed = await this.authorizationService.AuthorizeAsync(httpContext.User, policy);
+					if (!passed)
+					{
+						this.logger?.LogInformation($"Authorization failed for user '{httpContext.User.Identity.Name}'.");
+						return false;
+					}
+					else
+					{
+						this.logger?.LogDebug($"Authoization was successful for user '{httpContext.User.Identity.Name}'.");
+					}
+				}
+			}
+			else
+			{
+				this.logger?.LogDebug("Skipping authorization. None configured for method.");
+			}
+			return true;
 		}
 
 		/// <summary>
@@ -148,10 +205,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <returns>Rpc error response from the exception</returns>
 		private RpcResponse GetUnknownExceptionReponse(RpcRequest request, Exception ex)
 		{
-			this.Logger?.LogException(ex, "An unknown error occurred. Returning an Rpc error response");
+			this.logger?.LogException(ex, "An unknown error occurred. Returning an Rpc error response");
 
 			RpcUnknownException exception = new RpcUnknownException("An internal server error has occurred", ex);
-			RpcError error = new RpcError(exception, this.ShowServerExceptions);
+			RpcError error = new RpcError(exception, this.configuration.ShowServerExceptions);
 			if (request?.Id == null)
 			{
 				return null;
@@ -179,7 +236,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			{
 				throw new ArgumentNullException(nameof(request));
 			}
-			this.Logger?.LogDebug($"Attempting to match Rpc request to a method '{request.Method}'");
+			this.logger?.LogDebug($"Attempting to match Rpc request to a method '{request.Method}'");
 			List<RpcMethod> methods = DefaultRpcInvoker.GetRpcMethods(route, serviceProvider, jsonSerializerSettings);
 
 			methods = methods
@@ -233,7 +290,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			{
 				throw new RpcMethodNotFoundException();
 			}
-			this.Logger?.LogDebug("Request was matched to a method");
+			this.logger?.LogDebug("Request was matched to a method");
 			return rpcMethod;
 		}
 

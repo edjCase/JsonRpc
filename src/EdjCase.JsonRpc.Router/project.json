@@ -7,7 +7,7 @@
 		"projectUrl": "https://github.com/edjCase/JsonRpc",
 		"repository": { "type": "git" },
 		"licenseUrl": "https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE",
-		"releaseNotes": "Adding RpcController class that auto adds methods if inherited."
+		"releaseNotes": "Adding RpcController class that auto adds methods if inherited and Authorization."
 	},
 	"authors": [ "Gekctek" ],
 
@@ -15,6 +15,7 @@
 		"EdjCase.JsonRpc.Core": {
 			"target": "project"
 		},
+    "Microsoft.AspNetCore.Authorization": "1.0.0",
 		"Microsoft.AspNetCore.Routing": "1.0.0",
 		"Microsoft.Extensions.Logging.Abstractions": "1.0.0",
 		"NETStandard.Library": "1.6.0"

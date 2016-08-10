@@ -40,11 +40,10 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		public bool AutoRegisterControllers { get; set; } = true;
 #endif
-
-		/// <param name="routePrefix">Optional prefix for all the routes</param>
-		public RpcRouterConfiguration(string routePrefix = null)
+		
+		public RpcRouterConfiguration()
 		{
-			this.Routes = new RpcRouteCollection(routePrefix);
+			this.Routes = new RpcRouteCollection();
 		}
 
 		/// <summary>

@@ -5,6 +5,8 @@ using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Defaults;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Options;
 
 // ReSharper disable once CheckNamespace
 namespace Microsoft.AspNetCore.Builder
@@ -43,14 +45,9 @@ namespace Microsoft.AspNetCore.Builder
 			{
 				throw new RpcConfigurationException("At least on class/route must be configured for router to work.");
 			}
-
-			IRpcInvoker rpcInvoker = app.ApplicationServices.GetRequiredService<IRpcInvoker>();
-			IRpcParser rpcParser = app.ApplicationServices.GetRequiredService<IRpcParser>();
-			IRpcCompressor rpcCompressor = app.ApplicationServices.GetRequiredService<IRpcCompressor>();
-			ILoggerFactory loggerFactory = app.ApplicationServices.GetService<ILoggerFactory>();
-			ILogger logger = loggerFactory?.CreateLogger<RpcRouter>();
-			app.UseRouter(new RpcRouter(configuration, rpcInvoker, rpcParser, rpcCompressor, logger));
-			return app;
+			
+			RpcRouter router = ActivatorUtilities.CreateInstance<RpcRouter>(app.ApplicationServices, Options.Create(configuration));
+			return app.UseRouter(router);
 		}
 
 		/// <summary>
@@ -62,24 +59,10 @@ namespace Microsoft.AspNetCore.Builder
 		{
 			return serviceCollection
 				.AddRouting()
-				.AddSingleton<IRpcInvoker, DefaultRpcInvoker>(sp =>
-				{
-					ILoggerFactory loggerrFactory = sp.GetService<ILoggerFactory>();
-					ILogger logger = loggerrFactory?.CreateLogger<DefaultRpcInvoker>();
-					return new DefaultRpcInvoker(logger);
-				})
-				.AddSingleton<IRpcParser, DefaultRpcParser>(sp =>
-				{
-					ILoggerFactory loggerrFactory = sp.GetService<ILoggerFactory>();
-					ILogger logger = loggerrFactory?.CreateLogger<DefaultRpcParser>();
-					return new DefaultRpcParser(logger);
-				})
-				.AddSingleton<IRpcCompressor, DefaultRpcCompressor>(sp =>
-				{
-					ILoggerFactory loggerrFactory = sp.GetService<ILoggerFactory>();
-					ILogger logger = loggerrFactory?.CreateLogger<DefaultRpcCompressor>();
-					return new DefaultRpcCompressor(logger);
-				});
+				.AddAuthorization()
+				.AddSingleton<IRpcInvoker, DefaultRpcInvoker>()
+				.AddSingleton<IRpcParser, DefaultRpcParser>()
+				.AddSingleton<IRpcCompressor, DefaultRpcCompressor>();
 		}
 	}
 }

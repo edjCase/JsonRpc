@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using EdjCase.JsonRpc.Router.Utilities;
+using Microsoft.Extensions.Options;
 
 namespace EdjCase.JsonRpc.Router
 {
@@ -37,14 +38,14 @@ namespace EdjCase.JsonRpc.Router
 		/// <summary>
 		/// Component that logs actions from the router
 		/// </summary>
-		private ILogger logger { get; }
+		private ILogger<RpcRouter> logger { get; }
 
 		/// <param name="configuration">Configuration data for the router</param>
 		/// <param name="invoker">Component that invokes Rpc requests target methods and returns a response</param>
 		/// <param name="parser">Component that parses Http requests into Rpc requests</param>
 		/// <param name="compressor">Component that compresses Rpc responses</param>
 		/// <param name="logger">Component that logs actions from the router</param>
-		public RpcRouter(RpcRouterConfiguration configuration, IRpcInvoker invoker, IRpcParser parser, IRpcCompressor compressor, ILogger logger)
+		public RpcRouter(IOptions<RpcRouterConfiguration> configuration, IRpcInvoker invoker, IRpcParser parser, IRpcCompressor compressor, ILogger<RpcRouter> logger)
 		{
 			if (configuration == null)
 			{
@@ -62,7 +63,7 @@ namespace EdjCase.JsonRpc.Router
 			{
 				throw new ArgumentNullException(nameof(compressor));
 			}
-			this.configuration = configuration;
+			this.configuration = configuration.Value;
 			this.invoker = invoker;
 			this.parser = parser;
 			this.compressor = compressor;
@@ -115,7 +116,7 @@ namespace EdjCase.JsonRpc.Router
 					List<RpcRequest> requests = this.parser.ParseRequests(jsonString, this.configuration.JsonSerializerSettings);
 					this.logger?.LogInformation($"Processing {requests.Count} Rpc requests");
 
-					List<RpcResponse> responses = this.invoker.InvokeBatchRequest(requests, route, context.HttpContext.RequestServices, this.configuration.JsonSerializerSettings);
+					List<RpcResponse> responses = await this.invoker.InvokeBatchRequestAsync(requests, route, context.HttpContext, this.configuration.JsonSerializerSettings);
 
 					this.logger?.LogInformation($"Sending '{responses.Count}' Rpc responses");
 					await this.SetResponse(context, responses, this.configuration.JsonSerializerSettings);
