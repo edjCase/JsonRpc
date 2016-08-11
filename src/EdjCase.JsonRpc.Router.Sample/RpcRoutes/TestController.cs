@@ -10,9 +10,10 @@ namespace EdjCase.JsonRpc.Router.Sample.RpcRoutes
 	[RpcRoute("Testz")]
 	public class TestController : RpcController
 	{
-		public int Add(int a, int b)
+		public async Task<int> Add(int a, int b)
 		{
-			return a + b;
+			await Task.Delay(1);
+			throw new Exception("Test");
 		}
 	}
 }

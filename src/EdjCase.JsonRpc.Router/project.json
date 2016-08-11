@@ -1,5 +1,5 @@
 {
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"description": "A AspNet Core IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing.",
 	"packOptions": {
 		"summary": "A Json RPC v2 router for AspNet Core",
@@ -7,7 +7,7 @@
 		"projectUrl": "https://github.com/edjCase/JsonRpc",
 		"repository": { "type": "git" },
 		"licenseUrl": "https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE",
-		"releaseNotes": "Adding RpcController class that auto adds methods if inherited and Authorization."
+		"releaseNotes": "Adding recursive error messaging for server errors. Handling method errors better."
 	},
 	"authors": [ "Gekctek" ],
 

@@ -96,11 +96,7 @@ namespace EdjCase.JsonRpc.Core
 				throw new ArgumentNullException(nameof(exception));
 			}
 			this.Code =  exception.ErrorCode;
-			this.Message = exception.Message;
-			if (showServerExceptions && exception.InnerException != null)
-			{
-				this.Message += "\tInner Exception: " + exception.InnerException.Message;
-			}
+			this.Message = RpcError.GetErrorMessage(exception, showServerExceptions);
 			this.Data = exception.RpcData;
 		}
 
@@ -163,6 +159,16 @@ namespace EdjCase.JsonRpc.Core
 					throw new ArgumentOutOfRangeException();
 			}
 			return exception;
+		}
+
+		private static string GetErrorMessage(Exception exception, bool showServerExceptions)
+		{
+			string message = exception.Message;
+			if (showServerExceptions && exception.InnerException != null)
+			{
+				message += "\tInner Exception: " + RpcError.GetErrorMessage(exception.InnerException, showServerExceptions);
+			}
+			return message;
 		}
 	}
 }

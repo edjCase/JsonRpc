@@ -91,7 +91,7 @@ namespace EdjCase.JsonRpc.Router
 				var objectFactory = ActivatorUtilities.CreateFactory(this.type, new Type[0]);
 				obj = objectFactory(this.serviceProvider, null);
 			}
-			if(obj == null)
+			if (obj == null)
 			{
 				//Use reflection to create instance if service provider failed or is null
 				obj = Activator.CreateInstance(this.type);
@@ -108,11 +108,11 @@ namespace EdjCase.JsonRpc.Router
 			}
 			catch (TargetInvocationException ex)
 			{
-				throw new RpcUnknownException("Unknown exception when running rpc method.", ex);
+				throw new RpcUnknownException("Exception occurred from target method execution.", ex);
 			}
 			catch (Exception ex)
 			{
-				throw new RpcInvalidParametersException("Unable to call method. Most likely invalid parameters for method.", ex);
+				throw new RpcInvalidParametersException("Exception from attempting to invoke method. Possibly invalid parameters for method.", ex);
 			}
 		}
 
@@ -128,7 +128,14 @@ namespace EdjCase.JsonRpc.Router
 			{
 				return returnObj;
 			}
-			await task;
+			try
+			{
+				await task;
+			}
+			catch (Exception ex)
+			{
+				throw new TargetInvocationException(ex);
+			}
 			PropertyInfo propertyInfo = task.GetType().GetProperty("Result");
 			if (propertyInfo != null)
 			{
@@ -152,10 +159,10 @@ namespace EdjCase.JsonRpc.Router
 				{
 					ParameterInfo parameterInfo = this.parameterInfoList[index];
 
-					if (parameters[index] is string && parameterInfo.ParameterType == typeof (Guid))
+					if (parameters[index] is string && parameterInfo.ParameterType == typeof(Guid))
 					{
 						Guid guid;
-						Guid.TryParse((string) parameters[index], out guid);
+						Guid.TryParse((string)parameters[index], out guid);
 						parameters[index] = guid;
 					}
 					if (parameters[index] is JObject)
@@ -181,7 +188,7 @@ namespace EdjCase.JsonRpc.Router
 		/// <returns>True if the method signature matches the parameterList, otherwise False</returns>
 		public bool HasParameterSignature(object[] parameterList)
 		{
-			if(parameterList == null)
+			if (parameterList == null)
 			{
 				throw new ArgumentNullException(nameof(parameterList));
 			}
@@ -232,16 +239,16 @@ namespace EdjCase.JsonRpc.Router
 			}
 			if (parameter is long)
 			{
-				return parameterInfo.ParameterType == typeof (short) 
-					|| parameterInfo.ParameterType == typeof (int);
+				return parameterInfo.ParameterType == typeof(short)
+					|| parameterInfo.ParameterType == typeof(int);
 			}
 			if (parameter is double || parameter is decimal)
 			{
-				return parameterInfo.ParameterType == typeof(double) 
-					|| parameterInfo.ParameterType == typeof(decimal) 
+				return parameterInfo.ParameterType == typeof(double)
+					|| parameterInfo.ParameterType == typeof(decimal)
 					|| parameterInfo.ParameterType == typeof(float);
 			}
-			if (parameter is string && parameterInfo.ParameterType == typeof (Guid))
+			if (parameter is string && parameterInfo.ParameterType == typeof(Guid))
 			{
 				Guid guid;
 				return Guid.TryParse((string)parameter, out guid);
@@ -279,7 +286,7 @@ namespace EdjCase.JsonRpc.Router
 		/// <returns>True if the request parameters match the method parameters, otherwise Fasle</returns>
 		public bool HasParameterSignature(Dictionary<string, object> parametersMap, out object[] parameterList)
 		{
-			if(parametersMap == null)
+			if (parametersMap == null)
 			{
 				throw new ArgumentNullException(nameof(parametersMap));
 			}
