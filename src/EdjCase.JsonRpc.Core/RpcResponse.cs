@@ -89,7 +89,7 @@ namespace EdjCase.JsonRpc.Core
 		/// <param name="showServerExceptions">
 		/// Optional. If true the inner exceptions to errors (possibly from server code) will be shown. Defaults to false.
 		/// </param>
-		public RpcError(RpcException exception, bool showServerExceptions)//TODO
+		public RpcError(RpcException exception, bool showServerExceptions)
 		{
 			if (exception == null)
 			{

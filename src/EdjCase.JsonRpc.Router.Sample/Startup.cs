@@ -29,7 +29,16 @@ namespace EdjCase.JsonRpc.Router.Sample
 		{
 			services
 				.AddBasicAuth()
-				.AddJsonRpc();
+				.AddJsonRpc(config =>
+				{
+					config.RoutePrefix = "RpcApi";
+					config.RegisterClassToRpcRoute<RpcMath>();
+					config.RegisterClassToRpcRoute<RpcString>("Strings");
+					config.RegisterClassToRpcRoute<RpcCommands>("Commands");
+					config.RegisterClassToRpcRoute<RpcMath>("Math");
+					config.AutoRegisterControllers = true;
+					config.ShowServerExceptions = true;
+				});
 		}
 
 		// Configure is called after ConfigureServices is called.
@@ -58,15 +67,7 @@ namespace EdjCase.JsonRpc.Router.Sample
 				};
 			});
 
-			app.UseJsonRpc(config =>
-			{
-				config.RoutePrefix = "RpcApi";
-				config.RegisterClassToRpcRoute<RpcMath>();
-				config.RegisterClassToRpcRoute<RpcString>("Strings");
-				config.RegisterClassToRpcRoute<RpcCommands>("Commands");
-				config.RegisterClassToRpcRoute<RpcMath>("Math");
-				config.AutoRegisterControllers = true;
-			});
+			app.UseJsonRpc();
 		}
 	}
 

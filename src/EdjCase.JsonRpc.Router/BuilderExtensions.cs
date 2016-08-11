@@ -20,21 +20,33 @@ namespace Microsoft.AspNetCore.Builder
 		/// Extension method to use the JsonRpc router in the Asp.Net pipeline
 		/// </summary>
 		/// <param name="app"><see cref="IApplicationBuilder"/> that is supplied by Asp.Net</param>
-		/// <param name="configureRouter">Action to configure the router properties</param>
 		/// <returns><see cref="IApplicationBuilder"/> that includes the Basic auth middleware</returns>
-		public static IApplicationBuilder UseJsonRpc(this IApplicationBuilder app, Action<RpcRouterConfiguration> configureRouter)
+		public static IApplicationBuilder UseJsonRpc(this IApplicationBuilder app)
 		{
 			if (app == null)
 			{
 				throw new ArgumentNullException(nameof(app));
 			}
-			if (configureRouter == null)
+			
+			RpcRouter router = ActivatorUtilities.CreateInstance<RpcRouter>(app.ApplicationServices);
+			return app.UseRouter(router);
+		}
+
+		/// <summary>
+		/// Extension method to add the JsonRpc router services to the IoC container
+		/// </summary>
+		/// <param name="serviceCollection">IoC serivce container to register JsonRpc dependencies</param>
+		/// <param name="configureOptions">Action to configure the router properties</param>
+		/// <returns>IoC service container</returns>
+		public static IServiceCollection AddJsonRpc(this IServiceCollection serviceCollection, Action<RpcRouterConfiguration> configureOptions)
+		{
+			if (configureOptions == null)
 			{
-				throw new ArgumentNullException(nameof(configureRouter));
+				throw new ArgumentNullException(nameof(configureOptions));
 			}
 
 			RpcRouterConfiguration configuration = new RpcRouterConfiguration();
-			configureRouter.Invoke(configuration);
+			configureOptions.Invoke(configuration);
 #if !NETSTANDARD1_3
 			if (configuration.AutoRegisterControllers)
 			{
@@ -45,21 +57,10 @@ namespace Microsoft.AspNetCore.Builder
 			{
 				throw new RpcConfigurationException("At least on class/route must be configured for router to work.");
 			}
-			
-			RpcRouter router = ActivatorUtilities.CreateInstance<RpcRouter>(app.ApplicationServices, Options.Create(configuration));
-			return app.UseRouter(router);
-		}
-
-		/// <summary>
-		/// Extension method to add the JsonRpc router services to the IoC container
-		/// </summary>
-		/// <param name="serviceCollection">IoC serivce container to register JsonRpc dependencies</param>
-		/// <returns>IoC service container</returns>
-		public static IServiceCollection AddJsonRpc(this IServiceCollection serviceCollection)
-		{
 			return serviceCollection
 				.AddRouting()
 				.AddAuthorization()
+				.AddSingleton(Options.Create(configuration))
 				.AddSingleton<IRpcInvoker, DefaultRpcInvoker>()
 				.AddSingleton<IRpcParser, DefaultRpcParser>()
 				.AddSingleton<IRpcCompressor, DefaultRpcCompressor>();
