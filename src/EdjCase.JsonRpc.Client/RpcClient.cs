@@ -22,10 +22,10 @@ namespace EdjCase.JsonRpc.Client
 		/// </summary>
 		public Uri BaseUrl { get; }
 		/// <summary>
-		/// Authentication header value for the rpc request being sent. If the server requires
+		/// Authentication header value factory for the rpc request being sent. If the server requires
 		/// authentication this requires a value. Otherwise it can be null
 		/// </summary>
-		public AuthenticationHeaderValue AuthHeaderValue { get; set; }
+		public Func<Task<AuthenticationHeaderValue>> AuthHeaderValueFactory { get; set; }
 		/// <summary>
 		/// Json serialization settings that will be used in serialization and deserialization
 		/// for rpc requests
@@ -47,11 +47,25 @@ namespace EdjCase.JsonRpc.Client
 			Encoding encoding = null, string contentType = null)
 		{
 			this.BaseUrl = baseUrl;
-			this.AuthHeaderValue = authHeaderValue;
+			this.AuthHeaderValueFactory = () => Task.FromResult(authHeaderValue);
 			this.JsonSerializerSettings = jsonSerializerSettings;
 			this.Encoding = encoding;
 			this.ContentType = contentType;
 		}
+
+		/// <param name="baseUrl">Base url for the rpc server</param>
+		/// <param name="authHeaderValue">Http authentication header factory for rpc request</param>
+		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
+		public RpcClient(Uri baseUrl, Func<Task<AuthenticationHeaderValue>> authHeaderValueFactory = null, JsonSerializerSettings jsonSerializerSettings = null,
+			Encoding encoding = null, string contentType = null)
+		{
+			this.BaseUrl = baseUrl;
+			this.AuthHeaderValueFactory = authHeaderValueFactory;
+			this.JsonSerializerSettings = jsonSerializerSettings;
+			this.Encoding = encoding;
+			this.ContentType = contentType;
+		}
+
 
 		/// <summary>
 		/// Sends the specified rpc request to the server
@@ -111,7 +125,7 @@ namespace EdjCase.JsonRpc.Client
 		{
 			try
 			{
-				using (HttpClient httpClient = this.GetHttpClient())
+				using (HttpClient httpClient = await this.GetHttpClientAsync())
 				{
 					httpClient.BaseAddress = this.BaseUrl;
 
@@ -143,10 +157,10 @@ namespace EdjCase.JsonRpc.Client
 			}
 		}
 
-		private HttpClient GetHttpClient()
+		private async Task<HttpClient> GetHttpClientAsync()
 		{
 			HttpClient httpClient = new HttpClient();
-			httpClient.DefaultRequestHeaders.Authorization = this.AuthHeaderValue;
+			httpClient.DefaultRequestHeaders.Authorization = await this.AuthHeaderValueFactory();
 			return httpClient;
 		}
 	}
