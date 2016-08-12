@@ -17,6 +17,10 @@ namespace EdjCase.JsonRpc.Client
 		{
 			if (response.Result == null)
 			{
+				if(!returnDefaultIfNull && default(T) != null)
+				{
+					throw new RpcClientParseException($"Unable to convert the result (null) to type '{typeof(T)}'");
+				}
 				return default(T);
 			}
 			try
