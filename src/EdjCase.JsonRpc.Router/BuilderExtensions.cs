@@ -20,15 +20,40 @@ namespace Microsoft.AspNetCore.Builder
 		/// Extension method to use the JsonRpc router in the Asp.Net pipeline
 		/// </summary>
 		/// <param name="app"><see cref="IApplicationBuilder"/> that is supplied by Asp.Net</param>
+		/// <param name="configureProvider">Action to configure route provider</param>
 		/// <returns><see cref="IApplicationBuilder"/> that includes the Basic auth middleware</returns>
-		public static IApplicationBuilder UseJsonRpc(this IApplicationBuilder app)
+		public static IApplicationBuilder UseJsonRpc(this IApplicationBuilder app, Action<IRpcRouteProvider> configureProvider = null)
 		{
 			if (app == null)
 			{
 				throw new ArgumentNullException(nameof(app));
 			}
-			
-			RpcRouter router = ActivatorUtilities.CreateInstance<RpcRouter>(app.ApplicationServices);
+
+			IRpcRouteProvider routeProvider = new RpcRouteProvider();
+			configureProvider?.Invoke(routeProvider);
+
+			RpcRouter router = ActivatorUtilities.CreateInstance<RpcRouter>(app.ApplicationServices, routeProvider);
+			return app.UseRouter(router);
+		}
+
+		/// <summary>
+		/// Extension method to use the JsonRpc router in the Asp.Net pipeline
+		/// </summary>
+		/// <param name="app"><see cref="IApplicationBuilder"/> that is supplied by Asp.Net</param>
+		/// <param name="routeProvider">Action to configure route provider</param>
+		/// <returns><see cref="IApplicationBuilder"/> that includes the Basic auth middleware</returns>
+		public static IApplicationBuilder UseJsonRpc(this IApplicationBuilder app, IRpcRouteProvider routeProvider)
+		{
+			if (app == null)
+			{
+				throw new ArgumentNullException(nameof(app));
+			}
+			if(routeProvider == null)
+			{
+				throw new ArgumentNullException(nameof(routeProvider));
+			}
+
+			RpcRouter router = ActivatorUtilities.CreateInstance<RpcRouter>(app.ApplicationServices, routeProvider);
 			return app.UseRouter(router);
 		}
 
@@ -38,25 +63,15 @@ namespace Microsoft.AspNetCore.Builder
 		/// <param name="serviceCollection">IoC serivce container to register JsonRpc dependencies</param>
 		/// <param name="configureOptions">Action to configure the router properties</param>
 		/// <returns>IoC service container</returns>
-		public static IServiceCollection AddJsonRpc(this IServiceCollection serviceCollection, Action<RpcRouterConfiguration> configureOptions)
+		public static IServiceCollection AddJsonRpc(this IServiceCollection serviceCollection, Action<RpcServerConfiguration> configureOptions = null)
 		{
-			if (configureOptions == null)
+			if (serviceCollection == null)
 			{
-				throw new ArgumentNullException(nameof(configureOptions));
+				throw new ArgumentNullException(nameof(serviceCollection));
 			}
+			RpcServerConfiguration configuration = new RpcServerConfiguration();
+			configureOptions?.Invoke(configuration);
 
-			RpcRouterConfiguration configuration = new RpcRouterConfiguration();
-			configureOptions.Invoke(configuration);
-#if !NETSTANDARD1_3
-			if (configuration.AutoRegisterControllers)
-			{
-				configuration.Routes.AddControllerRoutes();
-			}
-#endif
-			if (configuration.Routes.Count < 1)
-			{
-				throw new RpcConfigurationException("At least on class/route must be configured for router to work.");
-			}
 			return serviceCollection
 				.AddRouting()
 				.AddAuthorization()

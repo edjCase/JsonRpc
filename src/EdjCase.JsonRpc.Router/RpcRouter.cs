@@ -20,9 +20,9 @@ namespace EdjCase.JsonRpc.Router
 	public class RpcRouter : IRouter
 	{
 		/// <summary>
-		/// Configuration data for the router
+		/// Configuration data for the server
 		/// </summary>
-		private RpcRouterConfiguration configuration { get; }
+		private IOptions<RpcServerConfiguration> serverConfig { get; }
 		/// <summary>
 		/// Component that invokes Rpc requests target methods and returns a response
 		/// </summary>
@@ -40,16 +40,17 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		private ILogger<RpcRouter> logger { get; }
 
-		/// <param name="configuration">Configuration data for the router</param>
+		/// <param name="serverConfig">Configuration data for the server</param>
+		/// <param name="serverConfig">Configuration data for the router middleware</param>
 		/// <param name="invoker">Component that invokes Rpc requests target methods and returns a response</param>
 		/// <param name="parser">Component that parses Http requests into Rpc requests</param>
 		/// <param name="compressor">Component that compresses Rpc responses</param>
 		/// <param name="logger">Component that logs actions from the router</param>
-		public RpcRouter(IOptions<RpcRouterConfiguration> configuration, IRpcInvoker invoker, IRpcParser parser, IRpcCompressor compressor, ILogger<RpcRouter> logger)
+		public RpcRouter(IOptions<RpcServerConfiguration> serverConfig, IRpcInvoker invoker, IRpcParser parser, IRpcCompressor compressor, ILogger<RpcRouter> logger)
 		{
-			if (configuration == null)
+			if (serverConfig == null)
 			{
-				throw new ArgumentNullException(nameof(configuration));
+				throw new ArgumentNullException(nameof(serverConfig));
 			}
 			if (invoker == null)
 			{
@@ -63,7 +64,7 @@ namespace EdjCase.JsonRpc.Router
 			{
 				throw new ArgumentNullException(nameof(compressor));
 			}
-			this.configuration = configuration.Value;
+			this.serverConfig = serverConfig;
 			this.invoker = invoker;
 			this.parser = parser;
 			this.compressor = compressor;
@@ -91,7 +92,7 @@ namespace EdjCase.JsonRpc.Router
 			try
 			{
 				RpcRoute route;
-				bool matchesRoute = this.parser.MatchesRpcRoute(this.configuration.Routes, context.HttpContext.Request.Path, out route);
+				bool matchesRoute = this.parser.MatchesRpcRoute(context.HttpContext.Request.Path, out route);
 				if (!matchesRoute)
 				{
 					return;
@@ -113,13 +114,13 @@ namespace EdjCase.JsonRpc.Router
 							jsonString = streamReader.ReadToEnd().Trim();
 						}
 					}
-					List<RpcRequest> requests = this.parser.ParseRequests(jsonString, this.configuration.JsonSerializerSettings);
+					List<RpcRequest> requests = this.parser.ParseRequests(jsonString, this.serverConfig.Value.JsonSerializerSettings);
 					this.logger?.LogInformation($"Processing {requests.Count} Rpc requests");
 
-					List<RpcResponse> responses = await this.invoker.InvokeBatchRequestAsync(requests, route, context.HttpContext, this.configuration.JsonSerializerSettings);
+					List<RpcResponse> responses = await this.invoker.InvokeBatchRequestAsync(requests, route, context.HttpContext, this.serverConfig.Value.JsonSerializerSettings);
 
 					this.logger?.LogInformation($"Sending '{responses.Count}' Rpc responses");
-					await this.SetResponse(context, responses, this.configuration.JsonSerializerSettings);
+					await this.SetResponse(context, responses, this.serverConfig.Value.JsonSerializerSettings);
 					context.MarkAsHandled();
 
 					this.logger?.LogInformation("Rpc request complete");
@@ -149,9 +150,9 @@ namespace EdjCase.JsonRpc.Router
 		{
 			var responses = new List<RpcResponse>
 			{
-				new RpcResponse(null, new RpcError(exception, this.configuration.ShowServerExceptions))
+				new RpcResponse(null, new RpcError(exception, this.serverConfig.Value.ShowServerExceptions))
 			};
-			await this.SetResponse(context, responses, this.configuration.JsonSerializerSettings);
+			await this.SetResponse(context, responses, this.serverConfig.Value.JsonSerializerSettings);
 		}
 
 		/// <summary>

@@ -2,6 +2,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using EdjCase.JsonRpc.Router.Abstractions;
 #if !NETSTANDARD1_3
 using System.Reflection;
 using Microsoft.Extensions.DependencyModel;
@@ -19,124 +21,45 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		public string Name { get; }
 		/// <summary>
-		/// Classes registered in this route for api use
+		/// Criteria for the route to be a match to an rpc request
 		/// </summary>
-		private List<Type> types { get; } = new List<Type>();
-		
-		/// <param name="name">Optional name for the route</param>
-		public RpcRoute(string name = null)
-		{
-			this.Name = name;
-		}
+		public IReadOnlyList<RouteCriteria> RouteCriteria { get; }
 
-		/// <summary>
-		/// Registers a class type to this route to allow its methods to be used in the Rpc api
-		/// </summary>
-		/// <typeparam name="T">Class type to register under this route</typeparam>
-		/// <returns>True if the class was added to the registered classes, False if it already is registered</returns>
-		public bool AddClass<T>()
+		/// <param name="routeCriteria">Criteria for the route to be matched to an rpc request</param>
+		/// <param name="name">(Optional) Name for the route</param>
+		/// <param name="group">(Optional) Group name for the route</param>
+		public RpcRoute(List<RouteCriteria> routeCriteria, string name = null)
 		{
-			Type type = typeof (T);
-			return this.AddClass(type);
-		}
-
-
-		/// <summary>
-		/// Registers a class type to this route to allow its methods to be used in the Rpc api
-		/// </summary>
-		/// <param name="type">Class type to register under this route</param>
-		/// <returns>True if the class was added to the registered classes, False if it already is registered</returns>
-		public bool AddClass(Type type)
-		{
-			if (this.types.Any(t => t == type))
+			if (routeCriteria == null || !routeCriteria.Any())
 			{
-				return false;
+				throw new ArgumentException("At least one route criterion is required.");
 			}
-			this.types.Add(type);
-			return true;
+			this.Name = name;
+			this.RouteCriteria = routeCriteria;
 		}
-
-
-		/// <summary>
-		/// Returns the list of classes registered in this route
-		/// </summary>
-		/// <returns>List of classes registered in this route</returns>
-		public List<Type> GetClasses()
-		{
-			return new List<Type>(this.types);
-		} 
 	}
 
+
+
 	/// <summary>
-	/// Collection of Rpc routes
+	/// TODO
 	/// </summary>
-	public class RpcRouteCollection : ICollection<RpcRoute>
+	public class RpcRouteProvider : IRpcRouteProvider
 	{
+#if !NETSTANDARD1_3
+		public bool AutoDetectControllers { get; set; }
+#endif
 		/// <summary>
 		/// List of the Rpc routes
 		/// </summary>
 		private List<RpcRoute> routeList { get; } = new List<RpcRoute>();
-		
-		/// <summary>
-		/// Count of the Rpc routes
-		/// </summary>
-		public int Count => this.routeList.Count;
-
-		/// <summary>
-		/// Gets if the collection is readonly
-		/// </summary>
-		public bool IsReadOnly => false;
-
-		/// <summary>
-		/// Prefix for all the routes
-		/// </summary>
-		public string RoutePrefix { get; set; }
-
-		/// <param name="routePrefix">Optional prefix for all the routes</param>
-		public RpcRouteCollection(string routePrefix = null)
-		{
-			this.RoutePrefix = routePrefix;
-		}
-
-		/// <summary>
-		/// Returns the route with the given name
-		/// </summary>
-		/// <param name="routeName">Name of route to retrieve</param>
-		/// <returns>Rpc route with the same name (case insensitive), null if not found</returns>
-		public RpcRoute GetByName(string routeName)
-		{
-			if (string.IsNullOrWhiteSpace(routeName))
-			{
-				return this.routeList.FirstOrDefault(s => string.IsNullOrWhiteSpace(s.Name));
-			}
-			return this.routeList.FirstOrDefault(s => string.Equals(s.Name, routeName, StringComparison.OrdinalIgnoreCase));
-		}
-
-		/// <summary>
-		/// Adds the given route to the collection
-		/// </summary>
-		/// <param name="route">Rpc route</param>
-		/// <exception cref="ArgumentException">Thrown when route with the same name already exists in the collection</exception>
-		public void Add(RpcRoute route)
-		{
-			if(route == null)
-			{
-				throw new ArgumentNullException(nameof(route));
-			}
-			RpcRoute duplicateRoute = this.GetByName(route.Name);
-			if(duplicateRoute != null)
-			{
-				throw new ArgumentException($"Route with the name '{route.Name}' already exists");
-			}
-			this.routeList.Add(route);
-		}
 
 #if !NETSTANDARD1_3
 		/// <summary>
 		/// Adds all types that inherit <see cref="RpcController"/> to the route collection.
 		/// Controllers defaults to the controller name for the route unless configured otherwise
 		/// </summary>
-		public void AddControllerRoutes()
+		private List<RpcRoute> GetControllerRoutes()
 		{
 			Type rpcControllerType = typeof(RpcController);
 			DependencyContext depedencyContext = DependencyContext.Default;
@@ -146,11 +69,12 @@ namespace EdjCase.JsonRpc.Router
 				.SelectMany(a => a.DefinedTypes)
 				.Where(t => !t.IsAbstract && t.IsSubclassOf(rpcControllerType));
 
+			List<RpcRoute> controllerRoutes = new List<RpcRoute>();
 			foreach (TypeInfo controllerType in controllerTypes)
 			{
 				var attribute = controllerType.GetCustomAttribute<RpcRouteAttribute>(true);
 				string routeName;
-				if (attribute == null)
+				if (attribute == null || string.IsNullOrWhiteSpace(attribute.RouteName))
 				{
 					if (controllerType.Name.EndsWith("Controller"))
 					{
@@ -165,71 +89,48 @@ namespace EdjCase.JsonRpc.Router
 				{
 					routeName = attribute.RouteName;
 				}
-				RpcRoute route = this.GetByName(routeName);
-				if(route == null)
-				{
-					route = new RpcRoute(routeName);
-					this.Add(route);
-				}
-				route.AddClass(controllerType.AsType());
+
+				var routeCriteria = new List<RouteCriteria>
+					{
+						new RouteCriteria(controllerType.AsType())
+					};
+				controllerRoutes.Add(new RpcRoute(routeCriteria, routeName));
 			}
+			return controllerRoutes;
 		}
 #endif
 
-		/// <summary>
-		/// Clears the collection of all routes
-		/// </summary>
-		public void Clear()
+		public List<RpcRoute> GetRoutes()
 		{
-			this.routeList.Clear();
+			List<RpcRoute> routes = this.routeList.ToList();
+#if !NETSTANDARD1_3
+			if (this.AutoDetectControllers)
+			{
+				List<RpcRoute> controllerRoutes = this.GetControllerRoutes();
+				routes.AddRange(controllerRoutes);
+			}
+#endif
+			return routes;
 		}
 
-		/// <summary>
-		/// Returns if the collection contains the given route
-		/// </summary>
-		/// <param name="route">Rpc route</param>
-		/// <returns>True if the collection contains the given route, otherwise False</returns>
-		public bool Contains(RpcRoute route)
+
+		public void RegisterRoute(RouteCriteria routeCriteria, string name = null)
 		{
-			return this.routeList.Contains(route);
+			if (routeCriteria == null)
+			{
+				throw new ArgumentException("At least one route criterion is required.");
+			}
+			this.routeList.Add(new RpcRoute(new List<RouteCriteria> { routeCriteria }, name));
 		}
 
-		/// <summary>
-		/// Copies the route array to the collection
-		/// </summary>
-		/// <param name="array">Rpc routes</param>
-		/// <param name="arrayIndex">Index to start copying from</param>
-		public void CopyTo(RpcRoute[] array, int arrayIndex)
+		public void RegisterRoute(IEnumerable<RouteCriteria> routeCriteria, string name = null)
 		{
-			this.routeList.CopyTo(array, arrayIndex);
-		}
-
-		/// <summary>
-		/// Removes the Rpc route from the collection if it exists
-		/// </summary>
-		/// <param name="route">Rpc route</param>
-		/// <returns>True if the route was removed from the collection, otherwise False</returns>
-		public bool Remove(RpcRoute route)
-		{
-			return this.routeList.Remove(route);
-		}
-
-		/// <summary>
-		/// Returns an enumerator for the collection
-		/// </summary>
-		/// <returns>An enumerator for the collection</returns>
-		public IEnumerator<RpcRoute> GetEnumerator()
-		{
-			return this.routeList.GetEnumerator();
-		}
-
-		/// <summary>
-		/// Returns an enumerator for the collection
-		/// </summary>
-		/// <returns>An enumerator for the collection</returns>
-		IEnumerator IEnumerable.GetEnumerator()
-		{
-			return this.routeList.GetEnumerator();
+			List<RouteCriteria> routeCriteriaList = routeCriteria.ToList();
+			if (routeCriteria == null || !routeCriteria.Any())
+			{
+				throw new ArgumentException("At least one route criterion is required.");
+			}
+			this.routeList.Add(new RpcRoute(routeCriteriaList, name));
 		}
 	}
 }

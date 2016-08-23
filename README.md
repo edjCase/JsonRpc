@@ -21,7 +21,11 @@ public void ConfigureServices(IServiceCollection services)
 	services
     	//Adds default IRpcInvoker, IRpcParser, IRpcCompressor implementations to the services collection.
     	//(Can be overridden by custom implementations if desired)
-	    .AddJsonRpc();
+	    .AddJsonRpc(config =>
+				{
+					//returns detailed error messages from server to rpcresponses
+					config.ShowServerExceptions = true;
+				});
 }
 ```
 
@@ -31,9 +35,13 @@ public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerF
 {
 	app.UseJsonRpc(config =>
 	{
-		config.RoutePrefix = "RpcApi"; //(optional) changes base url from '/' to '/RpcApi/'
-		config.RegisterClassToRpcRoute<RpcClass1>(); //Access RpcClass1 public methods at '/RpcApi/'
-		config.RegisterClassToRpcRoute<RpcClass2>("Class2"); //Access RpcClass2 public methods at '/RpcApi/Class2'
+		config.RegisterTypeRoute<RpcClass1>(); //Access RpcClass1 public methods at '/'
+		config.RegisterTypeRoute<RpcClass2>("Class2"); //Access RpcClass2 public methods at '/Class2'
+		
+		//Or use manual RouteCriteria registration (only uses types right now but will have more features in the future)
+		List<Type> types = new List<Type> { typeof(RpcClass1), typeof(RpcClass2) };
+		RouteCriteria criteria = new RouteCriteria(types);
+		config.RegisterRoute(criteria, "CriteriaRoute") //Access RpcClass1 and RpcClass2 from '/CriteriaRoute'
 	});
 }
 ```

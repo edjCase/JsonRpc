@@ -9,11 +9,10 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 		/// <summary>
 		/// Indicates if the incoming request matches any predefined routes
 		/// </summary>
-		/// <param name="routes">Predefined routes for Rpc requests</param>
 		/// <param name="requestUrl">The current request url</param>
 		/// <param name="route">The matching route corresponding to the request url if found, otherwise it is null</param>
 		/// <returns>True if the request url matches any Rpc routes, otherwise False</returns>
-		bool MatchesRpcRoute(RpcRouteCollection routes, string requestUrl, out RpcRoute route);
+		bool MatchesRpcRoute(string requestUrl, out RpcRoute route);
 
 		/// <summary>
 		/// Parses all the requests from the json in the request

@@ -9,13 +9,27 @@ namespace EdjCase.JsonRpc.Router
 	{
 	}
 
+
+#if !NETSTANDARD1_3
+	/// <summary>
+	/// Attribute to decorate a derived <see cref="RpcController"/> class
+	/// </summary>
 	public class RpcRouteAttribute : Attribute
 	{
+		/// <summary>
+		/// Name of the route to be used in the router. If unspecified, will use controller name.
+		/// </summary>
 		public string RouteName { get; }
-		public RpcRouteAttribute(string routeName)
+
+		/// <summary>
+		/// 
+		/// </summary>
+		/// <param name="routeName">(Optional) Name of the route to be used in the router. If unspecified, will use controller name.</param>
+		/// <param name="routeGroup">(Optional) Name of the group the route is in to allow route filtering per request.</param>
+		public RpcRouteAttribute(string routeName = null)
 		{
-			routeName = routeName?.Trim();
-			this.RouteName = routeName;
+			this.RouteName = routeName?.Trim();
 		}
 	}
+#endif
 }

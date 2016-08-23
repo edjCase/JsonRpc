@@ -6,6 +6,7 @@ using EdjCase.JsonRpc.Router.Abstractions;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using EdjCase.JsonRpc.Router.Utilities;
+using Microsoft.Extensions.Options;
 
 namespace EdjCase.JsonRpc.Router.Defaults
 {
@@ -17,42 +18,41 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <summary>
 		/// Logger for logging Rpc parsing
 		/// </summary>
-		private ILogger<DefaultRpcParser> logger { get; set; }
+		private ILogger<DefaultRpcParser> logger { get; }
+		/// <summary>
+		/// Provider that allows the retrieval of all configured routes
+		/// </summary>
+		private IRpcRouteProvider routeProvider { get; }
 
 		/// <summary>
 		/// 
 		/// </summary>
 		/// <param name="logger">Optional logger for logging Rpc parsing</param>
-		public DefaultRpcParser(ILogger<DefaultRpcParser> logger)
+		/// <param name="routeProvider">Provider that allows the retrieval of all configured routes</param>
+		public DefaultRpcParser(ILogger<DefaultRpcParser> logger, IRpcRouteProvider routeProvider)
 		{
 			this.logger = logger;
+			this.routeProvider = routeProvider;
 		}
 
 		/// <summary>
 		/// Indicates if the incoming request matches any predefined routes
 		/// </summary>
-		/// <param name="routes">Predefined routes for Rpc requests</param>
 		/// <param name="requestUrl">The current request url</param>
 		/// <param name="route">The matching route corresponding to the request url if found, otherwise it is null</param>
 		/// <returns>True if the request url matches any Rpc routes, otherwise False</returns>
-		public bool MatchesRpcRoute(RpcRouteCollection routes, string requestUrl, out RpcRoute route)
+		public bool MatchesRpcRoute(string requestUrl, out RpcRoute route)
 		{
-			if (routes == null)
-			{
-				throw new ArgumentNullException(nameof(routes));
-			}
 			if (requestUrl == null)
 			{
 				throw new ArgumentNullException(nameof(requestUrl));
 			}
 			this.logger?.LogDebug($"Attempting to match Rpc route for the request url '{requestUrl}'");
 			RpcPath requestPath = RpcPath.Parse(requestUrl);
-			RpcPath routePrefix = RpcPath.Parse(routes.RoutePrefix);
 			
-			foreach (RpcRoute rpcRoute in routes)
+			foreach (RpcRoute rpcRoute in this.routeProvider.GetRoutes())
 			{
 				RpcPath routePath = RpcPath.Parse(rpcRoute.Name);
-				routePath = routePrefix.Add(routePath);
 				if (requestPath == routePath)
 				{
 					this.logger?.LogDebug($"Matched the request url '{requestUrl}' to the route '{rpcRoute.Name}'");

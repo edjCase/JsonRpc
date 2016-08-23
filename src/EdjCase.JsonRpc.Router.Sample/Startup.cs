@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http.Authentication;
 using System.Threading.Tasks;
+using EdjCase.JsonRpc.Router.Abstractions;
 
 namespace EdjCase.JsonRpc.Router.Sample
 {
@@ -31,12 +32,6 @@ namespace EdjCase.JsonRpc.Router.Sample
 				.AddBasicAuth()
 				.AddJsonRpc(config =>
 				{
-					config.RoutePrefix = "RpcApi";
-					config.RegisterClassToRpcRoute<RpcMath>();
-					config.RegisterClassToRpcRoute<RpcString>("Strings");
-					config.RegisterClassToRpcRoute<RpcCommands>("Commands");
-					config.RegisterClassToRpcRoute<RpcMath>("Math");
-					config.AutoRegisterControllers = true;
 					config.ShowServerExceptions = true;
 				});
 		}
@@ -67,7 +62,17 @@ namespace EdjCase.JsonRpc.Router.Sample
 				};
 			});
 
-			app.UseJsonRpc();
+			app.Map("/RpcApi", rpcApp =>
+			{
+				rpcApp.UseJsonRpc(builder =>
+				{
+					builder.RegisterTypeRoute<RpcMath>();
+					builder.RegisterTypeRoute<RpcString>("Strings");
+					builder.RegisterTypeRoute<RpcCommands>("Commands");
+					builder.RegisterTypeRoute<RpcMath>("Math");
+				});
+			});
+
 		}
 	}
 

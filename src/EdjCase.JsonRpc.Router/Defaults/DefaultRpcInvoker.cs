@@ -35,21 +35,21 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		private IAuthorizationPolicyProvider policyProvider { get; }
 
 		/// <summary>
-		/// Configuration data for the router
+		/// Configuration data for the server
 		/// </summary>
-		private RpcRouterConfiguration configuration { get; }
+		private IOptions<RpcServerConfiguration> serverConfig { get; }
 
 
 		/// <param name="authorizationService">Service that authorizes each method for use if configured</param>
 		/// <param name="policyProvider">Provides authorization policies for the authroziation service</param>
 		/// <param name="logger">Optional logger for logging Rpc invocation</param>
-		/// <param name="configuration">Configuration data for the router</param>
-		public DefaultRpcInvoker(IAuthorizationService authorizationService, IAuthorizationPolicyProvider policyProvider, ILogger<DefaultRpcInvoker> logger, IOptions<RpcRouterConfiguration> configuration)
+		/// <param name="serverConfig">Configuration data for the server</param>
+		public DefaultRpcInvoker(IAuthorizationService authorizationService, IAuthorizationPolicyProvider policyProvider, ILogger<DefaultRpcInvoker> logger, IOptions<RpcServerConfiguration> serverConfig)
 		{
 			this.authorizationService = authorizationService;
 			this.policyProvider = policyProvider;
 			this.logger = logger;
-			this.configuration = configuration.Value;
+			this.serverConfig = serverConfig;
 		}
 
 
@@ -148,7 +148,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			catch (RpcException ex)
 			{
 				this.logger?.LogException(ex, "An Rpc error occurred. Returning an Rpc error response");
-				RpcError error = new RpcError(ex, this.configuration.ShowServerExceptions);
+				RpcError error = new RpcError(ex, this.serverConfig.Value.ShowServerExceptions);
 				rpcResponse = new RpcResponse(request.Id, error);
 			}
 			catch (Exception ex)
@@ -208,7 +208,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			this.logger?.LogException(ex, "An unknown error occurred. Returning an Rpc error response");
 
 			RpcUnknownException exception = new RpcUnknownException("An internal server error has occurred", ex);
-			RpcError error = new RpcError(exception, this.configuration.ShowServerExceptions);
+			RpcError error = new RpcError(exception, this.serverConfig.Value.ShowServerExceptions);
 			if (request?.Id == null)
 			{
 				return null;
@@ -304,13 +304,16 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		private static List<RpcMethod> GetRpcMethods(RpcRoute route, IServiceProvider serviceProvider = null, JsonSerializerSettings jsonSerializerSettings = null)
 		{
 			List<RpcMethod> rpcMethods = new List<RpcMethod>();
-			foreach (Type type in route.GetClasses())
+			foreach (RouteCriteria routeCriteria in route.RouteCriteria)
 			{
-				MethodInfo[] publicMethods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
-				foreach (MethodInfo publicMethod in publicMethods)
+				foreach (Type type in routeCriteria.Types)
 				{
-					RpcMethod rpcMethod = new RpcMethod(type, route, publicMethod, serviceProvider, jsonSerializerSettings);
-					rpcMethods.Add(rpcMethod);
+					MethodInfo[] publicMethods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
+					foreach (MethodInfo publicMethod in publicMethods)
+					{
+						RpcMethod rpcMethod = new RpcMethod(type, route, publicMethod, serviceProvider, jsonSerializerSettings);
+						rpcMethods.Add(rpcMethod);
+					}
 				}
 			}
 			return rpcMethods;
