@@ -44,16 +44,19 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 			this.logger?.LogDebug($"Attempting to match Rpc route for the request url '{requestUrl}'");
 			RpcPath requestPath = RpcPath.Parse(requestUrl);
+			this.logger?.LogTrace($"Request path: {requestPath}");
 			
 			foreach (RpcRoute rpcRoute in routeProvider.GetRoutes())
 			{
 				RpcPath routePath = RpcPath.Parse(rpcRoute.Name);
+				this.logger?.LogTrace($"Trying to match against route - Name: {rpcRoute.Name}, Path: {routePath}");
 				if (requestPath == routePath)
 				{
 					this.logger?.LogDebug($"Matched the request url '{requestUrl}' to the route '{rpcRoute.Name}'");
 					route = rpcRoute;
 					return true;
 				}
+
 			}
 			this.logger?.LogDebug($"Failed to match the request url '{requestUrl}' to a route");
 			route = null;

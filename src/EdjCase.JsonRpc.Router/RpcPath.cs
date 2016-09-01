@@ -115,5 +115,10 @@ namespace EdjCase.JsonRpc.Router
 			other.components.CopyTo(newComponents, this.components.Length);
 			return new RpcPath(newComponents);
 		}
+
+		public override string ToString()
+		{
+			return "/" + string.Join("/", this.components);
+		}
 	}
 }

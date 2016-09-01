@@ -47,7 +47,7 @@ namespace EdjCase.JsonRpc.Router
 	public class RpcRouteProvider : IRpcRouteProvider
 	{
 #if !NETSTANDARD1_3
-		public bool AutoDetectControllers { get; set; }
+		public bool AutoDetectControllers { get; set; } = true;
 #endif
 		/// <summary>
 		/// List of the Rpc routes
