@@ -75,7 +75,7 @@ namespace Microsoft.AspNetCore.Builder
 			return serviceCollection
 				.AddRouting()
 				.AddAuthorization()
-				.AddSingleton(Options.Create(configuration))
+				.Configure<RpcServerConfiguration>(configureOptions ?? (options => { }))
 				.AddSingleton<IRpcInvoker, DefaultRpcInvoker>()
 				.AddSingleton<IRpcParser, DefaultRpcParser>()
 				.AddSingleton<IRpcCompressor, DefaultRpcCompressor>();

@@ -1,5 +1,5 @@
 {
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"description": "A .Net Core Client implementation for Json Rpc v2 requests.",
 	"packOptions": {
 		"summary": "A Json RPC v2 client for .Net Core",
@@ -7,12 +7,11 @@
 		"projectUrl": "https://github.com/edjCase/JsonRpc",
 		"repository": { "type": "git" },
 		"licenseUrl": "https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE",
-		"releaseNotes": "Adding dynamic auth header value capability for refresh token."
+		"releaseNotes": "Removing NetStandard library from non netstandard frameworks."
 	},
 	"authors": [ "Gekctek" ],
 
 	"dependencies": {
-		"NETStandard.Library": "1.6.0",
 		"Newtonsoft.Json": "9.0.1",
 		"EdjCase.JsonRpc.Core": {
 			"target": "project"
@@ -20,10 +19,15 @@
 	},
 
 	"frameworks": {
-		"net451": {},
+		"net451": {
+			"frameworkAssemblies": {
+				"System.Net.Http": "4.0.0.0"
+			}
+		},
 		"netstandard1.1": {
 			"dependencies": {
-				"System.Net.Http": "4.1.0"
+				"System.Net.Http": "4.1.0",
+				"NETStandard.Library": "1.6.0"
 			},
 			"imports": [
 				"dotnet52",
@@ -31,6 +35,10 @@
 				"portable-net45+win8"
 			]
 		},
-		".NETPortable,Version=v4.5,Profile=Profile111": {}
+			".NETPortable,Version=v4.5,Profile=Profile111": {
+				"dependencies": {
+					"NETStandard.Library": "1.6.0"
+				}
+			}
 	}
 }

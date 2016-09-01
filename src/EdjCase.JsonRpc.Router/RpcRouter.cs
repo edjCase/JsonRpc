@@ -40,13 +40,20 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		private ILogger<RpcRouter> logger { get; }
 
+		/// <summary>
+		/// Provider that allows the retrieval of all configured routes
+		/// </summary>
+		private IRpcRouteProvider routeProvider { get; }
+
 		/// <param name="serverConfig">Configuration data for the server</param>
 		/// <param name="serverConfig">Configuration data for the router middleware</param>
 		/// <param name="invoker">Component that invokes Rpc requests target methods and returns a response</param>
 		/// <param name="parser">Component that parses Http requests into Rpc requests</param>
 		/// <param name="compressor">Component that compresses Rpc responses</param>
 		/// <param name="logger">Component that logs actions from the router</param>
-		public RpcRouter(IOptions<RpcServerConfiguration> serverConfig, IRpcInvoker invoker, IRpcParser parser, IRpcCompressor compressor, ILogger<RpcRouter> logger)
+		/// <param name="routeProvider">Provider that allows the retrieval of all configured routes</param>
+		public RpcRouter(IOptions<RpcServerConfiguration> serverConfig, IRpcInvoker invoker, IRpcParser parser, IRpcCompressor compressor, ILogger<RpcRouter> logger,
+			IRpcRouteProvider routeProvider)
 		{
 			if (serverConfig == null)
 			{
@@ -64,11 +71,16 @@ namespace EdjCase.JsonRpc.Router
 			{
 				throw new ArgumentNullException(nameof(compressor));
 			}
+			if(routeProvider == null)
+			{
+				throw new ArgumentNullException(nameof(routeProvider));
+			}
 			this.serverConfig = serverConfig;
 			this.invoker = invoker;
 			this.parser = parser;
 			this.compressor = compressor;
 			this.logger = logger;
+			this.routeProvider = routeProvider;
 		}
 
 		/// <summary>
@@ -92,7 +104,7 @@ namespace EdjCase.JsonRpc.Router
 			try
 			{
 				RpcRoute route;
-				bool matchesRoute = this.parser.MatchesRpcRoute(context.HttpContext.Request.Path, out route);
+				bool matchesRoute = this.parser.MatchesRpcRoute(routeProvider, context.HttpContext.Request.Path, out route);
 				if (!matchesRoute)
 				{
 					return;

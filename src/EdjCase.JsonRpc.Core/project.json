@@ -1,5 +1,5 @@
 {
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"description": "The core library used by JsonRpc client/router.",
 	"packOptions": {
 		"summary": "A Json RPC v2 core library for .Net Core",
@@ -7,19 +7,19 @@
 		"projectUrl": "https://github.com/edjCase/JsonRpc",
 		"repository": { "type": "git" },
 		"licenseUrl": "https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE",
-		"releaseNotes": "Fixing error messaging to be recursive with inner exceptions."
+		"releaseNotes": "Removing NetStandard library from non netstandard frameworks."
 	},
 	"authors": [ "Gekctek" ],
 
 	"dependencies": {
-		"Newtonsoft.Json": "9.0.1",
-		"NETStandard.Library": "1.6.0"
+		"Newtonsoft.Json": "9.0.1"
 	},
 
 	"frameworks": {
 		"net451": {},
 		"netstandard1.1": {
 			"dependencies": {
+				"NETStandard.Library": "1.6.0"
 			},
 			"imports": [
 				"dotnet52",
@@ -27,6 +27,10 @@
 				"portable-net45+win8"
 			]
 		},
-		".NETPortable,Version=v4.5,Profile=Profile111": {}
+		".NETPortable,Version=v4.5,Profile=Profile111": {
+			"dependencies": {
+				"NETStandard.Library": "1.6.0"
+			}
+		}
 	}
 }

@@ -19,20 +19,14 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// Logger for logging Rpc parsing
 		/// </summary>
 		private ILogger<DefaultRpcParser> logger { get; }
-		/// <summary>
-		/// Provider that allows the retrieval of all configured routes
-		/// </summary>
-		private IRpcRouteProvider routeProvider { get; }
 
 		/// <summary>
 		/// 
 		/// </summary>
 		/// <param name="logger">Optional logger for logging Rpc parsing</param>
-		/// <param name="routeProvider">Provider that allows the retrieval of all configured routes</param>
-		public DefaultRpcParser(ILogger<DefaultRpcParser> logger, IRpcRouteProvider routeProvider)
+		public DefaultRpcParser(ILogger<DefaultRpcParser> logger)
 		{
 			this.logger = logger;
-			this.routeProvider = routeProvider;
 		}
 
 		/// <summary>
@@ -40,8 +34,9 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// </summary>
 		/// <param name="requestUrl">The current request url</param>
 		/// <param name="route">The matching route corresponding to the request url if found, otherwise it is null</param>
+		/// <param name="routeProvider">Provider that allows the retrieval of all configured routes</param>
 		/// <returns>True if the request url matches any Rpc routes, otherwise False</returns>
-		public bool MatchesRpcRoute(string requestUrl, out RpcRoute route)
+		public bool MatchesRpcRoute(IRpcRouteProvider routeProvider, string requestUrl, out RpcRoute route)
 		{
 			if (requestUrl == null)
 			{
@@ -50,7 +45,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			this.logger?.LogDebug($"Attempting to match Rpc route for the request url '{requestUrl}'");
 			RpcPath requestPath = RpcPath.Parse(requestUrl);
 			
-			foreach (RpcRoute rpcRoute in this.routeProvider.GetRoutes())
+			foreach (RpcRoute rpcRoute in routeProvider.GetRoutes())
 			{
 				RpcPath routePath = RpcPath.Parse(rpcRoute.Name);
 				if (requestPath == routePath)
