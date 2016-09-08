@@ -1,5 +1,5 @@
 {
-	"version": "1.2.1-beta-001",
+	"version": "1.2.1-beta-002",
 	"description": "A AspNet Core IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing.",
 	"packOptions": {
 		"summary": "A Json RPC v2 router for AspNet Core",
@@ -7,7 +7,7 @@
 		"projectUrl": "https://github.com/edjCase/JsonRpc",
 		"repository": { "type": "git" },
 		"licenseUrl": "https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE",
-		"releaseNotes": "Adding filters for auto detecting controllers."
+		"releaseNotes": "Allowing custom response results for rpc calls."
 	},
 	"authors": [ "Gekctek" ],
 

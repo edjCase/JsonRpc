@@ -135,9 +135,17 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					this.logger?.LogDebug($"Finished invoking method '{request.Method}'");
 
 					JsonSerializer jsonSerializer = JsonSerializer.Create(jsonSerializerSettings);
-
-					JToken resultJToken = result != null ? JToken.FromObject(result, jsonSerializer) : null;
-					rpcResponse = new RpcResponse(request.Id, resultJToken);
+					if (result is IRpcMethodResult)
+					{
+						this.logger?.LogTrace($"Result is {nameof(IRpcMethodResult)}.");
+						rpcResponse = ((IRpcMethodResult)result).ToRpcResponse(request.Id, obj => JToken.FromObject(obj, jsonSerializer));
+					}
+					else
+					{
+						this.logger?.LogTrace($"Result is plain object.");
+						JToken resultJToken = result != null ? JToken.FromObject(result, jsonSerializer) : null;
+						rpcResponse = new RpcResponse(request.Id, resultJToken);
+					}
 				}
 				else
 				{
@@ -263,7 +271,8 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					{
 						if (rpcMethod != null) //If already found a match
 						{
-							throw new RpcAmbiguousMethodException();
+							this.logger?.LogError("More than one method matched the rpc request. Unable to invoke due to ambiguity.");
+							throw new RpcMethodNotFoundException();
 						}
 						rpcMethod = method;
 					}
@@ -278,6 +287,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					bool signatureMatch = rpcMethod.TryParseParameterList(request.ParameterMap, out parameterList);
 					if (!signatureMatch)
 					{
+						this.logger?.LogError("No methods matched request. One method found but the signature does not match.");
 						throw new RpcMethodNotFoundException();
 					}
 				}
@@ -288,6 +298,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 			if (rpcMethod == null)
 			{
+				this.logger?.LogError("No methods matched request.");
 				throw new RpcMethodNotFoundException();
 			}
 			this.logger?.LogDebug("Request was matched to a method");

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using System;
 
 namespace EdjCase.JsonRpc.Core
 {
@@ -10,17 +11,17 @@ namespace EdjCase.JsonRpc.Core
 		/// <summary>
 		/// Rpc error code that corresponds to the documented integer codes
 		/// </summary>
-		public RpcErrorCode ErrorCode { get; }
+		public int ErrorCode { get; }
 		/// <summary>
 		/// Custom data attached to the error if needed
 		/// </summary>
-		public object RpcData { get; }
+		public JToken RpcData { get; }
 
 		/// <param name="errorCode">Rpc error code</param>
 		/// <param name="message">Error message</param>
 		/// <param name="data">Custom data if needed for error response</param>
 		/// <param name="innerException">Inner exception (optional)</param>
-		protected RpcException(RpcErrorCode errorCode, string message, object data = null, Exception innerException = null) : base(message, innerException)
+		protected RpcException(int errorCode, string message, JToken data = null, Exception innerException = null) : base(message, innerException)
 		{
 			this.ErrorCode = errorCode;
 			this.RpcData = data;
@@ -43,24 +44,11 @@ namespace EdjCase.JsonRpc.Core
 		}
 
 		/// <param name="message">Error message</param>
-		public RpcInvalidRequestException(string message) : base(RpcErrorCode.InvalidRequest, message)
+		public RpcInvalidRequestException(string message) : base((int)RpcErrorCode.InvalidRequest, message)
 		{
 		}
 	}
-
-	/// <summary>
-	/// Exception for requests that match multiple methods for invoking
-	/// </summary>
-	public class RpcAmbiguousMethodException : RpcException
-	{
-		internal RpcAmbiguousMethodException(RpcError error) : base(error)
-		{
-		}
-		public RpcAmbiguousMethodException() : base(RpcErrorCode.AmbiguousMethod, "Request matches multiple method signatures")
-		{
-		}
-	}
-
+	
 	/// <summary>
 	/// Exception for requests that match no methods for invoking
 	/// </summary>
@@ -69,7 +57,7 @@ namespace EdjCase.JsonRpc.Core
 		internal RpcMethodNotFoundException(RpcError error) : base(error)
 		{
 		}
-		public RpcMethodNotFoundException() : base(RpcErrorCode.MethodNotFound, "No method found with the requested signature")
+		public RpcMethodNotFoundException() : base((int)RpcErrorCode.MethodNotFound, "No method found with the requested signature or multiple methods matched the request.")
 		{
 		}
 	}
@@ -82,7 +70,7 @@ namespace EdjCase.JsonRpc.Core
 		internal RpcInvalidParametersException(RpcError error) : base(error)
 		{
 		}
-		public RpcInvalidParametersException(string message, Exception innerException = null) : base(RpcErrorCode.InvalidParams, message, null, innerException)
+		public RpcInvalidParametersException(string message, Exception innerException = null) : base((int)RpcErrorCode.InvalidParams, message, null, innerException)
 		{
 		}
 	}
@@ -98,7 +86,7 @@ namespace EdjCase.JsonRpc.Core
 
 		/// <param name="message">Error message</param>
 		/// <param name="innerException">Inner exception (optional)</param>
-		public RpcUnknownException(string message, Exception innerException = null) : base(RpcErrorCode.InternalError, message, null, innerException)
+		public RpcUnknownException(string message, Exception innerException = null) : base((int)RpcErrorCode.InternalError, message, null, innerException)
 		{
 		}
 	}
@@ -113,7 +101,22 @@ namespace EdjCase.JsonRpc.Core
 		}
 
 		/// <param name="message">Error message</param>
-		public RpcParseException(string message) : base(RpcErrorCode.ParseError, message)
+		public RpcParseException(string message) : base((int)RpcErrorCode.ParseError, message)
+		{
+		}
+	}
+
+
+	/// <summary>
+	/// Custom exception defined by the server
+	/// </summary>
+	public class RpcCustomException : RpcException
+	{
+		internal RpcCustomException(RpcError error) : base(error)
+		{
+		}
+
+		public RpcCustomException(int code, string message, Exception innerException = null) : base(code, message, null, innerException)
 		{
 		}
 	}

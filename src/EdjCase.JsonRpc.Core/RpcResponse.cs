@@ -41,7 +41,7 @@ namespace EdjCase.JsonRpc.Core
 		/// Request id (Required but nullable)
 		/// </summary>
 		[JsonProperty("id", Required = Required.AllowNull)]
-		[JsonConverter(typeof (RpcIdJsonConverter))]
+		[JsonConverter(typeof(RpcIdJsonConverter))]
 		public object Id { get; private set; }
 
 		/// <summary>
@@ -95,7 +95,7 @@ namespace EdjCase.JsonRpc.Core
 			{
 				throw new ArgumentNullException(nameof(exception));
 			}
-			this.Code =  exception.ErrorCode;
+			this.Code = (int)exception.ErrorCode;
 			this.Message = RpcError.GetErrorMessage(exception, showServerExceptions);
 			this.Data = exception.RpcData;
 		}
@@ -103,11 +103,22 @@ namespace EdjCase.JsonRpc.Core
 		/// <param name="code">Rpc error code</param>
 		/// <param name="message">Error message</param>
 		/// <param name="data">Optional error data</param>
-		public RpcError(RpcErrorCode code, string message, object data = null)
+		public RpcError(RpcErrorCode code, string message, JToken data = null) : this((int)code, message, data)
+		{
+		}
+
+		/// <param name="code">Rpc error code</param>
+		/// <param name="message">Error message</param>
+		/// <param name="data">Optional error data</param>
+		public RpcError(int code, string message, JToken data = null)
 		{
 			if (string.IsNullOrWhiteSpace(message))
 			{
 				throw new ArgumentNullException(nameof(message));
+			}
+			if((code > -32000 || code < -32099) && !Enum.IsDefined(typeof(RpcErrorCode), code))
+			{
+				throw new ArgumentOutOfRangeException(nameof(code), "Error codes must be a predefined value of JSON-RPC 2.0 or between -32000 -> -32099.");
 			}
 			this.Code = code;
 			this.Message = message;
@@ -118,7 +129,7 @@ namespace EdjCase.JsonRpc.Core
 		/// Rpc error code (Required)
 		/// </summary>
 		[JsonProperty("code", Required = Required.Always)]
-		public RpcErrorCode Code { get; private set; }
+		public int Code { get; private set; }
 
 		/// <summary>
 		/// Error message (Required)
@@ -130,12 +141,12 @@ namespace EdjCase.JsonRpc.Core
 		/// Error data (Optional)
 		/// </summary>
 		[JsonProperty("data")]
-		public object Data { get; private set; }
+		public JToken Data { get; private set; }
 
 		public RpcException CreateException()
 		{
 			RpcException exception;
-			switch (this.Code)
+			switch ((RpcErrorCode)this.Code)
 			{
 				case RpcErrorCode.ParseError:
 					exception = new RpcParseException(this);
@@ -152,11 +163,9 @@ namespace EdjCase.JsonRpc.Core
 				case RpcErrorCode.InternalError:
 					exception = new RpcInvalidParametersException(this);
 					break;
-				case RpcErrorCode.AmbiguousMethod:
-					exception = new RpcAmbiguousMethodException(this);
-					break;
 				default:
-					throw new ArgumentOutOfRangeException();
+					exception = new RpcCustomException(this);
+					break;
 			}
 			return exception;
 		}

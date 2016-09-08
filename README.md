@@ -77,6 +77,17 @@ public class RpcClass1
     private void Hidden1()
     {
     }
+    
+    //Will return a success response or an error response dependening on the if statement
+    // (See IRpcMethodResult usage below)
+    public IRpcMethodResult CustomResult()
+    {
+        if(/*something is invalid*/)
+        {
+            return this.Error(customErrorCode, errorMesssage); //Or return new RpcMethodErrorResult(customErrorCode, errorMessage);
+        }
+        return this.Ok(optionalReturnObject);//Or return new RpcMethodSuccessResult(optionalReturnObject);
+    }
 }
 ```
 
@@ -95,6 +106,15 @@ public class TestController : RpcController
 Any method in the registered class that is a public instance method will be accessable through the Json Rpc Api.
 
 The controllers and manual registration CAN be used at the same time. Mix and match as needed.
+
+## Custom Rpc Responses
+In order to specify different types of responses (such as errors and successful result objects) in the same method `IRpcMethodResult` can be used as a return type. If the router detects the returned object is a `IRpcMethodResult` then it will call the `ToRpcReponse(...)` method and use that as the response. The default implementations are for simple error and success routes. The `RpcMethodErrorResult` will use the error code, message and data to create an error response. The `RpcMethodSuccessResult` will use the optional return object to create a successful response.
+
+Any custom implementation of the `IRpcMethodResult` can be used for application specific purposes. One common use may be to unify the custom rpc error codes that one specific application uses.
+
+There are two helper methods in the RpcController class: `this.Ok(obj)` and `this.Error(code, message, data)`. They are just wrappers around the implementations of `IRpcMethodResult`. So `return this.Ok(obj);` is equivalent to `return new RpcMethodSuccessResult(obj)`.
+
+## Misc
 
 Bulk requests are supported (as specificed in JsonRpc 2.0 docs) and will all be run asynchronously. The responses may be in a different order than the requests.
 

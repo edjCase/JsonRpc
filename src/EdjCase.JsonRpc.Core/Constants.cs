@@ -9,10 +9,7 @@
 		InvalidRequest = -32600,
 		MethodNotFound = -32601,
 		InvalidParams = -32602,
-		InternalError = -32603,
-
-		//Custom
-		AmbiguousMethod = -32000
+		InternalError = -32603
 	}
 
 	public static class JsonRpcContants

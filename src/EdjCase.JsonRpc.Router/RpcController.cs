@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EdjCase.JsonRpc.Router.Defaults;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -7,6 +8,28 @@ namespace EdjCase.JsonRpc.Router
 {
 	public abstract class RpcController
 	{
+		/// <summary>
+		/// Helper for returning a successful rpc response
+		/// </summary>
+		/// <param name="obj">Object to return in response</param>
+		/// <returns>Success result for rpc response</returns>
+		public RpcMethodSuccessResult Ok(object obj = null)
+		{
+			return new RpcMethodSuccessResult(obj);
+		}
+
+
+		/// <summary>
+		/// Helper for returning an error rpc response
+		/// </summary>
+		/// <param name="errorCode">JSON-RPC custom error code (-32000 -> -32099)</param>
+		/// <param name="message">(Optional)Error message</param>
+		/// <param name="data">(Optional)Error data</param>
+		/// <returns></returns>
+		public RpcMethodErrorResult Error(int errorCode, string message = null, object data = null)
+		{
+			return new RpcMethodErrorResult(errorCode, message, data);
+		}
 	}
 
 
