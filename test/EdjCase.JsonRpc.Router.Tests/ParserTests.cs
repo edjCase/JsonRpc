@@ -142,6 +142,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 	public class FakeRouteProvider : IRpcRouteProvider
 	{
 		public bool AutoDetectControllers { get; set; }
+		public ControllerFilter ControllerFilter { get; } = new ControllerFilter();
 		private List<RpcRoute> routes { get; } = new List<RpcRoute>();
 
 		public List<RpcRoute> GetRoutes()

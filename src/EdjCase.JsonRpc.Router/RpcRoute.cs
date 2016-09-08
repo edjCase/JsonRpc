@@ -39,15 +39,14 @@ namespace EdjCase.JsonRpc.Router
 		}
 	}
 
-
-
 	/// <summary>
-	/// TODO
+	/// Default route provider to give the router the configured routes to use
 	/// </summary>
 	public class RpcRouteProvider : IRpcRouteProvider
 	{
 #if !NETSTANDARD1_3
 		public bool AutoDetectControllers { get; set; } = true;
+		public ControllerFilter ControllerFilter { get; } = new ControllerFilter();
 #endif
 		/// <summary>
 		/// List of the Rpc routes
@@ -61,13 +60,12 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		private List<RpcRoute> GetControllerRoutes()
 		{
-			Type rpcControllerType = typeof(RpcController);
 			DependencyContext depedencyContext = DependencyContext.Default;
 			IEnumerable<TypeInfo> controllerTypes = depedencyContext.RuntimeLibraries
 				.SelectMany(l => l.GetDefaultAssemblyNames(depedencyContext))
 				.Select(Assembly.Load)
 				.SelectMany(a => a.DefinedTypes)
-				.Where(t => !t.IsAbstract && t.IsSubclassOf(rpcControllerType));
+				.Where(t => !t.IsAbstract && t.IsSubclassOf(this.ControllerFilter.BaseControllerType));
 
 			List<RpcRoute> controllerRoutes = new List<RpcRoute>();
 			foreach (TypeInfo controllerType in controllerTypes)

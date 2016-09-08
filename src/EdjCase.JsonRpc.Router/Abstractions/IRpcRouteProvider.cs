@@ -13,10 +13,19 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 	{
 #if !NETSTANDARD1_3
 		bool AutoDetectControllers { get; set; }
+		ControllerFilter ControllerFilter { get; }
 #endif
 		List<RpcRoute> GetRoutes();
 		void RegisterRoute(IEnumerable<RouteCriteria> criteria, string name = null);
 	}
+
+
+#if !NETSTANDARD1_3
+	public class ControllerFilter
+	{
+		public Type BaseControllerType { get; set; } = typeof(RpcController);
+	}
+#endif
 
 	/// <summary>
 	/// Criteria that has to be met for the specified route to match
