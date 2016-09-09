@@ -248,7 +248,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			List<RpcMethod> methods = DefaultRpcInvoker.GetRpcMethods(route, serviceProvider, jsonSerializerSettings);
 
 			methods = methods
-				.Where(m => string.Equals(m.Method, request.Method, StringComparison.OrdinalIgnoreCase))
+				.Where(m => string.Equals(m.Method, request.Method, StringComparison.Ordinal))
 				.ToList();
 
 			RpcMethod rpcMethod = null;
