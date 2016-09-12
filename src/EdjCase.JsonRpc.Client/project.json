@@ -1,5 +1,5 @@
 {
-	"version": "1.1.2-beta-002",
+	"version": "1.1.2",
 	"description": "A .Net Core Client implementation for Json Rpc v2 requests.",
 	"packOptions": {
 		"summary": "A Json RPC v2 client for .Net Core",
@@ -7,7 +7,7 @@
 		"projectUrl": "https://github.com/edjCase/JsonRpc",
 		"repository": { "type": "git" },
 		"licenseUrl": "https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE",
-		"releaseNotes": "Allowing the all error codes."
+		"releaseNotes": ""
 	},
 	"authors": [ "Gekctek" ],
 

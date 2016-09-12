@@ -71,7 +71,7 @@ namespace EdjCase.JsonRpc.Router
 			{
 				throw new ArgumentNullException(nameof(compressor));
 			}
-			if(routeProvider == null)
+			if (routeProvider == null)
 			{
 				throw new ArgumentNullException(nameof(routeProvider));
 			}
@@ -129,7 +129,23 @@ namespace EdjCase.JsonRpc.Router
 					List<RpcRequest> requests = this.parser.ParseRequests(jsonString, this.serverConfig.Value.JsonSerializerSettings);
 					this.logger?.LogInformation($"Processing {requests.Count} Rpc requests");
 
-					List<RpcResponse> responses = await this.invoker.InvokeBatchRequestAsync(requests, route, context.HttpContext, this.serverConfig.Value.JsonSerializerSettings);
+					int batchLimit = this.serverConfig.Value.BatchRequestLimit;
+					List<RpcResponse> responses;
+					if (batchLimit > 0 && requests.Count > batchLimit)
+					{
+						string batchLimitError = $"Request count exceeded batch request limit ({batchLimit}).";
+						responses = new List<RpcResponse>
+						{
+							new RpcResponse(null, new RpcError(RpcErrorCode.InvalidRequest, batchLimitError))
+						};
+						this.logger?.LogError(batchLimitError + " Returning error response.");
+					}
+					else
+					{
+						responses = await this.invoker.InvokeBatchRequestAsync(requests, route, context.HttpContext, this.serverConfig.Value.JsonSerializerSettings);
+					}
+
+
 
 					this.logger?.LogInformation($"Sending '{responses.Count}' Rpc responses");
 					await this.SetResponse(context, responses, this.serverConfig.Value.JsonSerializerSettings);

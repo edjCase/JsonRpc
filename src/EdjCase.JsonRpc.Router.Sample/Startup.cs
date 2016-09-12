@@ -33,6 +33,7 @@ namespace EdjCase.JsonRpc.Router.Sample
 				.AddJsonRpc(config =>
 				{
 					config.ShowServerExceptions = true;
+					config.BatchRequestLimit = 1;
 				});
 		}
 

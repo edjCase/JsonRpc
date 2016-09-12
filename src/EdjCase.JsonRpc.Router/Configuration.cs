@@ -9,28 +9,22 @@ namespace EdjCase.JsonRpc.Router
 	/// </summary>
 	public class RpcServerConfiguration
 	{
-
 		/// <summary>
 		/// Json serialization settings that will be used in serialization and deserialization
 		/// for rpc requests
 		/// </summary>
-		internal JsonSerializerSettings JsonSerializerSettings { get; private set; }
+		public JsonSerializerSettings JsonSerializerSettings { get; set; }
 
 
 		/// <summary>
 		/// If true will show exception messages that the server rpc methods throw. Defaults to false
 		/// </summary>
 		public bool ShowServerExceptions { get; set; }
-		
 
 		/// <summary>
-		/// Sets the json serialization settings that will be used in serialization and deserialization
-		/// for rpc requests
+		/// If greater than 0 the router will throw an error if there is a batch request count
+		/// greater than the limit
 		/// </summary>
-		/// <param name="jsonSerializerSettings"></param>
-		public void SetJsonSerializerSettings(JsonSerializerSettings jsonSerializerSettings)
-		{
-			this.JsonSerializerSettings = jsonSerializerSettings;
-		}
+		public int BatchRequestLimit { get; set; }
 	}
 }
