@@ -116,10 +116,6 @@ namespace EdjCase.JsonRpc.Core
 			{
 				throw new ArgumentNullException(nameof(message));
 			}
-			if((code > -32000 || code < -32099) && !Enum.IsDefined(typeof(RpcErrorCode), code))
-			{
-				throw new ArgumentOutOfRangeException(nameof(code), "Error codes must be a predefined value of JSON-RPC 2.0 or between -32000 -> -32099.");
-			}
 			this.Code = code;
 			this.Message = message;
 			this.Data = data;

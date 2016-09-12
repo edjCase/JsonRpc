@@ -22,7 +22,7 @@ namespace EdjCase.JsonRpc.Router
 		/// <summary>
 		/// Helper for returning an error rpc response
 		/// </summary>
-		/// <param name="errorCode">JSON-RPC custom error code (-32000 -> -32099)</param>
+		/// <param name="errorCode">JSON-RPC custom error code</param>
 		/// <param name="message">(Optional)Error message</param>
 		/// <param name="data">(Optional)Error data</param>
 		/// <returns></returns>
