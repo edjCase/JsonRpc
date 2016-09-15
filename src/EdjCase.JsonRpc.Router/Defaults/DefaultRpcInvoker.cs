@@ -254,7 +254,8 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 			RpcMethod rpcMethod = null;
 			parameterList = null;
-			if (methods.Count > 1)
+			int originalMethodCount = methods.Count;
+			if (methods.Count > 0)
 			{
 				List<RpcMethod> potentialMatches = new List<RpcMethod>();
 				foreach (RpcMethod method in methods)
@@ -291,24 +292,6 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				if (potentialMatches.Count == 1)
 				{
 					rpcMethod = potentialMatches.First();
-				}
-			}
-			else if (methods.Count == 1)
-			{
-				//Only signature check for methods that have the same name for performance reasons
-				rpcMethod = methods.First();
-				if (request.ParameterMap != null)
-				{
-					bool signatureMatch = rpcMethod.TryParseParameterList(request.ParameterMap, out parameterList);
-					if (!signatureMatch)
-					{
-						this.logger?.LogError("No methods matched request. One method found but the signature does not match.");
-						throw new RpcMethodNotFoundException();
-					}
-				}
-				else
-				{
-					parameterList = request.ParameterList;
 				}
 			}
 			if (rpcMethod == null)

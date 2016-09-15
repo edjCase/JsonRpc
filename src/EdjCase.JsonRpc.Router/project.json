@@ -1,5 +1,5 @@
 {
-	"version": "1.2.2",
+	"version": "1.2.3",
 	"description": "A AspNet Core IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing.",
 	"packOptions": {
 		"summary": "A Json RPC v2 router for AspNet Core",
@@ -7,7 +7,7 @@
 		"projectUrl": "https://github.com/edjCase/JsonRpc",
 		"repository": { "type": "git" },
 		"licenseUrl": "https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE",
-		"releaseNotes": "Changing route method detection to be hybrid case sensitive (Case insensitive if there is only one, case sensitive if there is ambiguity)."
+		"releaseNotes": "Added enum parsing."
 	},
 	"authors": [ "Gekctek" ],
 

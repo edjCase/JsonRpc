@@ -165,6 +165,17 @@ namespace EdjCase.JsonRpc.Router
 						Guid.TryParse((string)parameters[index], out guid);
 						parameters[index] = guid;
 					}
+					if (parameterInfo.ParameterType.GetTypeInfo().IsEnum)
+					{
+						if (parameters[index] is string)
+						{
+							parameters[index] = Enum.Parse(parameterInfo.ParameterType, (string)parameters[index]);
+						}
+						else if (parameters[index] is long)
+						{
+							parameters[index] = Enum.ToObject(parameterInfo.ParameterType, parameters[index]);
+						}
+					}
 					if (parameters[index] is JObject)
 					{
 						JsonSerializer jsonSerializer = JsonSerializer.Create(this.jsonSerializerSettings);
@@ -239,8 +250,34 @@ namespace EdjCase.JsonRpc.Router
 			}
 			if (parameter is long)
 			{
-				return parameterInfo.ParameterType == typeof(short)
+				bool integer = parameterInfo.ParameterType == typeof(short)
 					|| parameterInfo.ParameterType == typeof(int);
+				if (integer)
+				{
+					return true;
+				}
+				TypeInfo typeInfo = parameterInfo.ParameterType.GetTypeInfo();
+				if (typeInfo.IsEnum)
+				{
+					try
+					{
+						return Enum.IsDefined(parameterInfo.ParameterType, (int)(long)parameter);
+					}
+					catch (Exception)
+					{
+						Type enumType = Enum.GetUnderlyingType(parameterInfo.ParameterType);
+						//Check if the enum is long or short instead of int
+						if (enumType == typeof(long))
+						{
+							return Enum.IsDefined(parameterInfo.ParameterType, parameter);
+						}
+						else if (enumType == typeof(short))
+						{
+							return Enum.IsDefined(parameterInfo.ParameterType, (short)(long)parameter);
+						}
+					}
+				}
+				return false;
 			}
 			if (parameter is double || parameter is decimal)
 			{
@@ -248,10 +285,17 @@ namespace EdjCase.JsonRpc.Router
 					|| parameterInfo.ParameterType == typeof(decimal)
 					|| parameterInfo.ParameterType == typeof(float);
 			}
-			if (parameter is string && parameterInfo.ParameterType == typeof(Guid))
+			if (parameter is string)
 			{
-				Guid guid;
-				return Guid.TryParse((string)parameter, out guid);
+				if (parameterInfo.ParameterType == typeof(Guid))
+				{
+					Guid guid;
+					return Guid.TryParse((string)parameter, out guid);
+				}
+				if (parameterInfo.ParameterType.GetTypeInfo().IsEnum)
+				{
+					return Enum.IsDefined(parameterInfo.ParameterType, parameter);
+				}
 			}
 			try
 			{
