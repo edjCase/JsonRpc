@@ -247,14 +247,16 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			this.logger?.LogDebug($"Attempting to match Rpc request to a method '{request.Method}'");
 			List<RpcMethod> methods = DefaultRpcInvoker.GetRpcMethods(route, serviceProvider, jsonSerializerSettings);
 
+			//Case insenstive check for hybrid approach. Will check for case sensitive if there is ambiguity
 			methods = methods
-				.Where(m => string.Equals(m.Method, request.Method, StringComparison.Ordinal))
+				.Where(m => string.Equals(m.Method, request.Method, StringComparison.OrdinalIgnoreCase))
 				.ToList();
 
 			RpcMethod rpcMethod = null;
 			parameterList = null;
 			if (methods.Count > 1)
 			{
+				List<RpcMethod> potentialMatches = new List<RpcMethod>();
 				foreach (RpcMethod method in methods)
 				{
 					bool matchingMethod;
@@ -269,13 +271,26 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					}
 					if (matchingMethod)
 					{
-						if (rpcMethod != null) //If already found a match
-						{
-							this.logger?.LogError("More than one method matched the rpc request. Unable to invoke due to ambiguity.");
-							throw new RpcMethodNotFoundException();
-						}
-						rpcMethod = method;
+						potentialMatches.Add(method);
 					}
+				}
+
+				if (potentialMatches.Count > 1)
+				{
+					//Try to remove ambiguity with case sensitive check
+					potentialMatches = potentialMatches
+						.Where(m => string.Equals(m.Method, request.Method, StringComparison.Ordinal))
+						.ToList();
+					if (potentialMatches.Count != 1) 
+					{
+						this.logger?.LogError("More than one method matched the rpc request. Unable to invoke due to ambiguity.");
+						throw new RpcMethodNotFoundException();
+					}
+				}
+
+				if (potentialMatches.Count == 1)
+				{
+					rpcMethod = potentialMatches.First();
 				}
 			}
 			else if (methods.Count == 1)
