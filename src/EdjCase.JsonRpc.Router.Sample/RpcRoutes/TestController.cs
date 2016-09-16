@@ -28,7 +28,7 @@ namespace EdjCase.JsonRpc.Router.Sample.RpcRoutes
 			return this.Error(-32000, "Test", new List<string> {"Test1", "TEst2" });
 		}
 
-		public TestEnum Enum(TestEnum test)
+		public TestEnum? Enum(TestEnum? test)
 		{
 			return test;
 		}

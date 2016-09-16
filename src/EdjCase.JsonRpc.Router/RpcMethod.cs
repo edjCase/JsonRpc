@@ -158,38 +158,47 @@ namespace EdjCase.JsonRpc.Router
 				for (int index = 0; index < parameters.Length; index++)
 				{
 					ParameterInfo parameterInfo = this.parameterInfoList[index];
-
-					if (parameters[index] is string && parameterInfo.ParameterType == typeof(Guid))
-					{
-						Guid guid;
-						Guid.TryParse((string)parameters[index], out guid);
-						parameters[index] = guid;
-					}
-					if (parameterInfo.ParameterType.GetTypeInfo().IsEnum)
-					{
-						if (parameters[index] is string)
-						{
-							parameters[index] = Enum.Parse(parameterInfo.ParameterType, (string)parameters[index]);
-						}
-						else if (parameters[index] is long)
-						{
-							parameters[index] = Enum.ToObject(parameterInfo.ParameterType, parameters[index]);
-						}
-					}
-					if (parameters[index] is JObject)
-					{
-						JsonSerializer jsonSerializer = JsonSerializer.Create(this.jsonSerializerSettings);
-						parameters[index] = ((JObject)parameters[index]).ToObject(parameterInfo.ParameterType, jsonSerializer);
-					}
-					if (parameters[index] is JArray)
-					{
-						JsonSerializer jsonSerializer = JsonSerializer.Create(this.jsonSerializerSettings);
-						parameters[index] = ((JArray)parameters[index]).ToObject(parameterInfo.ParameterType, jsonSerializer);
-					}
-					parameters[index] = Convert.ChangeType(parameters[index], parameterInfo.ParameterType);
+					parameters[index] = this.ConvertParameter(parameterInfo.ParameterType, parameters[index]);
 				}
 			}
 			return parameters;
+		}
+
+		private object ConvertParameter(Type parameterType, object parameterValue)
+		{
+			Type nullableType = Nullable.GetUnderlyingType(parameterType);
+			if (nullableType != null)
+			{
+				return this.ConvertParameter(nullableType, parameterValue);
+			}
+			if (parameterValue is string && parameterType == typeof(Guid))
+			{
+				Guid guid;
+				Guid.TryParse((string) parameterValue, out guid);
+				return guid;
+			}
+			if (parameterType.GetTypeInfo().IsEnum)
+			{
+				if (parameterValue is string)
+				{
+					return Enum.Parse(parameterType, (string) parameterValue);
+				}
+				else if (parameterValue is long)
+				{
+					return Enum.ToObject(parameterType, parameterValue);
+				}
+			}
+			if (parameterValue is JObject)
+			{
+				JsonSerializer jsonSerializer = JsonSerializer.Create(this.jsonSerializerSettings);
+				return ((JObject) parameterValue).ToObject(parameterType, jsonSerializer);
+			}
+			if (parameterValue is JArray)
+			{
+				JsonSerializer jsonSerializer = JsonSerializer.Create(this.jsonSerializerSettings);
+				return ((JArray) parameterValue).ToObject(parameterType, jsonSerializer);
+			}
+			return Convert.ChangeType(parameterValue, parameterType);
 		}
 
 		/// <summary>
@@ -235,85 +244,91 @@ namespace EdjCase.JsonRpc.Router
 		/// Detects if the request parameter matches the method parameter
 		/// </summary>
 		/// <param name="parameterInfo">Reflection info about a method parameter</param>
-		/// <param name="parameter">The request's value for the parameter</param>
+		/// <param name="value">The request's value for the parameter</param>
 		/// <returns>True if the request parameter matches the type of the method parameter</returns>
-		private static bool ParameterMatches(ParameterInfo parameterInfo, object parameter)
+		private static bool ParameterMatches(ParameterInfo parameterInfo, object value)
 		{
-			if (parameter == null)
+			if (value == null)
 			{
 				bool isNullable = parameterInfo.HasDefaultValue && parameterInfo.DefaultValue == null;
 				return isNullable;
 			}
-			if (parameterInfo.ParameterType == parameter.GetType())
+			Type parameterType = parameterInfo.ParameterType;
+			if (parameterType == value.GetType())
 			{
 				return true;
 			}
-			if (parameter is long)
+			Type nullableType = Nullable.GetUnderlyingType(parameterType);
+			if (nullableType != null)
 			{
-				bool integer = parameterInfo.ParameterType == typeof(short)
-					|| parameterInfo.ParameterType == typeof(int);
+				parameterType = nullableType;
+			}
+			if (value is long)
+			{
+				bool integer = parameterType == typeof(short)
+					|| parameterType == typeof(int);
 				if (integer)
 				{
 					return true;
 				}
-				TypeInfo typeInfo = parameterInfo.ParameterType.GetTypeInfo();
+				TypeInfo typeInfo = parameterType.GetTypeInfo();
 				if (typeInfo.IsEnum)
 				{
 					try
 					{
-						return Enum.IsDefined(parameterInfo.ParameterType, (int)(long)parameter);
+						return Enum.IsDefined(parameterType, (int)(long)value);
 					}
 					catch (Exception)
 					{
-						Type enumType = Enum.GetUnderlyingType(parameterInfo.ParameterType);
+						Type enumType = Enum.GetUnderlyingType(parameterType);
 						//Check if the enum is long or short instead of int
 						if (enumType == typeof(long))
 						{
-							return Enum.IsDefined(parameterInfo.ParameterType, parameter);
+							return Enum.IsDefined(parameterType, value);
 						}
 						else if (enumType == typeof(short))
 						{
-							return Enum.IsDefined(parameterInfo.ParameterType, (short)(long)parameter);
+							return Enum.IsDefined(parameterType, (short)(long)value);
 						}
 					}
 				}
 				return false;
 			}
-			if (parameter is double || parameter is decimal)
+			if (value is double || value is decimal)
 			{
-				return parameterInfo.ParameterType == typeof(double)
-					|| parameterInfo.ParameterType == typeof(decimal)
-					|| parameterInfo.ParameterType == typeof(float);
+				return parameterType == typeof(double)
+					|| parameterType == typeof(decimal)
+					|| parameterType == typeof(float);
 			}
-			if (parameter is string)
+			if (value is string)
 			{
-				if (parameterInfo.ParameterType == typeof(Guid))
+				if (parameterType == typeof(Guid))
 				{
 					Guid guid;
-					return Guid.TryParse((string)parameter, out guid);
+					return Guid.TryParse((string)value, out guid);
 				}
-				if (parameterInfo.ParameterType.GetTypeInfo().IsEnum)
+				if (parameterType.GetTypeInfo().IsEnum)
 				{
-					return Enum.IsDefined(parameterInfo.ParameterType, parameter);
+					return Enum.IsDefined(parameterType, value);
 				}
 			}
 			try
 			{
-				if (parameter is JObject)
+				if (value is JObject)
 				{
-					JObject jObject = (JObject)parameter;
-					jObject.ToObject(parameterInfo.ParameterType); //Test conversion
+					JObject jObject = (JObject)value;
+					jObject.ToObject(parameterType); //Test conversion
 					return true;
 				}
-				if (parameter is JArray)
+				if (value is JArray)
 				{
-					JArray jArray = (JArray)parameter;
-					jArray.ToObject(parameterInfo.ParameterType); //Test conversion
+					JArray jArray = (JArray)value;
+					jArray.ToObject(parameterType); //Test conversion
 					return true;
 				}
 				//Final check to see if the conversion can happen
 				// ReSharper disable once ReturnValueOfPureMethodIsNotUsed
-				Convert.ChangeType(parameter, parameterInfo.ParameterType);
+				Convert.ChangeType(value, parameterType);
 			}
 			catch (Exception)
 			{
