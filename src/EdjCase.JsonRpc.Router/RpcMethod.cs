@@ -166,6 +166,10 @@ namespace EdjCase.JsonRpc.Router
 
 		private object ConvertParameter(Type parameterType, object parameterValue)
 		{
+			if (parameterValue == null)
+			{
+				return null;
+			}
 			Type nullableType = Nullable.GetUnderlyingType(parameterType);
 			if (nullableType != null)
 			{
@@ -248,17 +252,19 @@ namespace EdjCase.JsonRpc.Router
 		/// <returns>True if the request parameter matches the type of the method parameter</returns>
 		private static bool ParameterMatches(ParameterInfo parameterInfo, object value)
 		{
+			Type parameterType = parameterInfo.ParameterType;
+			Type nullableType = Nullable.GetUnderlyingType(parameterType);
 			if (value == null)
 			{
-				bool isNullable = parameterInfo.HasDefaultValue && parameterInfo.DefaultValue == null;
+				bool isNullable = nullableType != null 
+					|| parameterType.GetTypeInfo().IsClass
+					|| (parameterInfo.HasDefaultValue && parameterInfo.DefaultValue == null);
 				return isNullable;
 			}
-			Type parameterType = parameterInfo.ParameterType;
 			if (parameterType == value.GetType())
 			{
 				return true;
 			}
-			Type nullableType = Nullable.GetUnderlyingType(parameterType);
 			if (nullableType != null)
 			{
 				parameterType = nullableType;
