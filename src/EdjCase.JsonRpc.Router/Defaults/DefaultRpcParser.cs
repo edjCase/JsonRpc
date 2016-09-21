@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using EdjCase.JsonRpc.Router.Utilities;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json.Linq;
 
 namespace EdjCase.JsonRpc.Router.Defaults
 {
@@ -62,15 +63,15 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			route = null;
 			return false;
 		}
-
-
+		
 		/// <summary>
 		/// Parses all the requests from the json in the request
 		/// </summary>
 		/// <param name="jsonString">Json from the http request</param>
-		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
+		/// <param name="jsonSerializerSettings">(Optional)Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
+		/// <param name="isBulkRequest">If true, the request is a bulk request (even if there is only one)</param>
 		/// <returns>List of Rpc requests that were parsed from the json</returns>
-		public List<RpcRequest> ParseRequests(string jsonString, JsonSerializerSettings jsonSerializerSettings = null)
+		public List<RpcRequest> ParseRequests(string jsonString, out bool isBulkRequest, JsonSerializerSettings jsonSerializerSettings = null)
 		{
 			this.logger?.LogDebug($"Attempting to parse Rpc request from the json string '{jsonString}'");
 			List<RpcRequest> rpcRequests;
@@ -80,18 +81,25 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 			try
 			{
-				if (!DefaultRpcParser.IsSingleRequest(jsonString))
+				JToken token = JToken.Parse(jsonString);
+				JsonSerializer serializer = JsonSerializer.Create(jsonSerializerSettings);
+				switch (token.Type)
 				{
-					rpcRequests = JsonConvert.DeserializeObject<List<RpcRequest>>(jsonString, jsonSerializerSettings);
-				}
-				else
-				{
-					rpcRequests = new List<RpcRequest>();
-					RpcRequest rpcRequest = JsonConvert.DeserializeObject<RpcRequest>(jsonString, jsonSerializerSettings);
-					if (rpcRequest != null)
-					{
-						rpcRequests.Add(rpcRequest);
-					}
+					case JTokenType.Array:
+						isBulkRequest = true;
+						rpcRequests = token.ToObject<List<RpcRequest>>(serializer);
+						break;
+					case JTokenType.Object:
+						isBulkRequest = false;
+						rpcRequests = new List<RpcRequest>();
+						RpcRequest rpcRequest = token.ToObject<RpcRequest>(serializer);
+						if (rpcRequest != null)
+						{
+							rpcRequests.Add(rpcRequest);
+						}
+						break;
+					default:
+						throw new ArgumentOutOfRangeException(nameof(token.Type));
 				}
 			}
 			catch (Exception ex) when (!(ex is RpcException))
@@ -116,31 +124,6 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				}
 			}
 			return rpcRequests;
-		}
-
-		/// <summary>
-		/// Detects if the json string is a single Rpc request versus a batch request
-		/// </summary>
-		/// <param name="jsonString">Json of Rpc request</param>
-		/// <returns>True if json is a single Rpc request, otherwise False</returns>
-		private static bool IsSingleRequest(string jsonString)
-		{
-			if (string.IsNullOrEmpty(jsonString))
-			{
-				throw new RpcInvalidRequestException(nameof(jsonString));
-			}
-			for (int i = 0; i < jsonString.Length; i++)
-			{
-				char character = jsonString[i];
-				switch (character)
-				{
-					case '{':
-						return true;
-					case '[':
-						return false;
-				}
-			}
-			return true;
 		}
 	}
 }

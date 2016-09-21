@@ -37,13 +37,15 @@ namespace EdjCase.JsonRpc.Router.Tests
 		{
 			DefaultRpcParser parser = new DefaultRpcParser(null);
 
-			RpcRequest rpcRequest = parser.ParseRequests(json).FirstOrDefault();
+			bool isBulkRequest;
+			RpcRequest rpcRequest = parser.ParseRequests(json, out isBulkRequest).FirstOrDefault();
 
 			Assert.NotNull(rpcRequest);
 			Assert.Equal(rpcRequest.Id, id);
 			Assert.Equal(rpcRequest.Method, method);
 			Assert.Equal(rpcRequest.JsonRpcVersion, JsonRpcContants.JsonRpcVersion);
 			Assert.Equal(rpcRequest.ParameterList, parameters);
+			Assert.Equal(false, isBulkRequest);
 		}
 
 		[Fact]
@@ -53,13 +55,15 @@ namespace EdjCase.JsonRpc.Router.Tests
 			DateTime dateTime = DateTime.Parse("2000-12-15T22:11:03");
 			DefaultRpcParser parser = new DefaultRpcParser(null);
 
-			RpcRequest rpcRequest = parser.ParseRequests(json).FirstOrDefault();
+			bool isBulkRequest;
+			RpcRequest rpcRequest = parser.ParseRequests(json, out isBulkRequest).FirstOrDefault();
 
 			Assert.NotNull(rpcRequest);
 			Assert.Equal(rpcRequest.Id, (long)1);
 			Assert.Equal(rpcRequest.Method, "datetime");
 			Assert.Equal(rpcRequest.JsonRpcVersion, JsonRpcContants.JsonRpcVersion);
 			Assert.Equal(rpcRequest.ParameterList, new object[] { dateTime });
+			Assert.False(isBulkRequest);
 		}
 
 		[Fact]
@@ -69,7 +73,8 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			DefaultRpcParser parser = new DefaultRpcParser(null);
 
-			List<RpcRequest> rpcRequests = parser.ParseRequests(json);
+			bool isBulkRequest;
+			List<RpcRequest> rpcRequests = parser.ParseRequests(json, out isBulkRequest);
 
 			Assert.NotNull(rpcRequests);
 			Assert.Equal(rpcRequests.Count, 2);
@@ -82,6 +87,26 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.Equal(rpcRequests[1].Method, "two");
 			Assert.Equal(rpcRequests[1].JsonRpcVersion, JsonRpcContants.JsonRpcVersion);
 			Assert.Equal(rpcRequests[1].ParameterList, new object[] { "2" });
+			Assert.True(isBulkRequest);
+		}
+
+		[Fact]
+		public void ParseRequests_SingleBatchRequest_Valid()
+		{
+			const string json = "[{\"jsonrpc\": \"2.0\", \"method\": \"one\", \"params\": [\"1\"], \"id\": \"1\"}]";
+
+			DefaultRpcParser parser = new DefaultRpcParser(null);
+
+			bool isBulkRequest;
+			List<RpcRequest> rpcRequests = parser.ParseRequests(json, out isBulkRequest);
+
+			Assert.NotNull(rpcRequests);
+			Assert.Equal(rpcRequests.Count, 1);
+			Assert.Equal(rpcRequests[0].Id, "1");
+			Assert.Equal(rpcRequests[0].Method, "one");
+			Assert.Equal(rpcRequests[0].JsonRpcVersion, JsonRpcContants.JsonRpcVersion);
+			Assert.Equal(rpcRequests[0].ParameterList, new object[] { "1" });
+			Assert.True(isBulkRequest);
 		}
 
 		[Fact]
@@ -90,7 +115,8 @@ namespace EdjCase.JsonRpc.Router.Tests
 			const string json = null;
 			DefaultRpcParser parser = new DefaultRpcParser(null);
 
-			Assert.Throws<RpcInvalidRequestException>(() => parser.ParseRequests(json));
+			bool isBulkRequest;
+			Assert.Throws<RpcInvalidRequestException>(() => parser.ParseRequests(json, out isBulkRequest));
 		}
 
 		[Fact]
@@ -99,7 +125,8 @@ namespace EdjCase.JsonRpc.Router.Tests
 			const string json = "{}";
 			DefaultRpcParser parser = new DefaultRpcParser(null);
 
-			Assert.Throws<RpcInvalidRequestException>(() => parser.ParseRequests(json));
+			bool isBulkRequest;
+			Assert.Throws<RpcInvalidRequestException>(() => parser.ParseRequests(json, out isBulkRequest));
 		}
 
 		[Fact]
@@ -108,7 +135,8 @@ namespace EdjCase.JsonRpc.Router.Tests
 			const string json = "{\"method\": \"datetime\", \"params\": [\"2000-12-15T22:11:03\"], \"id\": \"1\"}";
 			DefaultRpcParser parser = new DefaultRpcParser(null);
 
-			Assert.Throws<RpcInvalidRequestException>(() => parser.ParseRequests(json));
+			bool isBulkRequest;
+			Assert.Throws<RpcInvalidRequestException>(() => parser.ParseRequests(json, out isBulkRequest));
 		}
 
 		[Fact]
@@ -117,7 +145,8 @@ namespace EdjCase.JsonRpc.Router.Tests
 			const string json = "{\"jsonrpc\": \"2.0\", \"params\": [\"2000-12-15T22:11:03\"], \"id\": \"1\"}";
 			DefaultRpcParser parser = new DefaultRpcParser(null);
 
-			Assert.Throws<RpcInvalidRequestException>(() => parser.ParseRequests(json));
+			bool isBulkRequest;
+			Assert.Throws<RpcInvalidRequestException>(() => parser.ParseRequests(json, out isBulkRequest));
 		}
 
 		[Fact]
@@ -126,7 +155,9 @@ namespace EdjCase.JsonRpc.Router.Tests
 			const string json = "{\"method\": \"datetime\", \"jsonrpc\": \"2.0\", \"params\": [\"2000-12-15T22:11:03\"]}";
 			DefaultRpcParser parser = new DefaultRpcParser(null);
 
-			parser.ParseRequests(json);
+			bool isBulkRequest;
+			parser.ParseRequests(json, out isBulkRequest);
+			Assert.Equal(false, isBulkRequest);
 		}
 
 		[Fact]
@@ -135,7 +166,9 @@ namespace EdjCase.JsonRpc.Router.Tests
 			const string json = "{\"method\": \"datetime\",\"jsonrpc\": \"2.0\", \"id\": \"1\"}";
 			DefaultRpcParser parser = new DefaultRpcParser(null);
 
-			parser.ParseRequests(json);
+			bool isBulkRequest;
+			parser.ParseRequests(json, out isBulkRequest);
+			Assert.Equal(false, isBulkRequest);
 		}
 	}
 
@@ -147,7 +180,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 		public List<RpcRoute> GetRoutes()
 		{
-			return routes;
+			return this.routes;
 		}
 
 		public void RegisterRoute(IEnumerable<RouteCriteria> criteria, string name = null)

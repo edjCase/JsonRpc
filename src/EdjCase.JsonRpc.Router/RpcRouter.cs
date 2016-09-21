@@ -46,7 +46,6 @@ namespace EdjCase.JsonRpc.Router
 		private IRpcRouteProvider routeProvider { get; }
 
 		/// <param name="serverConfig">Configuration data for the server</param>
-		/// <param name="serverConfig">Configuration data for the router middleware</param>
 		/// <param name="invoker">Component that invokes Rpc requests target methods and returns a response</param>
 		/// <param name="parser">Component that parses Http requests into Rpc requests</param>
 		/// <param name="compressor">Component that compresses Rpc responses</param>
@@ -104,7 +103,7 @@ namespace EdjCase.JsonRpc.Router
 			try
 			{
 				RpcRoute route;
-				bool matchesRoute = this.parser.MatchesRpcRoute(routeProvider, context.HttpContext.Request.Path, out route);
+				bool matchesRoute = this.parser.MatchesRpcRoute(this.routeProvider, context.HttpContext.Request.Path, out route);
 				if (!matchesRoute)
 				{
 					return;
@@ -126,7 +125,8 @@ namespace EdjCase.JsonRpc.Router
 							jsonString = streamReader.ReadToEnd().Trim();
 						}
 					}
-					List<RpcRequest> requests = this.parser.ParseRequests(jsonString, this.serverConfig.Value.JsonSerializerSettings);
+					bool isBulkRequest;
+					List<RpcRequest> requests = this.parser.ParseRequests(jsonString, out isBulkRequest, this.serverConfig.Value.JsonSerializerSettings);
 					this.logger?.LogInformation($"Processing {requests.Count} Rpc requests");
 
 					int batchLimit = this.serverConfig.Value.BatchRequestLimit;
@@ -148,7 +148,7 @@ namespace EdjCase.JsonRpc.Router
 
 
 					this.logger?.LogInformation($"Sending '{responses.Count}' Rpc responses");
-					await this.SetResponse(context, responses, this.serverConfig.Value.JsonSerializerSettings);
+					await this.SetResponse(context, responses, isBulkRequest, this.serverConfig.Value.JsonSerializerSettings);
 					context.MarkAsHandled();
 
 					this.logger?.LogInformation("Rpc request complete");
@@ -180,7 +180,7 @@ namespace EdjCase.JsonRpc.Router
 			{
 				new RpcResponse(null, new RpcError(exception, this.serverConfig.Value.ShowServerExceptions))
 			};
-			await this.SetResponse(context, responses, this.serverConfig.Value.JsonSerializerSettings);
+			await this.SetResponse(context, responses, false, this.serverConfig.Value.JsonSerializerSettings);
 		}
 
 		/// <summary>
@@ -188,17 +188,18 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		/// <param name="context">Route context</param>
 		/// <param name="responses">Responses generated from the Rpc request(s)</param>
+		/// <param name="isBulkRequest">True if the request should be sent back as an array or a single object</param>
 		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <returns>Task for async call</returns>
-		private async Task SetResponse(RouteContext context, List<RpcResponse> responses, JsonSerializerSettings jsonSerializerSettings = null)
+		private async Task SetResponse(RouteContext context, List<RpcResponse> responses, bool isBulkRequest, JsonSerializerSettings jsonSerializerSettings = null)
 		{
 			if (responses == null || !responses.Any())
 			{
 				return;
 			}
 
-			string resultJson = responses.Count == 1
-				? JsonConvert.SerializeObject(responses.First(), jsonSerializerSettings)
+			string resultJson = !isBulkRequest
+				? JsonConvert.SerializeObject(responses.Single(), jsonSerializerSettings)
 				: JsonConvert.SerializeObject(responses, jsonSerializerSettings);
 
 			string acceptEncoding = context.HttpContext.Request.Headers["Accept-Encoding"];

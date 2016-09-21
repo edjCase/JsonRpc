@@ -1,5 +1,5 @@
 {
-	"version": "1.2.5",
+	"version": "1.3.0-beta-001",
 	"description": "A AspNet Core IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing.",
 	"packOptions": {
 		"summary": "A Json RPC v2 router for AspNet Core",
@@ -7,7 +7,7 @@
 		"projectUrl": "https://github.com/edjCase/JsonRpc",
 		"repository": { "type": "git" },
 		"licenseUrl": "https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE",
-		"releaseNotes": "Allowing parameters to be null if the method being invoked has a nullable type parameter."
+		"releaseNotes": "Now always returning a batch of responses if the request is a batch."
 	},
 	"authors": [ "Gekctek" ],
 
