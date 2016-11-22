@@ -1,5 +1,6 @@
 ﻿using System;
 using EdjCase.JsonRpc.Core;
+using Newtonsoft.Json;
 
 namespace EdjCase.JsonRpc.Client
 {
@@ -13,7 +14,7 @@ namespace EdjCase.JsonRpc.Client
 		/// <param name="response">Rpc response object</param>
 		/// <param name="returnDefaultIfNull">Returns the type's default value if the result is null. Otherwise throws parsing exception</param>
 		/// <returns>Result of response as type specified</returns>
-		public static T GetResult<T>(this RpcResponse response, bool returnDefaultIfNull = true)
+		public static T GetResult<T>(this RpcResponse response, bool returnDefaultIfNull = true, JsonSerializerSettings settings = null)
 		{
 			if (response.Result == null)
 			{
@@ -25,7 +26,15 @@ namespace EdjCase.JsonRpc.Client
 			}
 			try
 			{
-				return response.Result.ToObject<T>();
+				if(settings == null)
+				{
+					return response.Result.ToObject<T>();
+				}
+				else
+				{
+					JsonSerializer jsonSerializer = JsonSerializer.Create(settings);
+					return response.Result.ToObject<T>(jsonSerializer);
+				}
 			}
 			catch (Exception ex)
 			{
