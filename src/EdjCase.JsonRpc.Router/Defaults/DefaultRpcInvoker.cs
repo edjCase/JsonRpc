@@ -176,34 +176,43 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 		private async Task<bool> IsAuthorizedAsync(RpcMethod rpcMethod, HttpContext httpContext)
 		{
-			if (rpcMethod.AuthorizeDataList.Any())
-			{
-				if (rpcMethod.AllowAnonymous)
-				{
-					this.logger?.LogDebug("Skipping authorization. Allow anonymous specified for method.");
-				}
-				else
-				{
-					this.logger?.LogDebug($"Running authorization for method.");
-					AuthorizationPolicy policy = await AuthorizationPolicy.CombineAsync(this.policyProvider, rpcMethod.AuthorizeDataList);
-					bool passed = await this.authorizationService.AuthorizeAsync(httpContext.User, policy);
-					if (!passed)
-					{
-						this.logger?.LogInformation($"Authorization failed for user '{httpContext.User.Identity.Name}'.");
-						return false;
-					}
-					else
-					{
-						this.logger?.LogDebug($"Authoization was successful for user '{httpContext.User.Identity.Name}'.");
-					}
-				}
-			}
-			else
-			{
-				this.logger?.LogDebug("Skipping authorization. None configured for method.");
-			}
-			return true;
-		}
+            if (rpcMethod.AuthorizeDataListClass.Any() ||
+                rpcMethod.AuthorizeDataListMethod.Any())
+            {
+                if (rpcMethod.AllowAnonymousOnClass ||
+                    rpcMethod.AllowAnonymousOnMethod)
+                {
+                    this.logger?.LogDebug("Skipping authorization. Allow anonymous specified for method.");
+                }
+                else
+                {
+                    this.logger?.LogDebug($"Running authorization for method.");
+                    bool passedOnClass = await this.CheckAuthorize(rpcMethod.AuthorizeDataListClass, httpContext);
+                    bool passedOnMethod = await this.CheckAuthorize(rpcMethod.AuthorizeDataListMethod, httpContext);
+                    if (passedOnClass && passedOnMethod)
+                    {
+                        this.logger?.LogDebug($"Authoization was successful for user '{httpContext.User.Identity.Name}'.");
+                    }
+                    else
+                    {
+                        this.logger?.LogInformation($"Authorization failed for user '{httpContext.User.Identity.Name}'.");
+                        return false;
+                    }
+                }
+            }
+            else
+            {
+                this.logger?.LogDebug("Skipping authorization. None configured for class or method.");
+            }
+            return true;
+        }
+
+        private async Task<bool> CheckAuthorize(List<IAuthorizeData> authorizeDataList, HttpContext httpContext)
+        {
+            if (!authorizeDataList.Any()) return true;
+            AuthorizationPolicy policy = await AuthorizationPolicy.CombineAsync(this.policyProvider, authorizeDataList);
+            return await this.authorizationService.AuthorizeAsync(httpContext.User, policy);
+        }
 
 		/// <summary>
 		/// Converts an unknown caught exception into a Rpc response

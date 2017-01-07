@@ -20,19 +20,28 @@ namespace EdjCase.JsonRpc.Router
 		/// The method's configured request route it can be called from
 		/// </summary>
 		public RpcRoute Route { get; }
-		/// <summary>
-		/// Authorize data list that will be checked for the method for authorization.
-		/// If empty, no authorization will be run
-		/// </summary>
-		public List<IAuthorizeData> AuthorizeDataList { get; }
-		/// <summary>
-		/// If true, bypasses authorization check
-		/// </summary>
-		public bool AllowAnonymous { get; }
-		/// <summary>
-		/// The name of the method
-		/// </summary>
-		public string Method => this.methodInfo.Name;
+        /// <summary>
+        /// Authorize data list that will be checked for the method for authorization.
+        /// If empty, no authorization will be run
+        /// </summary>
+        public List<IAuthorizeData> AuthorizeDataListMethod { get; }
+        /// <summary>
+        /// Authorize data list that will be checked for the class for authorization.
+        /// If empty, no authorization will be run
+        /// </summary>
+        public List<IAuthorizeData> AuthorizeDataListClass { get; }
+        /// <summary>
+        /// If true, bypasses authorization check
+        /// </summary>
+        public bool AllowAnonymousOnMethod { get; }
+        /// <summary>
+        /// If true, bypasses authorization check
+        /// </summary>
+        public bool AllowAnonymousOnClass { get; }
+        /// <summary>
+        /// The name of the method
+        /// </summary>
+        public string Method => this.methodInfo.Name;
 		/// <summary>
 		/// Reflection information about the method
 		/// </summary>
@@ -71,10 +80,13 @@ namespace EdjCase.JsonRpc.Router
 			this.parameterInfoList = methodInfo.GetParameters();
 			this.serviceProvider = serviceProvider;
 			this.jsonSerializerSettings = jsonSerializerSettings;
-			IEnumerable<Attribute> customAttributes = type.GetTypeInfo().GetCustomAttributes();
-			this.AuthorizeDataList = customAttributes.OfType<IAuthorizeData>().ToList();
-			this.AllowAnonymous = customAttributes.OfType<IAllowAnonymous>().Any();
-		}
+            IEnumerable<Attribute> customClassAttributes = type.GetTypeInfo().GetCustomAttributes();
+            this.AuthorizeDataListClass = customClassAttributes.OfType<IAuthorizeData>().ToList();
+            this.AllowAnonymousOnClass = customClassAttributes.OfType<IAllowAnonymous>().Any();
+            IEnumerable<Attribute> customMethodAttributes = this.methodInfo.GetCustomAttributes();
+            this.AuthorizeDataListMethod = customMethodAttributes.OfType<IAuthorizeData>().ToList();
+            this.AllowAnonymousOnMethod = customMethodAttributes.OfType<IAllowAnonymous>().Any();
+        }
 
 		/// <summary>
 		/// Invokes the method with the specified parameters, returns the result of the method
