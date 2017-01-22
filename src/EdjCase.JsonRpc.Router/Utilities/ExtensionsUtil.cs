@@ -18,7 +18,16 @@ namespace EdjCase.JsonRpc.Router.Utilities
 	{
 		public static void LogException(this ILogger logger, Exception ex, string message = null)
 		{
-			logger.LogError(new EventId(), ex, message ?? string.Empty);
+			//Log error ignores the exception for some reason
+			if (message != null)
+			{
+				message = $"{message}{Environment.NewLine}{ex}";
+			}
+			else
+			{
+				message = $"{ex}";
+			}
+			logger.LogError(new EventId(), ex, message);
 		}
 	}
 }
