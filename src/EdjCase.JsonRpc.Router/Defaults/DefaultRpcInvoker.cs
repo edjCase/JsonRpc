@@ -185,15 +185,18 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				else
 				{
 					this.logger?.LogDebug($"Running authorization for method.");
-					bool passedOnClass = await this.CheckAuthorize(rpcMethod.AuthorizeDataListClass, httpContext);
-					bool passedOnMethod = await this.CheckAuthorize(rpcMethod.AuthorizeDataListMethod, httpContext);
-					if (passedOnClass && passedOnMethod)
+					bool passedAuth = await this.CheckAuthorize(rpcMethod.AuthorizeDataListClass, routeContext);
+					if (passedAuth)
 					{
-						this.logger?.LogDebug($"Authorization was successful for user '{httpContext.User.Identity.Name}'.");
+						passedAuth = await this.CheckAuthorize(rpcMethod.AuthorizeDataListMethod, routeContext);
+					}
+					if (passedAuth)
+					{
+						this.logger?.LogDebug($"Authorization was successful for user '{routeContext.User.Identity.Name}'.");
 					}
 					else
 					{
-						this.logger?.LogInformation($"Authorization failed for user '{httpContext.User.Identity.Name}'.");
+						this.logger?.LogInformation($"Authorization failed for user '{routeContext.User.Identity.Name}'.");
 						return false;
 					}
 				}
@@ -204,12 +207,15 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 			return true;
 		}
-		
-		private async Task<bool> CheckAuthorize(List<IAuthorizeData> authorizeDataList, HttpContext httpContext)
+
+		private async Task<bool> CheckAuthorize(List<IAuthorizeData> authorizeDataList, IRouteContext routeContext)
 		{
-			if (!authorizeDataList.Any()) return true;
+			if (!authorizeDataList.Any())
+			{
+				return true;
+			}
 			AuthorizationPolicy policy = await AuthorizationPolicy.CombineAsync(this.policyProvider, authorizeDataList);
-			return await this.authorizationService.AuthorizeAsync(httpContext.User, policy);
+			return await this.authorizationService.AuthorizeAsync(routeContext.User, policy);
 		}
 
 		/// <summary>
@@ -288,7 +294,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					potentialMatches = potentialMatches
 						.Where(m => string.Equals(m.Method, request.Method, StringComparison.Ordinal))
 						.ToList();
-					if (potentialMatches.Count != 1) 
+					if (potentialMatches.Count != 1)
 					{
 						this.logger?.LogError("More than one method matched the rpc request. Unable to invoke due to ambiguity.");
 						throw new RpcMethodNotFoundException();
