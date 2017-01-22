@@ -1,5 +1,5 @@
 {
-	"version": "1.3.0-beta-006",
+	"version": "1.3.0-beta-007",
 	"description": "A AspNet Core IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing.",
 	"packOptions": {
 		"summary": "A Json RPC v2 router for AspNet Core",
@@ -7,7 +7,7 @@
 		"projectUrl": "https://github.com/edjCase/JsonRpc",
 		"repository": { "type": "git" },
 		"licenseUrl": "https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE",
-		"releaseNotes": "Adding base route option to startup config."
+		"releaseNotes": "Allowing auth attributes for both the method and the class instead of just the class."
 	},
 	"authors": [ "Gekctek" ],
 
