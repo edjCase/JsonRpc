@@ -15,6 +15,10 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 		bool AutoDetectControllers { get; set; }
 		ControllerFilter ControllerFilter { get; }
 #endif
+		/// <summary>
+		/// Sets the required base path for the request url to match against
+		/// </summary>
+		string BaseRequestPath { get; set; }
 		List<RpcRoute> GetRoutes();
 		void RegisterRoute(IEnumerable<RouteCriteria> criteria, string name = null);
 	}

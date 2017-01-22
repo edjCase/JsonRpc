@@ -49,7 +49,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			
 			foreach (RpcRoute rpcRoute in routeProvider.GetRoutes())
 			{
-				RpcPath routePath = RpcPath.Parse(rpcRoute.Name);
+				RpcPath routePath = RpcPath.Parse(rpcRoute.Name, routeProvider.BaseRequestPath);
 				this.logger?.LogTrace($"Trying to match against route - Name: {rpcRoute.Name}, Path: {routePath}");
 				if (requestPath == routePath)
 				{

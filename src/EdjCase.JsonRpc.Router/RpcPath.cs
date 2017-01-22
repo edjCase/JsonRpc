@@ -17,17 +17,17 @@ namespace EdjCase.JsonRpc.Router
 		/// Path components split on forward slashes
 		/// </summary>
 		private string[] components { get; }
-		
+
 		/// <param name="path">Url/route path</param>
 		private RpcPath(string path)
 		{
 			this.components = !string.IsNullOrWhiteSpace(path)
-				? path.Split(new[] {'/'}, StringSplitOptions.RemoveEmptyEntries)
+				? path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries)
 				: new string[0];
 		}
-		
+
 		/// <param name="components">Uri components for the path</param>
-		private RpcPath(string[] components)
+		private RpcPath(params string[] components)
 		{
 			if (components == null)
 			{
@@ -67,13 +67,13 @@ namespace EdjCase.JsonRpc.Router
 			}
 			return true;
 		}
-		
+
 
 		public override bool Equals(object obj)
 		{
 			if (obj is RpcPath)
 			{
-				return this.Equals((RpcPath) obj);
+				return this.Equals((RpcPath)obj);
 			}
 			return false;
 		}
@@ -97,8 +97,16 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		/// <param name="path">Uri/route path</param>
 		/// <returns>Rpc path based on the path string</returns>
-		public static RpcPath Parse(string path)
+		public static RpcPath Parse(string path, string basePath = null)
 		{
+			if (!string.IsNullOrWhiteSpace(basePath))
+			{
+				if (!string.IsNullOrWhiteSpace(path))
+				{
+					return new RpcPath(basePath, path);
+				}
+				return new RpcPath(basePath);
+			}
 			return new RpcPath(path);
 		}
 

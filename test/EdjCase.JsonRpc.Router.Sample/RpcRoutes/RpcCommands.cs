@@ -18,5 +18,10 @@ namespace EdjCase.JsonRpc.Router.Sample.RpcRoutes
 		{
 
 		}
+
+		public string Optional(string test = null)
+		{
+			return test;
+		}
 	}
 }

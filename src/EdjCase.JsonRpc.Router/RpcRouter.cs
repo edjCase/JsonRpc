@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using EdjCase.JsonRpc.Router.Utilities;
 using Microsoft.Extensions.Options;
+using EdjCase.JsonRpc.Router.Defaults;
 
 namespace EdjCase.JsonRpc.Router
 {
@@ -142,7 +143,8 @@ namespace EdjCase.JsonRpc.Router
 					}
 					else
 					{
-						responses = await this.invoker.InvokeBatchRequestAsync(requests, route, context.HttpContext, this.serverConfig.Value.JsonSerializerSettings);
+						IRouteContext routeContext = DefaultRouteContext.FromHttpContext(context.HttpContext);
+						responses = await this.invoker.InvokeBatchRequestAsync(requests, route, routeContext, this.serverConfig.Value.JsonSerializerSettings);
 					}
 
 

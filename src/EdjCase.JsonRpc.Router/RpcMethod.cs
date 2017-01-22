@@ -182,6 +182,11 @@ namespace EdjCase.JsonRpc.Router
 			{
 				return null;
 			}
+			//Missing type is for optional parameters
+			if (parameterValue is Missing)
+			{
+				return parameterValue;
+			}
 			Type nullableType = Nullable.GetUnderlyingType(parameterType);
 			if (nullableType != null)
 			{
@@ -190,14 +195,14 @@ namespace EdjCase.JsonRpc.Router
 			if (parameterValue is string && parameterType == typeof(Guid))
 			{
 				Guid guid;
-				Guid.TryParse((string) parameterValue, out guid);
+				Guid.TryParse((string)parameterValue, out guid);
 				return guid;
 			}
 			if (parameterType.GetTypeInfo().IsEnum)
 			{
 				if (parameterValue is string)
 				{
-					return Enum.Parse(parameterType, (string) parameterValue);
+					return Enum.Parse(parameterType, (string)parameterValue);
 				}
 				else if (parameterValue is long)
 				{
@@ -207,12 +212,12 @@ namespace EdjCase.JsonRpc.Router
 			if (parameterValue is JObject)
 			{
 				JsonSerializer jsonSerializer = JsonSerializer.Create(this.jsonSerializerSettings);
-				return ((JObject) parameterValue).ToObject(parameterType, jsonSerializer);
+				return ((JObject)parameterValue).ToObject(parameterType, jsonSerializer);
 			}
 			if (parameterValue is JArray)
 			{
 				JsonSerializer jsonSerializer = JsonSerializer.Create(this.jsonSerializerSettings);
-				return ((JArray) parameterValue).ToObject(parameterType, jsonSerializer);
+				return ((JArray)parameterValue).ToObject(parameterType, jsonSerializer);
 			}
 			return Convert.ChangeType(parameterValue, parameterType);
 		}
@@ -222,12 +227,14 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		/// <param name="parameterList">Array of parameters for the method</param>
 		/// <returns>True if the method signature matches the parameterList, otherwise False</returns>
-		public bool HasParameterSignature(object[] parameterList)
+		public bool HasParameterSignature(object[] parameterList, out object[] correctedParameterList)
 		{
 			if (parameterList == null)
 			{
 				throw new ArgumentNullException(nameof(parameterList));
 			}
+
+			correctedParameterList = parameterList;
 			if (parameterList.Count() > this.parameterInfoList.Count())
 			{
 				return false;
@@ -242,6 +249,8 @@ namespace EdjCase.JsonRpc.Router
 					{
 						return false;
 					}
+					correctedParameterList = new object[correctedParameterList.Length + 1];
+					correctedParameterList[correctedParameterList.Length - 1] = Type.Missing;
 				}
 				else
 				{
@@ -268,7 +277,7 @@ namespace EdjCase.JsonRpc.Router
 			Type nullableType = Nullable.GetUnderlyingType(parameterType);
 			if (value == null)
 			{
-				bool isNullable = nullableType != null 
+				bool isNullable = nullableType != null
 					|| parameterType.GetTypeInfo().IsClass
 					|| (parameterInfo.HasDefaultValue && parameterInfo.DefaultValue == null);
 				return isNullable;
@@ -372,7 +381,7 @@ namespace EdjCase.JsonRpc.Router
 			{
 				return false;
 			}
-			bool hasSignature = this.HasParameterSignature(parameterList);
+			bool hasSignature = this.HasParameterSignature(parameterList, out parameterList);
 			if (hasSignature)
 			{
 				return true;
