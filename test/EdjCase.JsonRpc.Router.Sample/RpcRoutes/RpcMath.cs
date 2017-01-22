@@ -9,11 +9,6 @@ namespace EdjCase.JsonRpc.Router.Sample.RpcRoutes
 			return a + b;
 		}
 
-		public long Add(long a, long c)
-		{
-			return a + c;
-		}
-
 		public async Task<int> AddAsync(int a, int b)
 		{
 			return await Task.Run(() => a + b);

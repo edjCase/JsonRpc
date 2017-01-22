@@ -67,6 +67,7 @@ namespace EdjCase.JsonRpc.Router.Sample
 			{
 				rpcApp.UseJsonRpc(builder =>
 				{
+					builder.BaseRequestPath = "Test";
 					builder.RegisterTypeRoute<RpcMath>();
 					builder.RegisterTypeRoute<RpcString>("Strings");
 					builder.RegisterTypeRoute<RpcCommands>("Commands");

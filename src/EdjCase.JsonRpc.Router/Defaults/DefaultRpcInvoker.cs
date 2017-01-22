@@ -61,13 +61,13 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <param name="httpContext">The context of the current http request</param>
 		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <returns>List of Rpc responses for the requests</returns>
-		public async Task<List<RpcResponse>> InvokeBatchRequestAsync(List<RpcRequest> requests, RpcRoute route, HttpContext httpContext, JsonSerializerSettings jsonSerializerSettings = null)
+		public async Task<List<RpcResponse>> InvokeBatchRequestAsync(List<RpcRequest> requests, RpcRoute route, IRouteContext routeContext, JsonSerializerSettings jsonSerializerSettings = null)
 		{
 			this.logger?.LogDebug($"Invoking '{requests.Count}' batch requests");
 			var invokingTasks = new List<Task<RpcResponse>>();
 			foreach (RpcRequest request in requests)
 			{
-				Task<RpcResponse> invokingTask = Task.Run(async () => await this.InvokeRequestAsync(request, route, httpContext, jsonSerializerSettings));
+				Task<RpcResponse> invokingTask = Task.Run(async () => await this.InvokeRequestAsync(request, route, routeContext, jsonSerializerSettings));
 				if (request.Id != null)
 				{
 					//Only wait for non-notification requests
@@ -95,7 +95,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <param name="httpContext">The context of the current http request</param>
 		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <returns>An Rpc response for the request</returns>
-		public async Task<RpcResponse> InvokeRequestAsync(RpcRequest request, RpcRoute route, HttpContext httpContext, JsonSerializerSettings jsonSerializerSettings = null)
+		public async Task<RpcResponse> InvokeRequestAsync(RpcRequest request, RpcRoute route, IRouteContext routeContext, JsonSerializerSettings jsonSerializerSettings = null)
 		{
 			try
 			{
@@ -123,9 +123,9 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				}
 
 				object[] parameterList;
-				RpcMethod rpcMethod = this.GetMatchingMethod(route, request, out parameterList, httpContext.RequestServices, jsonSerializerSettings);
+				RpcMethod rpcMethod = this.GetMatchingMethod(route, request, out parameterList, routeContext.RequestServices, jsonSerializerSettings);
 
-				bool isAuthorized = await this.IsAuthorizedAsync(rpcMethod, httpContext);
+				bool isAuthorized = await this.IsAuthorizedAsync(rpcMethod, routeContext);
 
 				if (isAuthorized)
 				{
@@ -174,7 +174,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			return null;
 		}
 
-		private async Task<bool> IsAuthorizedAsync(RpcMethod rpcMethod, HttpContext httpContext)
+		private async Task<bool> IsAuthorizedAsync(RpcMethod rpcMethod, IRouteContext routeContext)
 		{
 			if (rpcMethod.AuthorizeDataList.Any())
 			{
@@ -186,15 +186,15 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				{
 					this.logger?.LogDebug($"Running authorization for method.");
 					AuthorizationPolicy policy = await AuthorizationPolicy.CombineAsync(this.policyProvider, rpcMethod.AuthorizeDataList);
-					bool passed = await this.authorizationService.AuthorizeAsync(httpContext.User, policy);
+					bool passed = await this.authorizationService.AuthorizeAsync(routeContext.User, policy);
 					if (!passed)
 					{
-						this.logger?.LogInformation($"Authorization failed for user '{httpContext.User.Identity.Name}'.");
+						this.logger?.LogInformation($"Authorization failed for user '{routeContext.User.Identity.Name}'.");
 						return false;
 					}
 					else
 					{
-						this.logger?.LogDebug($"Authoization was successful for user '{httpContext.User.Identity.Name}'.");
+						this.logger?.LogDebug($"Authoization was successful for user '{routeContext.User.Identity.Name}'.");
 					}
 				}
 			}

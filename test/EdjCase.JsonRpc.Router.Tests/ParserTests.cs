@@ -30,6 +30,35 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.Equal(matchedRoute != null, shouldMatch);
 		}
 
+		[Fact]
+		public void RpcRouteWithBaseRoute_HasBaseRoute_Success()
+		{
+			IRpcRouteProvider routeProvider = new FakeRouteProvider();
+			routeProvider.BaseRequestPath = "Base";
+			RouteCriteria routeCriteria = new RouteCriteria(typeof(ParserTests));
+			routeProvider.RegisterRoute(routeCriteria, "Test");
+			DefaultRpcParser parser = new DefaultRpcParser(null);
+			RpcRoute matchedRoute;
+			bool isMatch = parser.MatchesRpcRoute(routeProvider, "/Base/Test", out matchedRoute);
+			Assert.True(isMatch);
+			Assert.NotNull(matchedRoute);
+		}
+
+
+		[Fact]
+		public void RpcRouteWithBaseRoute_NoBaseRoute_Failure()
+		{
+			IRpcRouteProvider routeProvider = new FakeRouteProvider();
+			routeProvider.BaseRequestPath = "Base";
+			RouteCriteria routeCriteria = new RouteCriteria(typeof(ParserTests));
+			routeProvider.RegisterRoute(routeCriteria, "Test");
+			DefaultRpcParser parser = new DefaultRpcParser(null);
+			RpcRoute matchedRoute;
+			bool isMatch = parser.MatchesRpcRoute(routeProvider, "/Test", out matchedRoute);
+			Assert.False(isMatch);
+			Assert.Null(matchedRoute);
+		}
+
 		[Theory]
 		[InlineData("{\"jsonrpc\": \"2.0\", \"method\": \"subtract\", \"params\": [42, 23], \"id\": 1}", (long)1, "subtract", new object[] { (long)42, (long)23 })]
 		[InlineData("{\"jsonrpc\": \"2.0\", \"method\": \"subtract2\", \"params\": [\"42\", \"23\"], \"id\": \"4\"}", "4", "subtract2", new object[] { "42", "23" })]
@@ -175,6 +204,9 @@ namespace EdjCase.JsonRpc.Router.Tests
 	public class FakeRouteProvider : IRpcRouteProvider
 	{
 		public bool AutoDetectControllers { get; set; }
+
+		public string BaseRequestPath { get; set; }
+
 		public ControllerFilter ControllerFilter { get; } = new ControllerFilter();
 		private List<RpcRoute> routes { get; } = new List<RpcRoute>();
 

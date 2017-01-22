@@ -49,6 +49,10 @@ namespace EdjCase.JsonRpc.Router
 		public ControllerFilter ControllerFilter { get; } = new ControllerFilter();
 #endif
 		/// <summary>
+		/// Sets the required base path for the request url to match against
+		/// </summary>
+		public string BaseRequestPath { get; set; }
+		/// <summary>
 		/// List of the Rpc routes
 		/// </summary>
 		private List<RpcRoute> routeList { get; } = new List<RpcRoute>();
