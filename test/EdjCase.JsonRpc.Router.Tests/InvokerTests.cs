@@ -146,6 +146,45 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.Equal(JTokenType.Integer, resultResponse.Result.Type);
 			Assert.Equal(resultResponse.Result.Value<int>(), 1);
 		}
+
+		[Fact]
+		public async Task InvokeRequest_OptionalParameter_Valid()
+		{
+			var routeCriteria = new List<RouteCriteria>();
+			routeCriteria.Add(new RouteCriteria(typeof(TestRouteClass)));
+			RpcRoute route = new RpcRoute(routeCriteria);
+
+			DefaultRpcInvoker invoker = this.GetInvoker();
+			IServiceProvider serviceProvider = this.GetServiceProvider();
+			IRouteContext routeContext = this.GetRouteContext();
+
+
+			//No params specified
+			RpcRequest stringRequest = new RpcRequest("1", "Optional");
+			RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, route, routeContext);
+
+			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
+			Assert.Null(resultResponse.Result);
+			Assert.False(resultResponse.HasError);
+
+			//Param is null
+			stringRequest = new RpcRequest("1", "Optional", parameterList: null);
+			response = await invoker.InvokeRequestAsync(stringRequest, route, routeContext);
+
+			resultResponse = Assert.IsType<RpcResponse>(response);
+			Assert.Null(resultResponse.Result);
+			Assert.False(resultResponse.HasError);
+
+
+			//Param is a string
+			stringRequest = new RpcRequest("1", "Optional", parameterList: "Test");
+			response = await invoker.InvokeRequestAsync(stringRequest, route, routeContext);
+
+			resultResponse = Assert.IsType<RpcResponse>(response);
+			Assert.NotNull(resultResponse.Result);
+			Assert.Equal(JTokenType.String, resultResponse.Result.Type);
+			Assert.Equal(resultResponse.Result.Value<string>(), "Test");
+		}
 	}
 
 	public class TestRouteClass
@@ -173,6 +212,11 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public int IntParameter(int a)
 		{
 			return a;
+		}
+
+		public string Optional(string test = null)
+		{
+			return test;
 		}
 	}
 

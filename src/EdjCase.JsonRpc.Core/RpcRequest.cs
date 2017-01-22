@@ -68,7 +68,7 @@ namespace EdjCase.JsonRpc.Core
 		/// Gets the raw parameters as an object array
 		/// </summary>
 		[JsonIgnore]
-		public object[] ParameterList => this.RawParameters as object[];
+		public object[] ParameterList => this.RawParameters as object[] ?? new object[0];
 
 		/// <summary>
 		/// Gets the raw parameters as a parameter map

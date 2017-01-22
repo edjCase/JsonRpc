@@ -267,8 +267,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					}
 					else
 					{
-						matchingMethod = method.HasParameterSignature(request.ParameterList);
-						parameterList = request.ParameterList;
+						matchingMethod = method.HasParameterSignature(request.ParameterList, out parameterList);
 					}
 					if (matchingMethod)
 					{
@@ -317,7 +316,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			{
 				foreach (Type type in routeCriteria.Types)
 				{
-					MethodInfo[] publicMethods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance);
+					List<MethodInfo> publicMethods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+						//Ignore ToString, GetHashCode and Equals
+						.Where(m => m.DeclaringType != typeof(object))
+						.ToList();
 					foreach (MethodInfo publicMethod in publicMethods)
 					{
 						RpcMethod rpcMethod = new RpcMethod(type, route, publicMethod, serviceProvider, jsonSerializerSettings);
