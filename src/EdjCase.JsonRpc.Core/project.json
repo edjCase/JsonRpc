@@ -1,5 +1,5 @@
 {
-	"version": "1.3.0-beta-004",
+	"version": "1.3.0-beta-005",
 	"description": "The core library used by JsonRpc client/router.",
 	"packOptions": {
 		"summary": "A Json RPC v2 core library for .Net Core",
@@ -7,7 +7,7 @@
 		"projectUrl": "https://github.com/edjCase/JsonRpc",
 		"repository": { "type": "git" },
 		"licenseUrl": "https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE",
-		"releaseNotes": "Reverting to using JTokens."
+		"releaseNotes": "Fixing possible null ref with no parameters."
 	},
 	"authors": [ "Gekctek" ],
 
