@@ -44,7 +44,7 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 		/// <param name="types">List of types to match against</param>
 		public RouteCriteria(List<Type> types)
 		{
-			if(types == null || types.Any())
+			if(types == null || !types.Any())
 			{
 				throw new ArgumentException("At least one type must be specified.", nameof(types));
 			}
