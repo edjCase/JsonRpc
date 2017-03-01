@@ -7,7 +7,7 @@
 		"projectUrl": "https://github.com/edjCase/JsonRpc",
 		"repository": { "type": "git" },
 		"licenseUrl": "https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE",
-		"releaseNotes": "Reverting to using JTokens, updated client to allow for serialization settings."
+		"releaseNotes": "Moving out of beta."
 	},
 	"authors": [ "Gekctek" ],
 
