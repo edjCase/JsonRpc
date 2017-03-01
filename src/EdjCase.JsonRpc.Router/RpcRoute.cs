@@ -64,14 +64,12 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		private List<RpcRoute> GetControllerRoutes()
 		{
-			DependencyContext depedencyContext = DependencyContext.Default;
-			IEnumerable<TypeInfo> controllerTypes = depedencyContext.RuntimeLibraries
-				.SelectMany(l => l.GetDefaultAssemblyNames(depedencyContext))
-				.Select(Assembly.Load)
-				.SelectMany(a => a.DefinedTypes)
-				.Where(t => !t.IsAbstract && t.IsSubclassOf(this.ControllerFilter.BaseControllerType));
+			//TODO will entry assembly be good enough
+			List<TypeInfo> controllerTypes = Assembly.GetEntryAssembly().DefinedTypes
+				.Where(t => !t.IsAbstract && t.IsSubclassOf(this.ControllerFilter.BaseControllerType))
+				.ToList();
 
-			List<RpcRoute> controllerRoutes = new List<RpcRoute>();
+			var controllerRoutes = new List<RpcRoute>();
 			foreach (TypeInfo controllerType in controllerTypes)
 			{
 				var attribute = controllerType.GetCustomAttribute<RpcRouteAttribute>(true);
