@@ -1,29 +1,28 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.26228.4
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{EB6CC2D7-ED2C-447F-A85B-5E204FD69352}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{41AD7143-8434-4ABE-92B7-70F448CFE634}"
 	ProjectSection(SolutionItems) = preProject
-		global.json = global.json
 		Nuget.config = Nuget.config
 	EndProjectSection
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "EdjCase.JsonRpc.Router", "src\EdjCase.JsonRpc.Router\EdjCase.JsonRpc.Router.xproj", "{F89E9E51-0D7A-4A82-A899-14C886C4F384}"
-EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "EdjCase.JsonRpc.Router.Sample", "test\EdjCase.JsonRpc.Router.Sample\EdjCase.JsonRpc.Router.Sample.xproj", "{DC822B36-8944-48E5-AFC3-B6F859F49E02}"
-EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "EdjCase.JsonRpc.Router.Tests", "test\EdjCase.JsonRpc.Router.Tests\EdjCase.JsonRpc.Router.Tests.xproj", "{EB3C5DC1-9E22-4C56-8E1F-0D93917E75E5}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{B5DD29D3-4FCA-4CFB-A562-A7985BB1C269}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "EdjCase.JsonRpc.Client", "src\EdjCase.JsonRpc.Client\EdjCase.JsonRpc.Client.xproj", "{87ED8B44-B59A-440C-A377-565EFFB2691A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdjCase.JsonRpc.Router", "src\EdjCase.JsonRpc.Router\EdjCase.JsonRpc.Router.csproj", "{F89E9E51-0D7A-4A82-A899-14C886C4F384}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "EdjCase.JsonRpc.Core", "src\EdjCase.JsonRpc.Core\EdjCase.JsonRpc.Core.xproj", "{9F2CEC93-9FEC-4949-8797-D08BF776BFBF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdjCase.JsonRpc.Router.Sample", "test\EdjCase.JsonRpc.Router.Sample\EdjCase.JsonRpc.Router.Sample.csproj", "{DC822B36-8944-48E5-AFC3-B6F859F49E02}"
 EndProject
-Project("{8BB2217D-0F2D-49D1-97BC-3654ED321F3B}") = "EdjCase.JsonRpc.Client.Sample", "test\EdjCase.JsonRpc.Client.Sample\EdjCase.JsonRpc.Client.Sample.xproj", "{84727B1C-6DED-4460-903B-27B19F1326AC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdjCase.JsonRpc.Router.Tests", "test\EdjCase.JsonRpc.Router.Tests\EdjCase.JsonRpc.Router.Tests.csproj", "{EB3C5DC1-9E22-4C56-8E1F-0D93917E75E5}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdjCase.JsonRpc.Client", "src\EdjCase.JsonRpc.Client\EdjCase.JsonRpc.Client.csproj", "{87ED8B44-B59A-440C-A377-565EFFB2691A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdjCase.JsonRpc.Core", "src\EdjCase.JsonRpc.Core\EdjCase.JsonRpc.Core.csproj", "{9F2CEC93-9FEC-4949-8797-D08BF776BFBF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdjCase.JsonRpc.Client.Sample", "test\EdjCase.JsonRpc.Client.Sample\EdjCase.JsonRpc.Client.Sample.csproj", "{84727B1C-6DED-4460-903B-27B19F1326AC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
