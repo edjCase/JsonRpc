@@ -12,6 +12,7 @@ using EdjCase.JsonRpc.Router.Utilities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EdjCase.JsonRpc.Router.Defaults
 {
@@ -122,8 +123,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					throw new RpcInvalidRequestException($"Request must be jsonrpc version '{JsonRpcContants.JsonRpcVersion}'");
 				}
 
-				object[] parameterList;
-				RpcMethod rpcMethod = this.GetMatchingMethod(route, request, out parameterList, routeContext.RequestServices, jsonSerializerSettings);
+				RpcMethod rpcMethod = this.GetMatchingMethod(route, request, out object[] parameterList, routeContext.RequestServices, jsonSerializerSettings);
 
 				bool isAuthorized = await this.IsAuthorizedAsync(rpcMethod, routeContext);
 
@@ -247,7 +247,8 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <param name="serviceProvider">(Optional)IoC Container for rpc method controllers</param>
 		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <returns>The matching Rpc method to the current request</returns>
-		private RpcMethod GetMatchingMethod(RpcRoute route, RpcRequest request, out object[] parameterList, IServiceProvider serviceProvider = null, JsonSerializerSettings jsonSerializerSettings = null)
+		private RpcMethod GetMatchingMethod(RpcRoute route, RpcRequest request, out object[] parameterList, IServiceProvider serviceProvider = null, 
+			JsonSerializerSettings jsonSerializerSettings = null)
 		{
 			if (route == null)
 			{
@@ -258,56 +259,74 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				throw new ArgumentNullException(nameof(request));
 			}
 			this.logger?.LogDebug($"Attempting to match Rpc request to a method '{request.Method}'");
-			List<RpcMethod> methods = DefaultRpcInvoker.GetRpcMethods(route, serviceProvider, jsonSerializerSettings);
+			List<RpcMethod> allMethods = DefaultRpcInvoker.GetRpcMethods(route, serviceProvider, jsonSerializerSettings);
 
 			//Case insenstive check for hybrid approach. Will check for case sensitive if there is ambiguity
-			methods = methods
+			List<RpcMethod> methodsWithSameName = allMethods
 				.Where(m => string.Equals(m.Method, request.Method, StringComparison.OrdinalIgnoreCase))
 				.ToList();
 
 			RpcMethod rpcMethod = null;
 			parameterList = null;
-			int originalMethodCount = methods.Count;
-			if (methods.Count > 0)
+			List<RpcMethod> potentialMatches = new List<RpcMethod>();
+			foreach (RpcMethod method in methodsWithSameName)
 			{
-				List<RpcMethod> potentialMatches = new List<RpcMethod>();
-				foreach (RpcMethod method in methods)
+				bool matchingMethod;
+				if (request.ParameterMap != null)
 				{
-					bool matchingMethod;
-					if (request.ParameterMap != null)
-					{
-						matchingMethod = method.HasParameterSignature(request.ParameterMap, out parameterList);
-					}
-					else
-					{
-						matchingMethod = method.HasParameterSignature(request.ParameterList, out parameterList);
-					}
-					if (matchingMethod)
-					{
-						potentialMatches.Add(method);
-					}
+					matchingMethod = method.HasParameterSignature(request.ParameterMap, out parameterList);
 				}
-
-				if (potentialMatches.Count > 1)
+				else
 				{
-					//Try to remove ambiguity with case sensitive check
-					potentialMatches = potentialMatches
-						.Where(m => string.Equals(m.Method, request.Method, StringComparison.Ordinal))
-						.ToList();
-					if (potentialMatches.Count != 1)
-					{
-						this.logger?.LogError("More than one method matched the rpc request. Unable to invoke due to ambiguity.");
-						throw new RpcMethodNotFoundException();
-					}
+					matchingMethod = method.HasParameterSignature(request.ParameterList, out parameterList);
 				}
-
-				if (potentialMatches.Count == 1)
+				if (matchingMethod)
 				{
-					rpcMethod = potentialMatches.First();
+					potentialMatches.Add(method);
 				}
 			}
+
+			if (potentialMatches.Count > 1)
+			{
+				//Try to remove ambiguity with case sensitive check
+				potentialMatches = potentialMatches
+					.Where(m => string.Equals(m.Method, request.Method, StringComparison.Ordinal))
+					.ToList();
+				if (potentialMatches.Count != 1)
+				{
+					this.logger?.LogError("More than one method matched the rpc request. Unable to invoke due to ambiguity.");
+					throw new RpcMethodNotFoundException();
+				}
+			}
+
+			if (potentialMatches.Count == 1)
+			{
+				rpcMethod = potentialMatches.First();
+			}
+
 			if (rpcMethod == null)
 			{
+				//Log diagnostics 
+				string methodsString = string.Join(", ", allMethods.Select(m => m.Method));
+				this.logger?.LogTrace("Methods in route: " + methodsString);
+
+				var methodInfoList = new List<string>();
+				foreach(RpcMethod matchedMethod in methodsWithSameName)
+				{
+					var parameterTypeList = new List<string>();
+					foreach(ParameterInfo parameterInfo in matchedMethod.GetParameterList())
+					{
+						string parameterType = parameterInfo.Name + ": " + parameterInfo.ParameterType.Name;
+						if(parameterInfo.IsOptional)
+						{
+							parameterType += "(Optional)";
+						}
+						parameterTypeList.Add(parameterType);
+					}
+					string parameterString = string.Join(", ", parameterTypeList);
+					methodInfoList.Add($"{{Name: '{matchedMethod.Method}', Parameters: [{parameterString}]}}");
+				}
+				this.logger?.LogTrace("Methods that matched the same name: " + string.Join(", ", methodInfoList));
 				this.logger?.LogError("No methods matched request.");
 				throw new RpcMethodNotFoundException();
 			}
@@ -333,9 +352,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 						//Ignore ToString, GetHashCode and Equals
 						.Where(m => m.DeclaringType != typeof(object))
 						.ToList();
+					ILogger<RpcMethod> logger = serviceProvider?.GetService<ILogger<RpcMethod>>();
 					foreach (MethodInfo publicMethod in publicMethods)
 					{
-						RpcMethod rpcMethod = new RpcMethod(type, route, publicMethod, serviceProvider, jsonSerializerSettings);
+						RpcMethod rpcMethod = new RpcMethod(type, route, publicMethod, serviceProvider, jsonSerializerSettings, logger);
 						rpcMethods.Add(rpcMethod);
 					}
 				}

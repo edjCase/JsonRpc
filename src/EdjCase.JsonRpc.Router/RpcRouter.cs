@@ -55,32 +55,12 @@ namespace EdjCase.JsonRpc.Router
 		public RpcRouter(IOptions<RpcServerConfiguration> serverConfig, IRpcInvoker invoker, IRpcParser parser, IRpcCompressor compressor, ILogger<RpcRouter> logger,
 			IRpcRouteProvider routeProvider)
 		{
-			if (serverConfig == null)
-			{
-				throw new ArgumentNullException(nameof(serverConfig));
-			}
-			if (invoker == null)
-			{
-				throw new ArgumentNullException(nameof(invoker));
-			}
-			if (parser == null)
-			{
-				throw new ArgumentNullException(nameof(parser));
-			}
-			if (compressor == null)
-			{
-				throw new ArgumentNullException(nameof(compressor));
-			}
-			if (routeProvider == null)
-			{
-				throw new ArgumentNullException(nameof(routeProvider));
-			}
-			this.serverConfig = serverConfig;
-			this.invoker = invoker;
-			this.parser = parser;
-			this.compressor = compressor;
+			this.serverConfig = serverConfig ?? throw new ArgumentNullException(nameof(serverConfig));
+			this.invoker = invoker ?? throw new ArgumentNullException(nameof(invoker));
+			this.parser = parser ?? throw new ArgumentNullException(nameof(parser));
+			this.compressor = compressor ?? throw new ArgumentNullException(nameof(compressor));
 			this.logger = logger;
-			this.routeProvider = routeProvider;
+			this.routeProvider = routeProvider ?? throw new ArgumentNullException(nameof(routeProvider));
 		}
 
 		/// <summary>
@@ -126,8 +106,7 @@ namespace EdjCase.JsonRpc.Router
 							jsonString = streamReader.ReadToEnd().Trim();
 						}
 					}
-					bool isBulkRequest;
-					List<RpcRequest> requests = this.parser.ParseRequests(jsonString, out isBulkRequest, this.serverConfig.Value.JsonSerializerSettings);
+					List<RpcRequest> requests = this.parser.ParseRequests(jsonString, out bool isBulkRequest, this.serverConfig.Value.JsonSerializerSettings);
 					this.logger?.LogInformation($"Processing {requests.Count} Rpc requests");
 
 					int batchLimit = this.serverConfig.Value.BatchRequestLimit;
@@ -210,8 +189,7 @@ namespace EdjCase.JsonRpc.Router
 				string[] encodings = acceptEncoding.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
 				foreach (string encoding in encodings)
 				{
-					CompressionType compressionType;
-					bool haveType = Enum.TryParse(encoding, true, out compressionType);
+					bool haveType = Enum.TryParse(encoding, true, out CompressionType compressionType);
 					if (!haveType)
 					{
 						continue;

@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using Microsoft.Extensions.Logging;
 
 namespace EdjCase.JsonRpc.Router
 {
@@ -54,6 +55,8 @@ namespace EdjCase.JsonRpc.Router
 		/// Reflection information about each of the method's parameters
 		/// </summary>
 		private ParameterInfo[] parameterInfoList { get; }
+		//TODO logger?
+		private ILogger<RpcMethod> logger { get; }
 
 		/// <summary>
 		/// Service provider to be used as an IoC Container. If not set it will use
@@ -72,7 +75,8 @@ namespace EdjCase.JsonRpc.Router
 		/// <param name="methodInfo">Reflection information about the method</param>
 		/// <param name="serviceProvider">(Optional) Service provider to be used as an IoC Container</param>
 		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
-		public RpcMethod(Type type, RpcRoute route, MethodInfo methodInfo, IServiceProvider serviceProvider = null, JsonSerializerSettings jsonSerializerSettings = null)
+		public RpcMethod(Type type, RpcRoute route, MethodInfo methodInfo, IServiceProvider serviceProvider = null, JsonSerializerSettings jsonSerializerSettings = null,
+			ILogger<RpcMethod> logger = null)
 		{
 			this.type = type;
 			this.Route = route;
@@ -86,6 +90,7 @@ namespace EdjCase.JsonRpc.Router
 			IEnumerable<Attribute> customMethodAttributes = this.methodInfo.GetCustomAttributes();
 			this.AuthorizeDataListMethod = customMethodAttributes.OfType<IAuthorizeData>().ToList();
 			this.AllowAnonymousOnMethod = customMethodAttributes.OfType<IAllowAnonymous>().Any();
+			this.logger = logger;
 		}
 
 		/// <summary>
@@ -229,12 +234,7 @@ namespace EdjCase.JsonRpc.Router
 		/// <returns>True if the method signature matches the parameterList, otherwise False</returns>
 		public bool HasParameterSignature(object[] parameterList, out object[] correctedParameterList)
 		{
-			if (parameterList == null)
-			{
-				throw new ArgumentNullException(nameof(parameterList));
-			}
-
-			correctedParameterList = parameterList;
+			correctedParameterList = parameterList ?? throw new ArgumentNullException(nameof(parameterList));
 			if (parameterList.Count() > this.parameterInfoList.Count())
 			{
 				return false;
@@ -255,7 +255,7 @@ namespace EdjCase.JsonRpc.Router
 				else
 				{
 					object parameter = parameterList[i];
-					bool isMatch = RpcMethod.ParameterMatches(parameterInfo, parameter);
+					bool isMatch = this.ParameterMatches(parameterInfo, parameter);
 					if (!isMatch)
 					{
 						return false;
@@ -271,7 +271,7 @@ namespace EdjCase.JsonRpc.Router
 		/// <param name="parameterInfo">Reflection info about a method parameter</param>
 		/// <param name="value">The request's value for the parameter</param>
 		/// <returns>True if the request parameter matches the type of the method parameter</returns>
-		private static bool ParameterMatches(ParameterInfo parameterInfo, object value)
+		private bool ParameterMatches(ParameterInfo parameterInfo, object value)
 		{
 			Type parameterType = parameterInfo.ParameterType;
 			Type nullableType = Nullable.GetUnderlyingType(parameterType);
@@ -331,8 +331,7 @@ namespace EdjCase.JsonRpc.Router
 			{
 				if (parameterType == typeof(Guid))
 				{
-					Guid guid;
-					return Guid.TryParse((string)value, out guid);
+					return Guid.TryParse((string)value, out Guid guid);
 				}
 				if (parameterType.GetTypeInfo().IsEnum)
 				{
@@ -341,24 +340,27 @@ namespace EdjCase.JsonRpc.Router
 			}
 			try
 			{
+				//TODO should just assume they will work and have the end just fail if cant convert?
+				JsonSerializer serializer = JsonSerializer.Create(this.jsonSerializerSettings);
 				if (value is JObject)
 				{
 					JObject jObject = (JObject)value;
-					jObject.ToObject(parameterType); //Test conversion
+					jObject.ToObject(parameterType, serializer); //Test conversion
 					return true;
 				}
 				if (value is JArray)
 				{
 					JArray jArray = (JArray)value;
-					jArray.ToObject(parameterType); //Test conversion
+					jArray.ToObject(parameterType, serializer); //Test conversion
 					return true;
 				}
 				//Final check to see if the conversion can happen
 				// ReSharper disable once ReturnValueOfPureMethodIsNotUsed
 				Convert.ChangeType(value, parameterType);
 			}
-			catch (Exception)
+			catch (Exception ex)
 			{
+				this.logger?.LogWarning($"Parameter '{parameterInfo.Name}' failed to deserialize: " + ex);
 				return false;
 			}
 			return true;
@@ -410,6 +412,15 @@ namespace EdjCase.JsonRpc.Router
 				parameterList[parameterInfo.Position] = parametersMap[parameterInfo.Name];
 			}
 			return true;
+		}
+
+		/// <summary>
+		/// Gets the parameter information list for the method
+		/// </summary>
+		/// <returns>Parameter info list for the method</returns>
+		public IReadOnlyList<ParameterInfo> GetParameterList()
+		{
+			return this.parameterInfoList;
 		}
 	}
 }
