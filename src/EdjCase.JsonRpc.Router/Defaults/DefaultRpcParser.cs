@@ -81,18 +81,19 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 			try
 			{
+				//Only using JToken to get type, cant use it to deserialize because 
+				//it ignores the settings https://github.com/JamesNK/Newtonsoft.Json/issues/862
 				JToken token = JToken.Parse(jsonString);
-				JsonSerializer serializer = JsonSerializer.Create(jsonSerializerSettings);
 				switch (token.Type)
 				{
 					case JTokenType.Array:
 						isBulkRequest = true;
-						rpcRequests = token.ToObject<List<RpcRequest>>(serializer);
+						rpcRequests = JsonConvert.DeserializeObject<List<RpcRequest>>(jsonString, jsonSerializerSettings);
 						break;
 					case JTokenType.Object:
 						isBulkRequest = false;
 						rpcRequests = new List<RpcRequest>();
-						RpcRequest rpcRequest = token.ToObject<RpcRequest>(serializer);
+						RpcRequest rpcRequest = JsonConvert.DeserializeObject<RpcRequest>(jsonString, jsonSerializerSettings);
 						if (rpcRequest != null)
 						{
 							rpcRequests.Add(rpcRequest);

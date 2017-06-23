@@ -243,7 +243,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// </summary>
 		/// <param name="route">Rpc route for the current request</param>
 		/// <param name="request">Current Rpc request</param>
-		/// <param name="parameterList">Paramter list parsed from the request</param>
+		/// <param name="parameterList">Parameter list parsed from the request</param>
 		/// <param name="serviceProvider">(Optional)IoC Container for rpc method controllers</param>
 		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <returns>The matching Rpc method to the current request</returns>
