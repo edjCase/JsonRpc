@@ -61,7 +61,7 @@ namespace EdjCase.JsonRpc.Router.RouteProviders
 						methodProviders = new List<IRpcMethodProvider>();
 						controllerRoutes[routePath] = methodProviders;
 					}
-					methodProviders.Add(new ControllerTypeMethodProvider(controllerType.AsType()));
+					methodProviders.Add(new ControllerPublicMethodProvider(controllerType.AsType()));
 				}
 				this.routeCache = controllerRoutes;
 			}

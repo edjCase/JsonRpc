@@ -60,7 +60,7 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 			{
 				throw new ArgumentNullException(nameof(path));
 			}
-			this.RegisterMethods(path, new ControllerTypeMethodProvider(typeof(T)));
+			this.RegisterMethods(path, new ControllerPublicMethodProvider(typeof(T)));
 		}
 	}
 

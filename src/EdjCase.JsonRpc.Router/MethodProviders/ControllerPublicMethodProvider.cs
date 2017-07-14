@@ -11,15 +11,17 @@ namespace EdjCase.JsonRpc.Router.Criteria
 	/// <summary>
 	/// Criteria that has to be met for the specified route to match
 	/// </summary>
-	public class ControllerTypeMethodProvider : IRpcMethodProvider
+	public class ControllerPublicMethodProvider : IRpcMethodProvider
 	{
 		/// <summary>
 		/// List of types to match against
 		/// </summary>
 		public IReadOnlyList<Type> Types { get; }
 
+		private List<MethodInfo> methodCache { get; set; }
+
 		/// <param name="types">List of types to match against</param>
-		public ControllerTypeMethodProvider(List<Type> types)
+		public ControllerPublicMethodProvider(List<Type> types)
 		{
 			if (types == null || !types.Any())
 			{
@@ -29,7 +31,7 @@ namespace EdjCase.JsonRpc.Router.Criteria
 		}
 
 		/// <param name="type">Type to match against</param>
-		public ControllerTypeMethodProvider(Type type)
+		public ControllerPublicMethodProvider(Type type)
 		{
 			if (type == null)
 			{
@@ -40,16 +42,20 @@ namespace EdjCase.JsonRpc.Router.Criteria
 		
 		public List<MethodInfo> GetRouteMethods()
 		{
-			var methods = new List<MethodInfo>();
-			foreach (Type type in this.Types)
+			if (this.methodCache == null)
 			{
-				List<MethodInfo> publicMethods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-					//Ignore ToString, GetHashCode and Equals
-					.Where(m => m.DeclaringType != typeof(object))
-					.ToList();
-				methods.AddRange(publicMethods);
+				var methods = new List<MethodInfo>();
+				foreach (Type type in this.Types)
+				{
+					List<MethodInfo> publicMethods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+						//Ignore ToString, GetHashCode and Equals
+						.Where(m => m.DeclaringType != typeof(object))
+						.ToList();
+					methods.AddRange(publicMethods);
+				}
+				this.methodCache = methods;
 			}
-			return methods;
+			return this.methodCache;
 		}
 	}
 }
