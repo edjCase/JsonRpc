@@ -65,12 +65,12 @@ namespace EdjCase.JsonRpc.Router.Sample
 
 			app.Map("/RpcApi", rpcApp =>
 			{
-				rpcApp.UseJsonRpc(builder =>
+				rpcApp.UseManualJsonRpc(builder =>
 				{
-					builder.RegisterTypeRoute<RpcMath>();
-					builder.RegisterTypeRoute<RpcString>("Strings");
-					builder.RegisterTypeRoute<RpcCommands>("Commands");
-					builder.RegisterTypeRoute<RpcMath>("Math");
+					builder.RegisterController<RpcMath>();
+					builder.RegisterController<RpcString>("Strings");
+					builder.RegisterController<RpcCommands>("Commands");
+					builder.RegisterController<RpcMath>("Math");
 				});
 			});
 

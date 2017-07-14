@@ -83,13 +83,27 @@ namespace EdjCase.JsonRpc.Router
 		{
 			try
 			{
-				RpcRoute route;
-				bool matchesRoute = this.parser.MatchesRpcRoute(this.routeProvider, context.HttpContext.Request.Path, out route);
-				if (!matchesRoute)
+				RpcPath requestPath;
+				if (!context.HttpContext.Request.Path.HasValue)
 				{
+					requestPath = RpcPath.Default;
+				}
+				else
+				{
+					requestPath = RpcPath.Parse(context.HttpContext.Request.Path.Value);
+				}
+				if (!requestPath.StartsWith(this.routeProvider.BaseRequestPath))
+				{
+					this.logger?.LogTrace("Request did not match the base request path. Skipping rpc router.");
 					return;
 				}
-				this.logger?.LogInformation($"Rpc request route '{route.Name}' matched");
+				HashSet<RpcPath> availableRoutes = this.routeProvider.GetRoutes();
+				if (!availableRoutes.Any())
+				{
+					this.logger?.LogDebug($"Request matched base request path but no routes.");
+					return;
+				}
+				this.logger?.LogInformation($"Rpc request route '{requestPath}' matched.");
 				try
 				{
 					Stream contentStream = context.HttpContext.Request.Body;
@@ -123,7 +137,7 @@ namespace EdjCase.JsonRpc.Router
 					else
 					{
 						IRouteContext routeContext = DefaultRouteContext.FromHttpContext(context.HttpContext);
-						responses = await this.invoker.InvokeBatchRequestAsync(requests, route, routeContext, this.serverConfig.Value.JsonSerializerSettings);
+						responses = await this.invoker.InvokeBatchRequestAsync(requests, requestPath, routeContext, this.serverConfig.Value.JsonSerializerSettings);
 					}
 
 

@@ -26,5 +26,15 @@ namespace EdjCase.JsonRpc.Router
 		/// greater than the limit
 		/// </summary>
 		public int BatchRequestLimit { get; set; }
+
+		/// <summary>
+		/// Router events to attach to
+		/// </summary>
+		public RpcEvents Events { get; } = new RpcEvents();
+	}
+
+	public class RpcEvents
+	{
+		public Action<string> OnUnhandledException { get; set; }
 	}
 }

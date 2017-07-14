@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using EdjCase.JsonRpc.Router.Criteria;
+using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace EdjCase.JsonRpc.Router.Abstractions
@@ -11,67 +13,59 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 	/// </summary>
 	public interface IRpcRouteProvider
 	{
+		RpcPath BaseRequestPath { get; }
+		HashSet<RpcPath> GetRoutes();
+		List<IRpcMethodProvider> GetMethodsByPath(RpcPath path);
+	}
+
 #if !NETSTANDARD1_3
-		bool AutoDetectControllers { get; set; }
-		ControllerFilter ControllerFilter { get; }
-#endif
+	public class RpcAutoRoutingOptions
+	{
 		/// <summary>
 		/// Sets the required base path for the request url to match against
 		/// </summary>
-		string BaseRequestPath { get; set; }
-		List<RpcRoute> GetRoutes();
-		void RegisterRoute(IEnumerable<RouteCriteria> criteria, string name = null);
-	}
+		public RpcPath BaseRequestPath { get; set; }
 
-
-#if !NETSTANDARD1_3
-	public class ControllerFilter
-	{
 		public Type BaseControllerType { get; set; } = typeof(RpcController);
 	}
 #endif
 
-	/// <summary>
-	/// Criteria that has to be met for the specified route to match
-	/// </summary>
-	public class RouteCriteria
+	public class RpcManualRoutingOptions
 	{
 		/// <summary>
-		/// List of types to match against
+		/// Sets the required base path for the request url to match against
 		/// </summary>
-		public IReadOnlyList<Type> Types { get; }
+		public string BaseRequestPath { get; set; }
 
-		/// <param name="types">List of types to match against</param>
-		public RouteCriteria(List<Type> types)
+		public Dictionary<RpcPath, List<IRpcMethodProvider>> Routes { get; set; } = new Dictionary<RpcPath, List<IRpcMethodProvider>>();
+
+
+		public void RegisterMethods(RpcPath path, IRpcMethodProvider methodProvider)
 		{
-			if(types == null || !types.Any())
+			if(path == null)
 			{
-				throw new ArgumentException("At least one type must be specified.", nameof(types));
+				throw new ArgumentNullException(nameof(path));
 			}
-			this.Types = types;
+			if (!this.Routes.TryGetValue(path, out List<IRpcMethodProvider> methodProviders))
+			{
+				methodProviders = new List<IRpcMethodProvider>();
+				this.Routes[path] = methodProviders;
+			}
+			methodProviders.Add(methodProvider);
 		}
 
-		/// <param name="type">Type to match against</param>
-		public RouteCriteria(Type type, IEnumerable<IAuthorizeData> authorizeData = null)
+		public void RegisterController<T>(RpcPath path = default(RpcPath))
 		{
-			if(type == null)
+			if (path == null)
 			{
-				throw new ArgumentNullException(nameof(type));
+				throw new ArgumentNullException(nameof(path));
 			}
-			this.Types = new List<Type> { type };
+			this.RegisterMethods(path, new ControllerTypeMethodProvider(typeof(T)));
 		}
 	}
 
-	public static class RouteProviderExtensions
+	public interface IRpcMethodProvider
 	{
-		public static void RegisterRoute(this IRpcRouteProvider routeProvider, RouteCriteria criteria, string name = null)
-		{
-			routeProvider.RegisterRoute(new List<RouteCriteria> { criteria }, name);
-		}
-
-		public static void RegisterTypeRoute<T>(this IRpcRouteProvider routeProvider, string name = null)
-		{
-			routeProvider.RegisterRoute(new List<RouteCriteria> { new RouteCriteria(typeof(T)) }, name);
-		}
+		List<MethodInfo> GetRouteMethods();
 	}
 }

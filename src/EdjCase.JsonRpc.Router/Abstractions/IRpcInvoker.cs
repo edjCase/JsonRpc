@@ -14,20 +14,20 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 		/// Call the incoming Rpc request method and gives the appropriate response
 		/// </summary>
 		/// <param name="request">Rpc request</param>
-		/// <param name="route">Rpc route that applies to the current request</param>
+		/// <param name="path">Rpc path that applies to the current request</param>
 		/// <param name="routeContext">The context of the current rpc request</param>
 		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <returns>An Rpc response for the request</returns>
-		Task<RpcResponse> InvokeRequestAsync(RpcRequest request, RpcRoute route, IRouteContext routeContext, JsonSerializerSettings jsonSerializerSettings = null);
+		Task<RpcResponse> InvokeRequestAsync(RpcRequest request, RpcPath path, IRouteContext routeContext, JsonSerializerSettings jsonSerializerSettings = null);
 
 		/// <summary>
 		/// Call the incoming Rpc requests methods and gives the appropriate respones
 		/// </summary>
 		/// <param name="requests">List of Rpc requests to invoke</param>
-		/// <param name="route">Rpc route that applies to the current request</param>
+		/// <param name="path">Rpc route that applies to the current request</param>
 		/// <param name="routeContext">The context of the current rpc request</param>
 		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <returns>List of Rpc responses for the requests</returns>
-		Task<List<RpcResponse>> InvokeBatchRequestAsync(List<RpcRequest> requests, RpcRoute route, IRouteContext routeContext, JsonSerializerSettings jsonSerializerSettings = null);
+		Task<List<RpcResponse>> InvokeBatchRequestAsync(List<RpcRequest> requests, RpcPath path, IRouteContext routeContext, JsonSerializerSettings jsonSerializerSettings = null);
 	}
 }

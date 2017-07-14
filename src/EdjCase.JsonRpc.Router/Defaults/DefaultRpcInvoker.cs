@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
+using EdjCase.JsonRpc.Router.Criteria;
 
 namespace EdjCase.JsonRpc.Router.Defaults
 {
@@ -40,17 +41,22 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// </summary>
 		private IOptions<RpcServerConfiguration> serverConfig { get; }
 
+		private IRpcRouteProvider routeProvider { get; }
+
 
 		/// <param name="authorizationService">Service that authorizes each method for use if configured</param>
 		/// <param name="policyProvider">Provides authorization policies for the authroziation service</param>
 		/// <param name="logger">Optional logger for logging Rpc invocation</param>
 		/// <param name="serverConfig">Configuration data for the server</param>
-		public DefaultRpcInvoker(IAuthorizationService authorizationService, IAuthorizationPolicyProvider policyProvider, ILogger<DefaultRpcInvoker> logger, IOptions<RpcServerConfiguration> serverConfig)
+		public DefaultRpcInvoker(IAuthorizationService authorizationService, IAuthorizationPolicyProvider policyProvider, 
+			ILogger<DefaultRpcInvoker> logger, IOptions<RpcServerConfiguration> serverConfig,
+			IRpcRouteProvider routeProvider)
 		{
 			this.authorizationService = authorizationService;
 			this.policyProvider = policyProvider;
 			this.logger = logger;
 			this.serverConfig = serverConfig;
+			this.routeProvider = routeProvider;
 		}
 
 
@@ -58,17 +64,18 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// Call the incoming Rpc requests methods and gives the appropriate respones
 		/// </summary>
 		/// <param name="requests">List of Rpc requests</param>
-		/// <param name="route">Rpc route that applies to the current request</param>
+		/// <param name="path">Rpc path that applies to the current request</param>
 		/// <param name="httpContext">The context of the current http request</param>
 		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <returns>List of Rpc responses for the requests</returns>
-		public async Task<List<RpcResponse>> InvokeBatchRequestAsync(List<RpcRequest> requests, RpcRoute route, IRouteContext routeContext, JsonSerializerSettings jsonSerializerSettings = null)
+		public async Task<List<RpcResponse>> InvokeBatchRequestAsync(List<RpcRequest> requests, RpcPath path, IRouteContext routeContext, 
+			JsonSerializerSettings jsonSerializerSettings = null)
 		{
 			this.logger?.LogDebug($"Invoking '{requests.Count}' batch requests");
 			var invokingTasks = new List<Task<RpcResponse>>();
 			foreach (RpcRequest request in requests)
 			{
-				Task<RpcResponse> invokingTask = Task.Run(async () => await this.InvokeRequestAsync(request, route, routeContext, jsonSerializerSettings));
+				Task<RpcResponse> invokingTask = Task.Run(async () => await this.InvokeRequestAsync(request, path, routeContext, jsonSerializerSettings));
 				if (request.Id != null)
 				{
 					//Only wait for non-notification requests
@@ -92,11 +99,11 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// Call the incoming Rpc request method and gives the appropriate response
 		/// </summary>
 		/// <param name="request">Rpc request</param>
-		/// <param name="route">Rpc route that applies to the current request</param>
+		/// <param name="path">Rpc path that applies to the current request</param>
 		/// <param name="httpContext">The context of the current http request</param>
 		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <returns>An Rpc response for the request</returns>
-		public async Task<RpcResponse> InvokeRequestAsync(RpcRequest request, RpcRoute route, IRouteContext routeContext, JsonSerializerSettings jsonSerializerSettings = null)
+		public async Task<RpcResponse> InvokeRequestAsync(RpcRequest request, RpcPath path, IRouteContext routeContext, JsonSerializerSettings jsonSerializerSettings = null)
 		{
 			try
 			{
@@ -104,9 +111,9 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				{
 					throw new ArgumentNullException(nameof(request));
 				}
-				if (route == null)
+				if (path == null)
 				{
-					throw new ArgumentNullException(nameof(route));
+					throw new ArgumentNullException(nameof(path));
 				}
 			}
 			catch (ArgumentNullException ex) // Dont want to throw any exceptions when doing async requests
@@ -123,7 +130,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					throw new RpcInvalidRequestException($"Request must be jsonrpc version '{JsonRpcContants.JsonRpcVersion}'");
 				}
 
-				RpcMethod rpcMethod = this.GetMatchingMethod(route, request, out object[] parameterList, routeContext.RequestServices, jsonSerializerSettings);
+				MethodInfo rpcMethod = this.GetMatchingMethod(path, request, out object[] parameterList, routeContext.RequestServices, jsonSerializerSettings);
 
 				bool isAuthorized = await this.IsAuthorizedAsync(rpcMethod, routeContext);
 
@@ -131,7 +138,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				{
 
 					this.logger?.LogDebug($"Attempting to invoke method '{request.Method}'");
-					object result = await rpcMethod.InvokeAsync(parameterList);
+					object result = await this.InvokeAsync(rpcMethod, routeContext.RequestServices, jsonSerializerSettings, parameterList);
 					this.logger?.LogDebug($"Finished invoking method '{request.Method}'");
 
 					JsonSerializer jsonSerializer = JsonSerializer.Create(jsonSerializerSettings);
@@ -174,21 +181,28 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			return null;
 		}
 
-		private async Task<bool> IsAuthorizedAsync(RpcMethod rpcMethod, IRouteContext routeContext)
+		private async Task<bool> IsAuthorizedAsync(MethodInfo methodInfo, IRouteContext routeContext)
 		{
-			if (rpcMethod.AuthorizeDataListClass.Any() || rpcMethod.AuthorizeDataListMethod.Any())
+			IEnumerable<Attribute> customClassAttributes = methodInfo.DeclaringType.GetTypeInfo().GetCustomAttributes();
+			List<IAuthorizeData> authorizeDataListClass = customClassAttributes.OfType<IAuthorizeData>().ToList();
+			IEnumerable<Attribute> customMethodAttributes = methodInfo.GetCustomAttributes();
+			List<IAuthorizeData> authorizeDataListMethod = customMethodAttributes.OfType<IAuthorizeData>().ToList();
+
+			if (authorizeDataListClass.Any() || authorizeDataListMethod.Any())
 			{
-				if (rpcMethod.AllowAnonymousOnClass || rpcMethod.AllowAnonymousOnMethod)
+				bool allowAnonymousOnClass = customClassAttributes.OfType<IAllowAnonymous>().Any();
+				bool allowAnonymousOnMethod = customMethodAttributes.OfType<IAllowAnonymous>().Any();
+				if (allowAnonymousOnClass || allowAnonymousOnMethod)
 				{
 					this.logger?.LogDebug("Skipping authorization. Allow anonymous specified for method.");
 				}
 				else
 				{
 					this.logger?.LogDebug($"Running authorization for method.");
-					bool passedAuth = await this.CheckAuthorize(rpcMethod.AuthorizeDataListClass, routeContext);
+					bool passedAuth = await this.CheckAuthorize(authorizeDataListClass, routeContext);
 					if (passedAuth)
 					{
-						passedAuth = await this.CheckAuthorize(rpcMethod.AuthorizeDataListMethod, routeContext);
+						passedAuth = await this.CheckAuthorize(authorizeDataListMethod, routeContext);
 					}
 					if (passedAuth)
 					{
@@ -241,44 +255,44 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <summary>
 		/// Finds the matching Rpc method for the current request
 		/// </summary>
-		/// <param name="route">Rpc route for the current request</param>
+		/// <param name="path">Rpc route for the current request</param>
 		/// <param name="request">Current Rpc request</param>
 		/// <param name="parameterList">Parameter list parsed from the request</param>
 		/// <param name="serviceProvider">(Optional)IoC Container for rpc method controllers</param>
 		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <returns>The matching Rpc method to the current request</returns>
-		private RpcMethod GetMatchingMethod(RpcRoute route, RpcRequest request, out object[] parameterList, IServiceProvider serviceProvider = null, 
+		private MethodInfo GetMatchingMethod(RpcPath path, RpcRequest request, out object[] parameterList, IServiceProvider serviceProvider = null,
 			JsonSerializerSettings jsonSerializerSettings = null)
 		{
-			if (route == null)
+			if (path == null)
 			{
-				throw new ArgumentNullException(nameof(route));
+				throw new ArgumentNullException(nameof(path));
 			}
 			if (request == null)
 			{
 				throw new ArgumentNullException(nameof(request));
 			}
 			this.logger?.LogDebug($"Attempting to match Rpc request to a method '{request.Method}'");
-			List<RpcMethod> allMethods = DefaultRpcInvoker.GetRpcMethods(route, serviceProvider, jsonSerializerSettings);
+			List<MethodInfo> allMethods = this.GetRpcMethods(path);
 
 			//Case insenstive check for hybrid approach. Will check for case sensitive if there is ambiguity
-			List<RpcMethod> methodsWithSameName = allMethods
-				.Where(m => string.Equals(m.Method, request.Method, StringComparison.OrdinalIgnoreCase))
+			List<MethodInfo> methodsWithSameName = allMethods
+				.Where(m => string.Equals(m.Name, request.Method, StringComparison.OrdinalIgnoreCase))
 				.ToList();
 
-			RpcMethod rpcMethod = null;
+			MethodInfo rpcMethod = null;
 			parameterList = null;
-			List<RpcMethod> potentialMatches = new List<RpcMethod>();
-			foreach (RpcMethod method in methodsWithSameName)
+			var potentialMatches = new List<MethodInfo>();
+			foreach (MethodInfo method in methodsWithSameName)
 			{
 				bool matchingMethod;
 				if (request.ParameterMap != null)
 				{
-					matchingMethod = method.HasParameterSignature(request.ParameterMap, out parameterList);
+					matchingMethod = this.HasParameterSignature(method, request.ParameterMap, jsonSerializerSettings, out parameterList);
 				}
 				else
 				{
-					matchingMethod = method.HasParameterSignature(request.ParameterList, out parameterList);
+					matchingMethod = this.HasParameterSignature(method, request.ParameterList, jsonSerializerSettings, out parameterList);
 				}
 				if (matchingMethod)
 				{
@@ -290,7 +304,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			{
 				//Try to remove ambiguity with case sensitive check
 				potentialMatches = potentialMatches
-					.Where(m => string.Equals(m.Method, request.Method, StringComparison.Ordinal))
+					.Where(m => string.Equals(m.Name, request.Method, StringComparison.Ordinal))
 					.ToList();
 				if (potentialMatches.Count != 1)
 				{
@@ -307,24 +321,24 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			if (rpcMethod == null)
 			{
 				//Log diagnostics 
-				string methodsString = string.Join(", ", allMethods.Select(m => m.Method));
+				string methodsString = string.Join(", ", allMethods.Select(m => m.Name));
 				this.logger?.LogTrace("Methods in route: " + methodsString);
 
 				var methodInfoList = new List<string>();
-				foreach(RpcMethod matchedMethod in methodsWithSameName)
+				foreach (MethodInfo matchedMethod in methodsWithSameName)
 				{
 					var parameterTypeList = new List<string>();
-					foreach(ParameterInfo parameterInfo in matchedMethod.GetParameterList())
+					foreach (ParameterInfo parameterInfo in matchedMethod.GetParameters())
 					{
 						string parameterType = parameterInfo.Name + ": " + parameterInfo.ParameterType.Name;
-						if(parameterInfo.IsOptional)
+						if (parameterInfo.IsOptional)
 						{
 							parameterType += "(Optional)";
 						}
 						parameterTypeList.Add(parameterType);
 					}
 					string parameterString = string.Join(", ", parameterTypeList);
-					methodInfoList.Add($"{{Name: '{matchedMethod.Method}', Parameters: [{parameterString}]}}");
+					methodInfoList.Add($"{{Name: '{matchedMethod.Name}', Parameters: [{parameterString}]}}");
 				}
 				this.logger?.LogTrace("Methods that matched the same name: " + string.Join(", ", methodInfoList));
 				this.logger?.LogError("No methods matched request.");
@@ -337,31 +351,350 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <summary>
 		/// Gets all the predefined Rpc methods for a Rpc route
 		/// </summary>
-		/// <param name="route">The route to get Rpc methods for</param>
+		/// <param name="path">The route to get Rpc methods for</param>
 		/// <param name="serviceProvider">(Optional) IoC Container for rpc method controllers</param>
 		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <returns>List of Rpc methods for the specified Rpc route</returns>
-		private static List<RpcMethod> GetRpcMethods(RpcRoute route, IServiceProvider serviceProvider = null, JsonSerializerSettings jsonSerializerSettings = null)
+		private List<MethodInfo> GetRpcMethods(RpcPath path)
 		{
-			List<RpcMethod> rpcMethods = new List<RpcMethod>();
-			foreach (RouteCriteria routeCriteria in route.RouteCriteria)
+			var methods = new List<MethodInfo>();
+			foreach (IRpcMethodProvider methodProvider in this.routeProvider.GetMethodsByPath(path))
 			{
-				foreach (Type type in routeCriteria.Types)
+				foreach (MethodInfo methodInfo in methodProvider.GetRouteMethods())
 				{
-					List<MethodInfo> publicMethods = type.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-						//Ignore ToString, GetHashCode and Equals
-						.Where(m => m.DeclaringType != typeof(object))
-						.ToList();
-					ILogger<RpcMethod> logger = serviceProvider?.GetService<ILogger<RpcMethod>>();
-					foreach (MethodInfo publicMethod in publicMethods)
+					methods.Add(methodInfo);
+				}
+			}
+			return methods;
+		}
+
+
+		/// <summary>
+		/// Invokes the method with the specified parameters, returns the result of the method
+		/// </summary>
+		/// <exception cref="RpcInvalidParametersException">Thrown when conversion of parameters fails or when invoking the method is not compatible with the parameters</exception>
+		/// <param name="parameters">List of parameters to invoke the method with</param>
+		/// <returns>The result of the invoked method</returns>
+		public async Task<object> InvokeAsync(MethodInfo method, IServiceProvider serviceProvider, JsonSerializerSettings jsonSerializerSettings, params object[] parameters)
+		{
+			object obj = null;
+			if (serviceProvider != null)
+			{
+				//Use service provider (if exists) to create instance
+				var objectFactory = ActivatorUtilities.CreateFactory(method.DeclaringType, new Type[0]);
+				obj = objectFactory(serviceProvider, null);
+			}
+			if (obj == null)
+			{
+				//Use reflection to create instance if service provider failed or is null
+				obj = Activator.CreateInstance(method.DeclaringType);
+			}
+			try
+			{
+				parameters = this.ConvertParameters(method, parameters, jsonSerializerSettings);
+
+				object returnObj = method.Invoke(obj, parameters);
+
+				returnObj = await DefaultRpcInvoker.HandleAsyncResponses(returnObj);
+
+				return returnObj;
+			}
+			catch (TargetInvocationException ex)
+			{
+				throw new RpcUnknownException("Exception occurred from target method execution.", ex);
+			}
+			catch (Exception ex)
+			{
+				throw new RpcInvalidParametersException("Exception from attempting to invoke method. Possibly invalid parameters for method.", ex);
+			}
+		}
+
+		/// <summary>
+		/// Handles/Awaits the result object if it is a async Task
+		/// </summary>
+		/// <param name="returnObj">The result of a invoked method</param>
+		/// <returns>Awaits a Task and returns its result if object is a Task, otherwise returns the same object given</returns>
+		private static async Task<object> HandleAsyncResponses(object returnObj)
+		{
+			Task task = returnObj as Task;
+			if (task == null) //Not async request
+			{
+				return returnObj;
+			}
+			try
+			{
+				await task;
+			}
+			catch (Exception ex)
+			{
+				throw new TargetInvocationException(ex);
+			}
+			PropertyInfo propertyInfo = task.GetType().GetProperty("Result");
+			if (propertyInfo != null)
+			{
+				//Type of Task<T>. Wait for result then return it
+				return propertyInfo.GetValue(returnObj);
+			}
+			//Just of type Task with no return result			
+			return null;
+		}
+
+		/// <summary>
+		/// Converts the object array into the exact types the method needs (e.g. long -> int)
+		/// </summary>
+		/// <param name="parameters">Array of parameters for the method</param>
+		/// <returns>Array of objects with the exact types required by the method</returns>
+		private object[] ConvertParameters(MethodInfo method, object[] parameters, JsonSerializerSettings jsonSerializerSettings)
+		{
+			if (parameters == null || !parameters.Any())
+			{
+				return new object[0];
+			}
+			ParameterInfo[] parameterInfoList = method.GetParameters();
+			for (int index = 0; index < parameters.Length; index++)
+			{
+				ParameterInfo parameterInfo = parameterInfoList[index];
+				parameters[index] = this.ConvertParameter(parameterInfo.ParameterType, parameters[index], jsonSerializerSettings);
+			}
+
+			return parameters;
+		}
+
+		private object ConvertParameter(Type parameterType, object parameterValue, 
+			JsonSerializerSettings jsonSerializerSettings)
+		{
+			if (parameterValue == null)
+			{
+				return null;
+			}
+			//Missing type is for optional parameters
+			if (parameterValue is Missing)
+			{
+				return parameterValue;
+			}
+			Type nullableType = Nullable.GetUnderlyingType(parameterType);
+			if (nullableType != null)
+			{
+				return this.ConvertParameter(nullableType, parameterValue, jsonSerializerSettings);
+			}
+			if (parameterValue is string && parameterType == typeof(Guid))
+			{
+				Guid.TryParse((string)parameterValue, out Guid guid);
+				return guid;
+			}
+			if (parameterType.GetTypeInfo().IsEnum)
+			{
+				if (parameterValue is string)
+				{
+					return Enum.Parse(parameterType, (string)parameterValue);
+				}
+				else if (parameterValue is long)
+				{
+					return Enum.ToObject(parameterType, parameterValue);
+				}
+			}
+			if (parameterValue is JObject)
+			{
+				JsonSerializer jsonSerializer = JsonSerializer.Create(jsonSerializerSettings);
+				return ((JObject)parameterValue).ToObject(parameterType, jsonSerializer);
+			}
+			if (parameterValue is JArray)
+			{
+				JsonSerializer jsonSerializer = JsonSerializer.Create(jsonSerializerSettings);
+				return ((JArray)parameterValue).ToObject(parameterType, jsonSerializer);
+			}
+			return Convert.ChangeType(parameterValue, parameterType);
+		}
+
+		/// <summary>
+		/// Detects if list of parameters matches the method signature
+		/// </summary>
+		/// <param name="parameterList">Array of parameters for the method</param>
+		/// <returns>True if the method signature matches the parameterList, otherwise False</returns>
+		public bool HasParameterSignature(MethodInfo method, object[] parameterList, JsonSerializerSettings jsonSerializerSettings,
+			out object[] correctedParameterList)
+		{
+			correctedParameterList = parameterList ?? throw new ArgumentNullException(nameof(parameterList));
+			ParameterInfo[] parameterInfoList = method.GetParameters();
+			if (parameterList.Count() > parameterInfoList.Count())
+			{
+				return false;
+			}
+
+			for (int i = 0; i < parameterInfoList.Length; i++)
+			{
+				ParameterInfo parameterInfo = parameterInfoList[i];
+				if (parameterList.Count() <= i)
+				{
+					if (!parameterInfo.IsOptional)
 					{
-						RpcMethod rpcMethod = new RpcMethod(type, route, publicMethod, serviceProvider, jsonSerializerSettings, logger);
-						rpcMethods.Add(rpcMethod);
+						return false;
+					}
+					correctedParameterList = new object[correctedParameterList.Length + 1];
+					correctedParameterList[correctedParameterList.Length - 1] = Type.Missing;
+				}
+				else
+				{
+					object parameter = parameterList[i];
+					bool isMatch = this.ParameterMatches(parameterInfo, parameter, jsonSerializerSettings);
+					if (!isMatch)
+					{
+						return false;
 					}
 				}
 			}
-			return rpcMethods;
+			return true;
 		}
 
+		/// <summary>
+		/// Detects if the request parameter matches the method parameter
+		/// </summary>
+		/// <param name="parameterInfo">Reflection info about a method parameter</param>
+		/// <param name="value">The request's value for the parameter</param>
+		/// <returns>True if the request parameter matches the type of the method parameter</returns>
+		private bool ParameterMatches(ParameterInfo parameterInfo, object value, 
+			JsonSerializerSettings jsonSerializerSettings)
+		{
+			Type parameterType = parameterInfo.ParameterType;
+			Type nullableType = Nullable.GetUnderlyingType(parameterType);
+			if (value == null)
+			{
+				bool isNullable = nullableType != null
+					|| parameterType.GetTypeInfo().IsClass
+					|| (parameterInfo.HasDefaultValue && parameterInfo.DefaultValue == null);
+				return isNullable;
+			}
+			if (parameterType == value.GetType())
+			{
+				return true;
+			}
+			if (nullableType != null)
+			{
+				parameterType = nullableType;
+			}
+			if (value is long)
+			{
+				bool integer = parameterType == typeof(short)
+					|| parameterType == typeof(int);
+				if (integer)
+				{
+					return true;
+				}
+				TypeInfo typeInfo = parameterType.GetTypeInfo();
+				if (typeInfo.IsEnum)
+				{
+					try
+					{
+						return Enum.IsDefined(parameterType, (int)(long)value);
+					}
+					catch (Exception)
+					{
+						Type enumType = Enum.GetUnderlyingType(parameterType);
+						//Check if the enum is long or short instead of int
+						if (enumType == typeof(long))
+						{
+							return Enum.IsDefined(parameterType, value);
+						}
+						else if (enumType == typeof(short))
+						{
+							return Enum.IsDefined(parameterType, (short)(long)value);
+						}
+					}
+				}
+				return false;
+			}
+			if (value is double || value is decimal)
+			{
+				return parameterType == typeof(double)
+					|| parameterType == typeof(decimal)
+					|| parameterType == typeof(float);
+			}
+			if (value is string)
+			{
+				if (parameterType == typeof(Guid))
+				{
+					return Guid.TryParse((string)value, out Guid guid);
+				}
+				if (parameterType.GetTypeInfo().IsEnum)
+				{
+					return Enum.IsDefined(parameterType, value);
+				}
+			}
+			try
+			{
+				//TODO should just assume they will work and have the end just fail if cant convert?
+				JsonSerializer serializer = JsonSerializer.Create(jsonSerializerSettings);
+				if (value is JObject)
+				{
+					JObject jObject = (JObject)value;
+					jObject.ToObject(parameterType, serializer); //Test conversion
+					return true;
+				}
+				if (value is JArray)
+				{
+					JArray jArray = (JArray)value;
+					jArray.ToObject(parameterType, serializer); //Test conversion
+					return true;
+				}
+				//Final check to see if the conversion can happen
+				// ReSharper disable once ReturnValueOfPureMethodIsNotUsed
+				Convert.ChangeType(value, parameterType);
+			}
+			catch (Exception ex)
+			{
+				this.logger?.LogWarning($"Parameter '{parameterInfo.Name}' failed to deserialize: " + ex);
+				return false;
+			}
+			return true;
+		}
+
+		/// <summary>
+		/// Detects if the request parameters match the method parameters and converts the map into an ordered list
+		/// </summary>
+		/// <param name="parametersMap">Map of parameter name to parameter value</param>
+		/// <param name="parameterList">Result of converting the map to an ordered list, null if result is False</param>
+		/// <returns>True if the request parameters match the method parameters, otherwise Fasle</returns>
+		public bool HasParameterSignature(MethodInfo method, Dictionary<string, object> parametersMap, JsonSerializerSettings jsonSerializerSettings, out object[] parameterList)
+		{
+			if (parametersMap == null)
+			{
+				throw new ArgumentNullException(nameof(parametersMap));
+			}
+			bool canParse = this.TryParseParameterList(method, parametersMap, out parameterList);
+			if (!canParse)
+			{
+				return false;
+			}
+			bool hasSignature = this.HasParameterSignature(method, parameterList, jsonSerializerSettings, out parameterList);
+			if (hasSignature)
+			{
+				return true;
+			}
+			parameterList = null;
+			return false;
+		}
+
+
+		/// <summary>
+		/// Tries to parse the parameter map into an ordered parameter list
+		/// </summary>
+		/// <param name="parametersMap">Map of parameter name to parameter value</param>
+		/// <param name="parameterList">Result of converting the map to an ordered list, null if result is False</param>
+		/// <returns>True if the parameters can convert to an ordered list based on the method signature, otherwise Fasle</returns>
+		public bool TryParseParameterList(MethodInfo method, Dictionary<string, object> parametersMap, out object[] parameterList)
+		{
+			ParameterInfo[] parameterInfoList = method.GetParameters();
+			parameterList = new object[parameterInfoList.Count()];
+			foreach (ParameterInfo parameterInfo in parameterInfoList)
+			{
+				if (!parametersMap.ContainsKey(parameterInfo.Name) && !parameterInfo.IsOptional)
+				{
+					parameterList = null;
+					return false;
+				}
+				parameterList[parameterInfo.Position] = parametersMap[parameterInfo.Name];
+			}
+			return true;
+		}
 	}
 }
