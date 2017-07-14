@@ -136,7 +136,7 @@ namespace EdjCase.JsonRpc.Router
 					}
 					else
 					{
-						IRouteContext routeContext = DefaultRouteContext.FromHttpContext(context.HttpContext);
+						IRouteContext routeContext = DefaultRouteContext.FromHttpContext(context.HttpContext, routeProvider);
 						responses = await this.invoker.InvokeBatchRequestAsync(requests, requestPath, routeContext);
 					}
 

@@ -41,8 +41,6 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// </summary>
 		private IOptions<RpcServerConfiguration> serverConfig { get; }
 
-		private IRpcRouteProvider routeProvider { get; }
-
 		private JsonSerializer jsonSerializerCache { get; set; }
 
 		private JsonSerializer GetJsonSerializer()
@@ -62,14 +60,12 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <param name="logger">Optional logger for logging Rpc invocation</param>
 		/// <param name="serverConfig">Configuration data for the server</param>
 		public DefaultRpcInvoker(IAuthorizationService authorizationService, IAuthorizationPolicyProvider policyProvider, 
-			ILogger<DefaultRpcInvoker> logger, IOptions<RpcServerConfiguration> serverConfig,
-			IRpcRouteProvider routeProvider)
+			ILogger<DefaultRpcInvoker> logger, IOptions<RpcServerConfiguration> serverConfig)
 		{
 			this.authorizationService = authorizationService;
 			this.policyProvider = policyProvider;
 			this.logger = logger;
 			this.serverConfig = serverConfig;
-			this.routeProvider = routeProvider;
 		}
 
 
@@ -140,7 +136,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					throw new RpcInvalidRequestException($"Request must be jsonrpc version '{JsonRpcContants.JsonRpcVersion}'");
 				}
 				
-				MethodInfo rpcMethod = this.GetMatchingMethod(path, request, out object[] parameterList, routeContext.RequestServices);
+				MethodInfo rpcMethod = this.GetMatchingMethod(path, request, routeContext.RouteProvider, out object[] parameterList, routeContext.RequestServices);
 
 				bool isAuthorized = await this.IsAuthorizedAsync(rpcMethod, routeContext);
 
@@ -270,7 +266,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <param name="parameterList">Parameter list parsed from the request</param>
 		/// <param name="serviceProvider">(Optional)IoC Container for rpc method controllers</param>
 		/// <returns>The matching Rpc method to the current request</returns>
-		private MethodInfo GetMatchingMethod(RpcPath path, RpcRequest request, out object[] parameterList, IServiceProvider serviceProvider = null)
+		private MethodInfo GetMatchingMethod(RpcPath path, RpcRequest request, IRpcRouteProvider routeProvider, out object[] parameterList, IServiceProvider serviceProvider)
 		{
 			if (path == null)
 			{
@@ -281,7 +277,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				throw new ArgumentNullException(nameof(request));
 			}
 			this.logger?.LogDebug($"Attempting to match Rpc request to a method '{request.Method}'");
-			List<MethodInfo> allMethods = this.GetRpcMethods(path);
+			List<MethodInfo> allMethods = this.GetRpcMethods(path, routeProvider);
 
 			//Case insenstive check for hybrid approach. Will check for case sensitive if there is ambiguity
 			List<MethodInfo> methodsWithSameName = allMethods
@@ -362,10 +358,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <param name="path">The route to get Rpc methods for</param>
 		/// <param name="serviceProvider">(Optional) IoC Container for rpc method controllers</param>
 		/// <returns>List of Rpc methods for the specified Rpc route</returns>
-		private List<MethodInfo> GetRpcMethods(RpcPath path)
+		private List<MethodInfo> GetRpcMethods(RpcPath path, IRpcRouteProvider routeProvider)
 		{
 			var methods = new List<MethodInfo>();
-			foreach (IRpcMethodProvider methodProvider in this.routeProvider.GetMethodsByPath(path))
+			foreach (IRpcMethodProvider methodProvider in routeProvider.GetMethodsByPath(path))
 			{
 				foreach (MethodInfo methodInfo in methodProvider.GetRouteMethods())
 				{
@@ -408,12 +404,13 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 			catch (TargetInvocationException ex)
 			{
-				//Global exception handling
-				Func<RpcRouteInfo, Exception, UnhandledExceptionEventResult> handleException = this.serverConfig.Value?.Events?.OnUnhandledException;
-				if (handleException != null)
+				var routeInfo = new RpcRouteInfo(method.DeclaringType, method.Name, parameters, path);
+
+				//Controller error handling
+				RpcErrorFilterAttribute errorFilter = method.DeclaringType.GetTypeInfo().GetCustomAttribute<RpcErrorFilterAttribute>();
+				if(errorFilter != null)
 				{
-					var routeInfo = new RpcRouteInfo(method.DeclaringType, method.Name, parameters, path);
-					UnhandledExceptionEventResult result = handleException(routeInfo, ex.InnerException);
+					OnExceptionResult result = errorFilter.OnException(routeInfo, ex.InnerException);
 					if (!result.ThrowException)
 					{
 						return result.ResponseObject;
@@ -423,7 +420,6 @@ namespace EdjCase.JsonRpc.Router.Defaults
 						throw rEx;
 					}
 				}
-
 				throw new RpcUnknownException("Exception occurred from target method execution.", ex);
 			}
 			catch (Exception ex)

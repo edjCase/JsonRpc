@@ -26,47 +26,5 @@ namespace EdjCase.JsonRpc.Router
 		/// greater than the limit
 		/// </summary>
 		public int BatchRequestLimit { get; set; }
-
-		/// <summary>
-		/// Router events to attach to
-		/// </summary>
-		public RpcEvents Events { get; } = new RpcEvents();
-	}
-
-	public class RpcEvents
-	{
-		public Func<RpcRouteInfo, Exception, UnhandledExceptionEventResult> OnUnhandledException { get; set; }
-	}
-
-	public class UnhandledExceptionEventResult
-	{
-		public bool ThrowException { get; }
-		public object ResponseObject { get; }
-
-		private UnhandledExceptionEventResult(bool throwException, object responseObject)
-		{
-			this.ThrowException = throwException;
-			this.ResponseObject = responseObject;
-		}
-
-		public static UnhandledExceptionEventResult UseObjectResponse(object responseObject)
-		{
-			return new UnhandledExceptionEventResult(false, responseObject);
-		}
-
-		public static UnhandledExceptionEventResult UseMethodResultResponse(IRpcMethodResult result)
-		{
-			return new UnhandledExceptionEventResult(false, result);
-		}
-
-		public static UnhandledExceptionEventResult UseExceptionResponse(Exception ex)
-		{
-			return new UnhandledExceptionEventResult(true, ex);
-		}
-
-		public static UnhandledExceptionEventResult DontHandle()
-		{
-			return new UnhandledExceptionEventResult(true, null);
-		}
 	}
 }
