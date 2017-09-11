@@ -52,7 +52,7 @@ namespace Microsoft.AspNetCore.Builder
 			{
 				throw new ArgumentNullException(nameof(app));
 			}
-			if(configureOptions == null)
+			if (configureOptions == null)
 			{
 				throw new ArgumentNullException(nameof(configureOptions));
 			}
@@ -77,7 +77,7 @@ namespace Microsoft.AspNetCore.Builder
 			{
 				throw new ArgumentNullException(nameof(app));
 			}
-			if(routeProvider == null)
+			if (routeProvider == null)
 			{
 				throw new ArgumentNullException(nameof(routeProvider));
 			}
@@ -85,7 +85,7 @@ namespace Microsoft.AspNetCore.Builder
 			RpcRouter router = ActivatorUtilities.CreateInstance<RpcRouter>(app.ApplicationServices, routeProvider);
 			return app.UseRouter(router);
 		}
-
+		
 		/// <summary>
 		/// Extension method to add the JsonRpc router services to the IoC container
 		/// </summary>
@@ -107,6 +107,7 @@ namespace Microsoft.AspNetCore.Builder
 				.Configure<RpcServerConfiguration>(configureOptions ?? (options => { }))
 				.AddSingleton<IRpcInvoker, DefaultRpcInvoker>()
 				.AddSingleton<IRpcParser, DefaultRpcParser>()
+				.AddSingleton<IRpcRequestHandler, RpcRequestHandler>()
 				.AddSingleton<IRpcCompressor, DefaultRpcCompressor>();
 		}
 	}

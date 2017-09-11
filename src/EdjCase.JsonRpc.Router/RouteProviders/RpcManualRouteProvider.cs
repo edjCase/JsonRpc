@@ -16,9 +16,8 @@ namespace EdjCase.JsonRpc.Router.RouteProviders
 			this.Options = options ?? throw new ArgumentNullException(nameof(options));
 		}
 
-		public string BaseRequestPath => this.Options.BaseRequestPath;
 
-		RpcPath IRpcRouteProvider.BaseRequestPath => throw new NotImplementedException();
+		public RpcPath BaseRequestPath => this.Options.BaseRequestPath;
 
 
 		/// <summary>

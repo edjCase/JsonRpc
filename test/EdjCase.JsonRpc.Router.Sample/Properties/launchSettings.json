@@ -11,7 +11,7 @@
 		"IIS Express": {
 			"commandName": "IISExpress",
 			"environmentVariables": {
-				"ASPNET_ENV": "Development"
+				"ASPNETCORE_ENVIRONMENT": "Development"
 			}
 		},
 		"web": {

@@ -117,10 +117,6 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				{
 					throw new ArgumentNullException(nameof(request));
 				}
-				if (path == null)
-				{
-					throw new ArgumentNullException(nameof(path));
-				}
 			}
 			catch (ArgumentNullException ex) // Dont want to throw any exceptions when doing async requests
 			{
@@ -268,10 +264,6 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <returns>The matching Rpc method to the current request</returns>
 		private MethodInfo GetMatchingMethod(RpcPath path, RpcRequest request, IRpcRouteProvider routeProvider, out object[] parameterList, IServiceProvider serviceProvider)
 		{
-			if (path == null)
-			{
-				throw new ArgumentNullException(nameof(path));
-			}
 			if (request == null)
 			{
 				throw new ArgumentNullException(nameof(request));

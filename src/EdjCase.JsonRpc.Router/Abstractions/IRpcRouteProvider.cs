@@ -35,17 +35,13 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 		/// <summary>
 		/// Sets the required base path for the request url to match against
 		/// </summary>
-		public string BaseRequestPath { get; set; }
+		public RpcPath BaseRequestPath { get; set; }
 
 		public Dictionary<RpcPath, List<IRpcMethodProvider>> Routes { get; set; } = new Dictionary<RpcPath, List<IRpcMethodProvider>>();
 
 
 		public void RegisterMethods(RpcPath path, IRpcMethodProvider methodProvider)
 		{
-			if(path == null)
-			{
-				throw new ArgumentNullException(nameof(path));
-			}
 			if (!this.Routes.TryGetValue(path, out List<IRpcMethodProvider> methodProviders))
 			{
 				methodProviders = new List<IRpcMethodProvider>();
@@ -56,10 +52,6 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 
 		public void RegisterController<T>(RpcPath path = default(RpcPath))
 		{
-			if (path == null)
-			{
-				throw new ArgumentNullException(nameof(path));
-			}
 			this.RegisterMethods(path, new ControllerPublicMethodProvider(typeof(T)));
 		}
 	}
