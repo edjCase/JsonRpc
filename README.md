@@ -41,14 +41,14 @@ Add a RpcController class with public methods:
 public class ItemsController : RpcController
 {
 	public Item Get(int id)
-    {
-    	//Gets item with id
-    }
-    
-    public void Add(Item item)
-    {
-    	//Adds item
-    }
+	{
+		//Gets item with id
+	}
+	
+	public void Add(Item item)
+	{
+		//Adds item
+	}
 }
 ```
 Thats it! The library will auto detect the controllers that are child classes of `RpcController` and will expose all public methods to the api. The url route in this case will be '/Items' because the controller name is '_Items_'Controller. (If the controller does not end with 'Controller' the route will be the class name)
@@ -63,15 +63,15 @@ Add the dependency injected services in the `ConfigureServices` method:
 public void ConfigureServices(IServiceCollection services)
 {
  	services.AddJsonRpc(options =>
-    {
-    	//(Optional) Hard cap on batch size, will block requests will larger sizes, defaults to no limit
-    	options.BatchRequestLimit = 5;
-        //(Optional) If true returns full error messages in response, defaults to false
+	{
+		//(Optional) Hard cap on batch size, will block requests will larger sizes, defaults to no limit
+		options.BatchRequestLimit = 5;
+		//(Optional) If true returns full error messages in response, defaults to false
 		options.ShowServerExceptions = false;
-        //(Optional) Configure how the router serializes requests
+		//(Optional) Configure how the router serializes requests
 		options.JsonSerializerSettings = new Newtonsoft.Json.JsonSerializerSettings
-        {
-        	//Example json config
+		{
+			//Example json config
 			NullValueHandling = Newtonsoft.Json.NullValueHandling.Include,
 			Formatting = Newtonsoft.Json.Formatting.Indented,
 			DefaultValueHandling = Newtonsoft.Json.DefaultValueHandling.Include
@@ -86,13 +86,13 @@ There are currently 3 methods for adding JSONRpc middleware in the `Configure` m
 public void Configure(IApplicationBuilder app)
 {
 	app
-    	//(Optional) Adding authentication (need to add AddAuthentication() in the `ConfigureServices` method)
+		//(Optional) Adding authentication (need to add AddAuthentication() in the `ConfigureServices` method)
 		.UseAuthentication()
 		.UseJsonRpc(options =>
-        {
-        	//(Optional) Overriding base class for all rpc controllers to be detected from, defaults to `RpcController`
+		{
+			//(Optional) Overriding base class for all rpc controllers to be detected from, defaults to `RpcController`
 			options.BaseControllerType = typeof(MyCustomControllerBase);
-            //(Optional) Overring base url, defaults to "/" ("/Items" would now be "/api/Items")
+			//(Optional) Overring base url, defaults to "/" ("/Items" would now be "/api/Items")
 			options.BaseRequestPath = "/api";
 		});
 }
@@ -103,17 +103,17 @@ public void Configure(IApplicationBuilder app)
 public void Configure(IApplicationBuilder app)
 {
 	app
-    	//(Optional) Adding authentication (need to add AddAuthentication() in the `ConfigureServices` method)
+		//(Optional) Adding authentication (need to add AddAuthentication() in the `ConfigureServices` method)
 		.UseAuthentication()
 		.UseManualJsonRpc(builder =>
 		{
-        	//Maps `Class1` and its public methods to '/' route
+			//Maps `Class1` and its public methods to '/' route
 			builder.RegisterController<Class1>();
-        	//Also maps `Class2` and its public methods to '/' route, along side with `Class1` (methods will collide)
+			//Also maps `Class2` and its public methods to '/' route, along side with `Class1` (methods will collide)
 			builder.RegisterController<Class2>();
-        	//Maps `Class3` and its public methods to '/Items' route
+			//Maps `Class3` and its public methods to '/Items' route
 			builder.RegisterController<Class3>("Items");
-        	//Maps `Class1` and its public methods to '/Items/Books' route
+			//Maps `Class1` and its public methods to '/Items/Books' route
 			builder.RegisterController<Class4>("Items/Books");
 		});
 }
@@ -126,10 +126,10 @@ public void Configure(IApplicationBuilder app)
 	//Custom route provider (specified below)
 	IRpcRouteProvider routeProvider = new MyRouteProvider();
 	app
-    	//(Optional) Adding authentication (need to add AddAuthentication() in the `ConfigureServices` method)
+		//(Optional) Adding authentication (need to add AddAuthentication() in the `ConfigureServices` method)
 		.UseAuthentication()
-        //Specify custom route provider
-        .UseJsonRpc(routeProvider);
+		//Specify custom route provider
+		.UseJsonRpc(routeProvider);
 }
 ```
 Custom Route Provider:
@@ -137,7 +137,7 @@ Custom Route Provider:
 
 	public class MyRouteProvider : IRpcRouteProvider
 	{
-    	//Base url route
+		//Base url route
 		public RpcPath BaseRequestPath { get; } = "/api";
 
 		//Return method providers per url route (does not include base route)
@@ -179,7 +179,7 @@ Custom Route Provider:
 	{
 		public List<MethodInfo> GetRouteMethods()
 		{
-        	//Reflection to get all public and instanced methods
+			//Reflection to get all public and instanced methods
 			return typeof(ItemsController).GetTypeInfo()
 				.GetMethods(BindingFlags.Public | BindingFlags.Instance)
 				.ToList();
@@ -191,7 +191,7 @@ Custom Route Provider:
 	{
 		public List<MethodInfo> GetRouteMethods()
 		{
-        	//Reflection to get all public and instanced methods
+			//Reflection to get all public and instanced methods
 			return typeof(ThingsController).GetTypeInfo()
 				.GetMethods(BindingFlags.Public | BindingFlags.Instance)
 				.ToList();
@@ -207,44 +207,44 @@ Recommended format is to use subclasses of RpcController. These classes will be 
 [RpcRoute("TestMethods")] //Optional, if not specified the route name would be 'Test' (based off the controller type name)
 public class TestController : RpcController
 {
-    //Will return a success response or an error response dependening on the if statement
-    // (See IRpcMethodResult usage below)
-    public IRpcMethodResult CustomResult()
-    {
-        if(/*something is invalid*/)
-        {
-            return this.Error(customErrorCode, errorMesssage); //Or return new RpcMethodErrorResult(customErrorCode, errorMessage);
-        }
-        return this.Ok(optionalReturnObject);//Or return new RpcMethodSuccessResult(optionalReturnObject);
-    }
-    
-    //Returning values is also valid but will never give an error unless an exception is thrown
+	//Will return a success response or an error response dependening on the if statement
+	// (See IRpcMethodResult usage below)
+	public IRpcMethodResult CustomResult()
+	{
+		if(/*something is invalid*/)
+		{
+			return this.Error(customErrorCode, errorMesssage); //Or return new RpcMethodErrorResult(customErrorCode, errorMessage);
+		}
+		return this.Ok(optionalReturnObject);//Or return new RpcMethodSuccessResult(optionalReturnObject);
+	}
+	
+	//Returning values is also valid but will never give an error unless an exception is thrown
 	public int Subtract(int a, int b)
 	{
 		return a - b;
 	}    
-    
-    //Accessable to api at /{OptionalRoutePrefix}/{OptionalRoute}/Add 
-    //e.g. (from previous example) /RpcApi/Add or /RpcApi/Class2/Add
-    //Example request using param list: {"jsonrpc": "2.0", "id": 1, "method": "Add", "params": [1,2]}
-    //Example request using param map: {"jsonrpc": "2.0", "id": 1, "method": "Add", "params": {"a": 1, "b": 2}}
-    //Example response from a=1, b=2: {"jsonrpc", "2.0", "id": 1, "result": 3}
-    public int Add(int a, int b)
-    {
-        return a + b;
-    }
-    
-    //This method would use the same request as Add(int a, int b) (except method would be 'AddAsync') 
-    //and would respond with the same response
-    public async Task<int> AddAsync(int a, int b)
-    {
-        //async adding here
-    }
-    
-    //Can't be called/will return MethodNotFound because it is private. Same with all non-public/static methods.
-    private void Hidden1()
-    {
-    }
+	
+	//Accessable to api at /{OptionalRoutePrefix}/{OptionalRoute}/Add 
+	//e.g. (from previous example) /RpcApi/Add or /RpcApi/Class2/Add
+	//Example request using param list: {"jsonrpc": "2.0", "id": 1, "method": "Add", "params": [1,2]}
+	//Example request using param map: {"jsonrpc": "2.0", "id": 1, "method": "Add", "params": {"a": 1, "b": 2}}
+	//Example response from a=1, b=2: {"jsonrpc", "2.0", "id": 1, "result": 3}
+	public int Add(int a, int b)
+	{
+		return a + b;
+	}
+	
+	//This method would use the same request as Add(int a, int b) (except method would be 'AddAsync') 
+	//and would respond with the same response
+	public async Task<int> AddAsync(int a, int b)
+	{
+		//async adding here
+	}
+	
+	//Can't be called/will return MethodNotFound because it is private. Same with all non-public/static methods.
+	private void Hidden1()
+	{
+	}
 }
 ```
 And or if manually mapping (not auto detection) any class can be used for Rpc calls if configured in `Startup.cs`
@@ -255,10 +255,10 @@ And or if manually mapping (not auto detection) any class can be used for Rpc ca
 //the configuration
 public class RpcClass1
 {
-    public int Add(int a, int b)
-    {
-        return a + b;
-    }
+	public int Add(int a, int b)
+	{
+		return a + b;
+	}
 }
 ```
 
