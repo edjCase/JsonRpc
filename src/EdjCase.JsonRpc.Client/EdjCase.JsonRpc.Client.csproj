@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-		<Version>2.0.0-pre-001</Version>
+		<Version>2.0.0</Version>
 		<Description>A .Net Core Client implementation for Json Rpc v2 requests.</Description>
     <Authors>Gekctek</Authors>
     <TargetFrameworks>netstandard2.0;netstandard1.1</TargetFrameworks>
