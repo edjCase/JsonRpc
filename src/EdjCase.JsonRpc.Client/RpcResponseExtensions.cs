@@ -16,6 +16,7 @@ namespace EdjCase.JsonRpc.Client
 		/// <returns>Result of response as type specified</returns>
 		public static T GetResult<T>(this RpcResponse response, bool returnDefaultIfNull = true, JsonSerializerSettings settings = null)
 		{
+			response.ThrowErrorIfExists();
 			if (response.Result == null)
 			{
 				if(!returnDefaultIfNull && default(T) != null)

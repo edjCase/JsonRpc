@@ -2,29 +2,21 @@
 
   <PropertyGroup>
     <Description>The core library used by JsonRpc client/router.</Description>
-    <Version>1.3.3</Version>
+    <Version>2.0.0</Version>
     <Authors>Gekctek</Authors>
-    <TargetFrameworks>net451;netstandard1.1</TargetFrameworks>
+    <TargetFrameworks>netstandard2.0;netstandard1.1</TargetFrameworks>
     <AssemblyName>EdjCase.JsonRpc.Core</AssemblyName>
     <PackageId>EdjCase.JsonRpc.Core</PackageId>
     <PackageTags>JsonRpc Rpc Json-Rpc .Net Core</PackageTags>
-    <PackageReleaseNotes>Updating references and fixing csproj files.</PackageReleaseNotes>
+    <PackageReleaseNotes>Upgrading to work with NetStandard 2</PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/edjCase/JsonRpc</PackageProjectUrl>
     <PackageLicenseUrl>https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE</PackageLicenseUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTargetFallback Condition=" '$(TargetFramework)' == 'netstandard1.1' ">$(PackageTargetFallback);dotnet52;dnxcore50;portable-net45+win8</PackageTargetFallback>
     <NetStandardImplicitPackageVersion Condition=" '$(TargetFramework)' == 'netstandard1.1' ">1.6.0</NetStandardImplicitPackageVersion>
-    <NetStandardImplicitPackageVersion Condition=" '$(TargetFramework)' == 'portable45-net45+win8+wpa81' ">1.6.0</NetStandardImplicitPackageVersion>
     <RepositoryUrl>https://github.com/edjCase/JsonRpc</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="10.0.1" />
   </ItemGroup>
-
-  <ItemGroup Condition=" '$(TargetFramework)' == 'net451' ">
-    <Reference Include="System" />
-    <Reference Include="Microsoft.CSharp" />
-  </ItemGroup>
-
 </Project>

@@ -5,6 +5,7 @@ using EdjCase.JsonRpc.Core;
 using EdjCase.JsonRpc.Router.Defaults;
 using Xunit;
 using EdjCase.JsonRpc.Router.Abstractions;
+using EdjCase.JsonRpc.Router.Criteria;
 
 namespace EdjCase.JsonRpc.Router.Tests
 {
@@ -18,45 +19,36 @@ namespace EdjCase.JsonRpc.Router.Tests
 		[InlineData("/Test/Test2", "Test", false)]
 		[InlineData("/Test/Test2", "Test/Test2", true)]
 		[InlineData("Test", "Test", true)]
-		public void MatchesRpcRoute_DifferentRoutes_Valid(string requestUrl, string availableRouteName, bool shouldMatch)
+		public void ParsePath_DifferentPaths_Valid(string requestUrl, string availableRouteName, bool shouldMatch)
 		{
-			IRpcRouteProvider routeProvider = new FakeRouteProvider();
-			RouteCriteria routeCriteria = new RouteCriteria(typeof(ParserTests));
-			routeProvider.RegisterRoute(routeCriteria, availableRouteName);
-			DefaultRpcParser parser = new DefaultRpcParser(null);
-			RpcRoute matchedRoute;
-			bool isMatch = parser.MatchesRpcRoute(routeProvider, requestUrl, out matchedRoute);
-			Assert.Equal(isMatch, shouldMatch);
-			Assert.Equal(matchedRoute != null, shouldMatch);
+			RpcPath requestPath = RpcPath.Parse(requestUrl);
+			RpcPath routePath = RpcPath.Parse(availableRouteName);
+
+			if (shouldMatch)
+			{
+				Assert.Equal(routePath, requestPath);
+			}
+			else
+			{
+				Assert.NotEqual(routePath, requestPath);
+			}
 		}
 
 		[Fact]
-		public void RpcRouteWithBaseRoute_HasBaseRoute_Success()
+		public void AddPath_Same_Match()
 		{
-			IRpcRouteProvider routeProvider = new FakeRouteProvider();
-			routeProvider.BaseRequestPath = "Base";
-			RouteCriteria routeCriteria = new RouteCriteria(typeof(ParserTests));
-			routeProvider.RegisterRoute(routeCriteria, "Test");
-			DefaultRpcParser parser = new DefaultRpcParser(null);
-			RpcRoute matchedRoute;
-			bool isMatch = parser.MatchesRpcRoute(routeProvider, "/Base/Test", out matchedRoute);
-			Assert.True(isMatch);
-			Assert.NotNull(matchedRoute);
+			RpcPath fullPath = RpcPath.Parse("/Base/Test");
+			RpcPath otherPath = RpcPath.Parse("/Base").Add(RpcPath.Parse("/Test"));
+			Assert.Equal(fullPath, otherPath);
 		}
 
 
 		[Fact]
-		public void RpcRouteWithBaseRoute_NoBaseRoute_Failure()
+		public void AddPath_Different_NoMatch()
 		{
-			IRpcRouteProvider routeProvider = new FakeRouteProvider();
-			routeProvider.BaseRequestPath = "Base";
-			RouteCriteria routeCriteria = new RouteCriteria(typeof(ParserTests));
-			routeProvider.RegisterRoute(routeCriteria, "Test");
-			DefaultRpcParser parser = new DefaultRpcParser(null);
-			RpcRoute matchedRoute;
-			bool isMatch = parser.MatchesRpcRoute(routeProvider, "/Test", out matchedRoute);
-			Assert.False(isMatch);
-			Assert.Null(matchedRoute);
+			RpcPath fullPath = RpcPath.Parse("/Base/Test");
+			RpcPath otherPath = fullPath.Add(RpcPath.Parse("/Test"));
+			Assert.NotEqual(fullPath, otherPath);
 		}
 
 		[Theory]
@@ -66,8 +58,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		{
 			DefaultRpcParser parser = new DefaultRpcParser(null);
 
-			bool isBulkRequest;
-			RpcRequest rpcRequest = parser.ParseRequests(json, out isBulkRequest).FirstOrDefault();
+			RpcRequest rpcRequest = parser.ParseRequests(json, out bool isBulkRequest).FirstOrDefault();
 
 			Assert.NotNull(rpcRequest);
 			Assert.Equal(rpcRequest.Id, id);
@@ -84,8 +75,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			DateTime dateTime = DateTime.Parse("2000-12-15T22:11:03");
 			DefaultRpcParser parser = new DefaultRpcParser(null);
 
-			bool isBulkRequest;
-			RpcRequest rpcRequest = parser.ParseRequests(json, out isBulkRequest).FirstOrDefault();
+			RpcRequest rpcRequest = parser.ParseRequests(json, out bool isBulkRequest).FirstOrDefault();
 
 			Assert.NotNull(rpcRequest);
 			Assert.Equal(rpcRequest.Id, (long)1);
@@ -102,8 +92,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			DefaultRpcParser parser = new DefaultRpcParser(null);
 
-			bool isBulkRequest;
-			List<RpcRequest> rpcRequests = parser.ParseRequests(json, out isBulkRequest);
+			List<RpcRequest> rpcRequests = parser.ParseRequests(json, out bool isBulkRequest);
 
 			Assert.NotNull(rpcRequests);
 			Assert.Equal(rpcRequests.Count, 2);
@@ -126,8 +115,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			DefaultRpcParser parser = new DefaultRpcParser(null);
 
-			bool isBulkRequest;
-			List<RpcRequest> rpcRequests = parser.ParseRequests(json, out isBulkRequest);
+			List<RpcRequest> rpcRequests = parser.ParseRequests(json, out bool isBulkRequest);
 
 			Assert.NotNull(rpcRequests);
 			Assert.Equal(rpcRequests.Count, 1);
@@ -144,8 +132,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			const string json = null;
 			DefaultRpcParser parser = new DefaultRpcParser(null);
 
-			bool isBulkRequest;
-			Assert.Throws<RpcInvalidRequestException>(() => parser.ParseRequests(json, out isBulkRequest));
+			Assert.Throws<RpcInvalidRequestException>(() => parser.ParseRequests(json, out bool isBulkRequest));
 		}
 
 		[Fact]
@@ -154,8 +141,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			const string json = "{}";
 			DefaultRpcParser parser = new DefaultRpcParser(null);
 
-			bool isBulkRequest;
-			Assert.Throws<RpcInvalidRequestException>(() => parser.ParseRequests(json, out isBulkRequest));
+			Assert.Throws<RpcInvalidRequestException>(() => parser.ParseRequests(json, out bool isBulkRequest));
 		}
 
 		[Fact]
@@ -164,8 +150,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			const string json = "{\"method\": \"datetime\", \"params\": [\"2000-12-15T22:11:03\"], \"id\": \"1\"}";
 			DefaultRpcParser parser = new DefaultRpcParser(null);
 
-			bool isBulkRequest;
-			Assert.Throws<RpcInvalidRequestException>(() => parser.ParseRequests(json, out isBulkRequest));
+			Assert.Throws<RpcInvalidRequestException>(() => parser.ParseRequests(json, out bool isBulkRequest));
 		}
 
 		[Fact]
@@ -174,8 +159,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			const string json = "{\"jsonrpc\": \"2.0\", \"params\": [\"2000-12-15T22:11:03\"], \"id\": \"1\"}";
 			DefaultRpcParser parser = new DefaultRpcParser(null);
 
-			bool isBulkRequest;
-			Assert.Throws<RpcInvalidRequestException>(() => parser.ParseRequests(json, out isBulkRequest));
+			Assert.Throws<RpcInvalidRequestException>(() => parser.ParseRequests(json, out bool isBulkRequest));
 		}
 
 		[Fact]
@@ -184,8 +168,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			const string json = "{\"method\": \"datetime\", \"jsonrpc\": \"2.0\", \"params\": [\"2000-12-15T22:11:03\"]}";
 			DefaultRpcParser parser = new DefaultRpcParser(null);
 
-			bool isBulkRequest;
-			parser.ParseRequests(json, out isBulkRequest);
+			parser.ParseRequests(json, out bool isBulkRequest);
 			Assert.Equal(false, isBulkRequest);
 		}
 
@@ -195,29 +178,8 @@ namespace EdjCase.JsonRpc.Router.Tests
 			const string json = "{\"method\": \"datetime\",\"jsonrpc\": \"2.0\", \"id\": \"1\"}";
 			DefaultRpcParser parser = new DefaultRpcParser(null);
 
-			bool isBulkRequest;
-			parser.ParseRequests(json, out isBulkRequest);
+			parser.ParseRequests(json, out bool isBulkRequest);
 			Assert.Equal(false, isBulkRequest);
-		}
-	}
-
-	public class FakeRouteProvider : IRpcRouteProvider
-	{
-		public bool AutoDetectControllers { get; set; }
-
-		public string BaseRequestPath { get; set; }
-
-		public ControllerFilter ControllerFilter { get; } = new ControllerFilter();
-		private List<RpcRoute> routes { get; } = new List<RpcRoute>();
-
-		public List<RpcRoute> GetRoutes()
-		{
-			return this.routes;
-		}
-
-		public void RegisterRoute(IEnumerable<RouteCriteria> criteria, string name = null)
-		{
-			this.routes.Add(new RpcRoute(criteria.ToList(), name));
 		}
 	}
 }

@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Authorization;
+using System.Threading.Tasks;
 
 namespace EdjCase.JsonRpc.Router.Sample.RpcRoutes
 {

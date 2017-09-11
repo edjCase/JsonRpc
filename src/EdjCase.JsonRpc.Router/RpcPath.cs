@@ -16,12 +16,26 @@ namespace EdjCase.JsonRpc.Router
 		/// <summary>
 		/// Path components split on forward slashes
 		/// </summary>
-		private string[] components { get; }
+		private readonly string[] componentsValue;
+
+		private string[] components
+		{
+			get
+			{
+				if (this.componentsValue == null)
+				{
+					return new string[0];
+				}
+				return this.componentsValue;
+			}
+		}
+
+
 
 		/// <param name="path">Url/route path</param>
 		private RpcPath(string path)
 		{
-			this.components = !string.IsNullOrWhiteSpace(path)
+			this.componentsValue = !string.IsNullOrWhiteSpace(path)
 				? path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries)
 				: new string[0];
 		}
@@ -29,11 +43,7 @@ namespace EdjCase.JsonRpc.Router
 		/// <param name="components">Uri components for the path</param>
 		private RpcPath(params string[] components)
 		{
-			if (components == null)
-			{
-				throw new ArgumentNullException(nameof(components));
-			}
-			this.components = components;
+			this.componentsValue = components ?? throw new ArgumentNullException(nameof(components));
 		}
 
 		public static bool operator ==(RpcPath path1, RpcPath path2)
@@ -46,17 +56,27 @@ namespace EdjCase.JsonRpc.Router
 			return !path1.Equals(path2);
 		}
 
+		public bool StartsWith(RpcPath other)
+		{
+			if (other.components.Count() > this.components.Count())
+			{
+				return false;
+			}
+			return this.StartsWithInternal(other);
+		}
+
 		public bool Equals(RpcPath other)
 		{
-			if (other.components == null)
-			{
-				return this.components == null;
-			}
 			if (other.components.Count() != this.components.Count())
 			{
 				return false;
 			}
-			for (int i = 0; i < this.components.Length; i++)
+			return this.StartsWithInternal(other);
+		}
+
+		private bool StartsWithInternal(RpcPath other)
+		{
+			for (int i = 0; i < other.components.Length; i++)
 			{
 				string component = this.components[i];
 				string otherComponent = other.components[i];
@@ -127,6 +147,16 @@ namespace EdjCase.JsonRpc.Router
 		public override string ToString()
 		{
 			return "/" + string.Join("/", this.components);
+		}
+
+		public static implicit operator string(RpcPath path)
+		{
+			return path.ToString();
+		}
+
+		public static implicit operator RpcPath(string s)
+		{
+			return RpcPath.Parse(s);
 		}
 	}
 }

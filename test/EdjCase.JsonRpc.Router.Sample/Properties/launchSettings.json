@@ -11,12 +11,12 @@
 		"IIS Express": {
 			"commandName": "IISExpress",
 			"environmentVariables": {
-				"ASPNET_ENV": "Development"
+				"ASPNETCORE_ENVIRONMENT": "Development"
 			}
 		},
-		"web": {
-			"commandName": "web",
-			"launchBrowser": true,
+		"Web": {
+			"commandName": "Project",
+			"launchBrowser": false,
 			"launchUrl": "http://localhost:62390",
 			"environmentVariables": {
 				"ASPNETCORE_ENVIRONMENT": "Development"

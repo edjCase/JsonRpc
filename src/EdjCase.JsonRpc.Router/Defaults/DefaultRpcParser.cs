@@ -29,40 +29,6 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		{
 			this.logger = logger;
 		}
-
-		/// <summary>
-		/// Indicates if the incoming request matches any predefined routes
-		/// </summary>
-		/// <param name="requestUrl">The current request url</param>
-		/// <param name="route">The matching route corresponding to the request url if found, otherwise it is null</param>
-		/// <param name="routeProvider">Provider that allows the retrieval of all configured routes</param>
-		/// <returns>True if the request url matches any Rpc routes, otherwise False</returns>
-		public bool MatchesRpcRoute(IRpcRouteProvider routeProvider, string requestUrl, out RpcRoute route)
-		{
-			if (requestUrl == null)
-			{
-				throw new ArgumentNullException(nameof(requestUrl));
-			}
-			this.logger?.LogDebug($"Attempting to match Rpc route for the request url '{requestUrl}'");
-			RpcPath requestPath = RpcPath.Parse(requestUrl);
-			this.logger?.LogTrace($"Request path: {requestPath}");
-			
-			foreach (RpcRoute rpcRoute in routeProvider.GetRoutes())
-			{
-				RpcPath routePath = RpcPath.Parse(rpcRoute.Name, routeProvider.BaseRequestPath);
-				this.logger?.LogTrace($"Trying to match against route - Name: {rpcRoute.Name}, Path: {routePath}");
-				if (requestPath == routePath)
-				{
-					this.logger?.LogDebug($"Matched the request url '{requestUrl}' to the route '{rpcRoute.Name}'");
-					route = rpcRoute;
-					return true;
-				}
-
-			}
-			this.logger?.LogDebug($"Failed to match the request url '{requestUrl}' to a route");
-			route = null;
-			return false;
-		}
 		
 		/// <summary>
 		/// Parses all the requests from the json in the request

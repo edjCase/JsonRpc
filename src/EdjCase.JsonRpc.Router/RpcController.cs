@@ -1,4 +1,5 @@
-﻿using EdjCase.JsonRpc.Router.Defaults;
+﻿using EdjCase.JsonRpc.Router.Abstractions;
+using EdjCase.JsonRpc.Router.Defaults;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +14,7 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		/// <param name="obj">Object to return in response</param>
 		/// <returns>Success result for rpc response</returns>
-		public RpcMethodSuccessResult Ok(object obj = null)
+		public virtual RpcMethodSuccessResult Ok(object obj = null)
 		{
 			return new RpcMethodSuccessResult(obj);
 		}
@@ -26,12 +27,48 @@ namespace EdjCase.JsonRpc.Router
 		/// <param name="message">(Optional)Error message</param>
 		/// <param name="data">(Optional)Error data</param>
 		/// <returns></returns>
-		public RpcMethodErrorResult Error(int errorCode, string message = null, object data = null)
+		public virtual RpcMethodErrorResult Error(int errorCode, string message = null, object data = null)
 		{
 			return new RpcMethodErrorResult(errorCode, message, data);
 		}
 	}
+	
+	public abstract class RpcErrorFilterAttribute : Attribute
+	{
+		public abstract OnExceptionResult OnException(RpcRouteInfo routeInfo, Exception ex);
+	}
 
+	public class OnExceptionResult
+	{
+		public bool ThrowException { get; }
+		public object ResponseObject { get; }
+
+		private OnExceptionResult(bool throwException, object responseObject)
+		{
+			this.ThrowException = throwException;
+			this.ResponseObject = responseObject;
+		}
+
+		public static OnExceptionResult UseObjectResponse(object responseObject)
+		{
+			return new OnExceptionResult(false, responseObject);
+		}
+
+		public static OnExceptionResult UseMethodResultResponse(IRpcMethodResult result)
+		{
+			return new OnExceptionResult(false, result);
+		}
+
+		public static OnExceptionResult UseExceptionResponse(Exception ex)
+		{
+			return new OnExceptionResult(true, ex);
+		}
+
+		public static OnExceptionResult DontHandle()
+		{
+			return new OnExceptionResult(true, null);
+		}
+	}
 
 #if !NETSTANDARD1_3
 	/// <summary>
