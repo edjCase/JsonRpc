@@ -2,9 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>netcoreapp2.0</TargetFrameworks>
-    <PreserveCompilationContext>true</PreserveCompilationContext>
     <AssemblyName>EdjCase.JsonRpc.Router.Sample</AssemblyName>
-    <OutputType>Exe</OutputType>
     <PackageId>EdjCase.JsonRpc.Router.Sample</PackageId>
   </PropertyGroup>
 
@@ -13,9 +11,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" Version="1.1.2" />
-    <PackageReference Include="Microsoft.AspNetCore.Server.IISIntegration" Version="1.1.2" />
-    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="1.1.2" />
-    <PackageReference Include="EdjCase.BasicAuth" Version="1.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Server.Kestrel" Version="2.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Server.IISIntegration" Version="2.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="2.0.0" />
+    <PackageReference Include="EdjCase.BasicAuth" Version="2.0.2" />
   </ItemGroup>
 </Project>

@@ -11,7 +11,6 @@ using Microsoft.Extensions.Primitives;
 using System.IO;
 using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
-using Microsoft.AspNetCore.Http.Authentication;
 using System.Threading.Tasks;
 using EdjCase.JsonRpc.Router.Abstractions;
 
@@ -29,7 +28,27 @@ namespace EdjCase.JsonRpc.Router.Sample
 		public void ConfigureServices(IServiceCollection services)
 		{
 			services
-				.AddBasicAuth()
+				.AddAuthentication("Basic")
+				.AddBasicAuth(options =>
+				{
+					options.AuthenticateCredential = authInfo =>
+					{
+						if (authInfo.Credential.Username == "Gekctek" && authInfo.Credential.Password == "Welc0me!")
+						{
+							var claims = new List<Claim>
+							{
+							new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())
+							};
+							var identity = new ClaimsIdentity(claims, "Basic");
+							var principal = new ClaimsPrincipal(identity);
+							var properties = new AuthenticationProperties();
+							return Task.FromResult(new AuthenticationTicket(principal, properties, "Basic"));
+						}
+						return Task.FromResult<AuthenticationTicket>(null);
+					};
+
+				});
+			services
 				.AddJsonRpc(config =>
 				{
 					config.ShowServerExceptions = true;
@@ -42,26 +61,7 @@ namespace EdjCase.JsonRpc.Router.Sample
 		{
 			loggerFactory.AddProvider(new DebugLoggerProvider());
 
-			app.UseBasicAuth(options =>
-			{
-				options.AutomaticAuthenticate = true;
-				options.AutomaticChallenge = true;
-				options.AuthenticateCredential = authInfo =>
-				{
-					if (authInfo.Credential.Username == "Gekctek" && authInfo.Credential.Password == "Welc0me!")
-					{
-						var claims = new List<Claim>
-						{
-							new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())
-						};
-						var identity = new ClaimsIdentity(claims, "Basic");
-						var principal = new ClaimsPrincipal(identity);
-						var properties = new AuthenticationProperties();
-						return Task.FromResult(new AuthenticationTicket(principal, properties, "Basic"));
-					}
-					return Task.FromResult<AuthenticationTicket>(null);
-				};
-			});
+			app.UseAuthentication();
 
 			app.Map("/RpcApi", rpcApp =>
 			{
@@ -83,6 +83,7 @@ namespace EdjCase.JsonRpc.Router.Sample
 		{
 			var host = new WebHostBuilder()
 				.UseKestrel()
+				.UseUrls("http://0.0.0.0:62390")
 				.UseContentRoot(Directory.GetCurrentDirectory())
 				.UseIISIntegration()
 				.UseStartup<Startup>()

@@ -4,18 +4,14 @@
     <Description>A Client sample for Json Rpc v2 requests for .Net Core.</Description>
     <AssemblyTitle>JsonRpc .Net Core Client Sample</AssemblyTitle>
     <Authors>Gekctek</Authors>
-    <TargetFrameworks>netcoreapp1.0</TargetFrameworks>
+    <TargetFrameworks>netcoreapp2.0</TargetFrameworks>
     <PreserveCompilationContext>true</PreserveCompilationContext>
     <AssemblyName>EdjCase.JsonRpc.Client.Sample</AssemblyName>
     <OutputType>Exe</OutputType>
     <PackageId>EdjCase.JsonRpc.Client.Sample</PackageId>
-    <PackageTags>JsonRpc Rpc AspNet Json-Rpc .Net Core</PackageTags>
-    <PackageReleaseNotes>Unifying version numbers.</PackageReleaseNotes>
     <PackageProjectUrl>https://github.com/edjCase/JsonRpc</PackageProjectUrl>
     <PackageLicenseUrl>https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE</PackageLicenseUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTargetFallback Condition=" '$(TargetFramework)' == 'netcoreapp1.0' ">$(PackageTargetFallback);dotnet52;dnxcore50;portable-net45+win8</PackageTargetFallback>
-    <RuntimeFrameworkVersion Condition=" '$(TargetFramework)' == 'netcoreapp1.0' ">1.0.4</RuntimeFrameworkVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,13 +19,6 @@
   </ItemGroup>
 	
 	<ItemGroup>
-		<PackageReference Include="System.Collections" Version="4.3.0" />
-		<PackageReference Include="System.Runtime" Version="4.3.0" />
-		<PackageReference Include="System.Runtime.Serialization.Primitives" Version="4.3.0" />
-		<PackageReference Include="System.Threading" Version="4.3.0" />
-		<PackageReference Include="System.IO.Compression" Version="4.3.0" />
-		<PackageReference Include="System.Console" Version="4.3.0" />
-		<PackageReference Include="System.Net.Http" Version="4.3.1" />
 	</ItemGroup>
 
 </Project>

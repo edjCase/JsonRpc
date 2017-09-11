@@ -201,12 +201,13 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				else
 				{
 					this.logger?.LogDebug($"Running authorization for method.");
-					bool passedAuth = await this.CheckAuthorize(authorizeDataListClass, routeContext);
-					if (passedAuth)
+					AuthorizationResult authResult = await this.CheckAuthorize(authorizeDataListClass, routeContext);
+					if (authResult.Succeeded)
 					{
-						passedAuth = await this.CheckAuthorize(authorizeDataListMethod, routeContext);
+						//Have to pass both controller and method authorize
+						authResult = await this.CheckAuthorize(authorizeDataListMethod, routeContext);
 					}
-					if (passedAuth)
+					if (authResult.Succeeded)
 					{
 						this.logger?.LogDebug($"Authorization was successful for user '{routeContext.User.Identity.Name}'.");
 					}
@@ -224,11 +225,11 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			return true;
 		}
 
-		private async Task<bool> CheckAuthorize(List<IAuthorizeData> authorizeDataList, IRouteContext routeContext)
+		private async Task<AuthorizationResult> CheckAuthorize(List<IAuthorizeData> authorizeDataList, IRouteContext routeContext)
 		{
 			if (!authorizeDataList.Any())
 			{
-				return true;
+				return AuthorizationResult.Success();
 			}
 			AuthorizationPolicy policy = await AuthorizationPolicy.CombineAsync(this.policyProvider, authorizeDataList);
 			return await this.authorizationService.AuthorizeAsync(routeContext.User, policy);
