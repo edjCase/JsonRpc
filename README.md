@@ -135,68 +135,68 @@ public void Configure(IApplicationBuilder app)
 Custom Route Provider:
 ```cs
 
-	public class MyRouteProvider : IRpcRouteProvider
+public class MyRouteProvider : IRpcRouteProvider
+{
+	//Base url route
+	public RpcPath BaseRequestPath { get; } = "/api";
+
+	//Return method providers per url route (does not include base route)
+	public List<IRpcMethodProvider> GetMethodsByPath(RpcPath path)
 	{
-		//Base url route
-		public RpcPath BaseRequestPath { get; } = "/api";
-
-		//Return method providers per url route (does not include base route)
-		public List<IRpcMethodProvider> GetMethodsByPath(RpcPath path)
+		if (path == "/Items")
 		{
-			if (path == "/Items")
+			return new List<IRpcMethodProvider>
 			{
-				return new List<IRpcMethodProvider>
-				{
-					new ItemsMethodProvider()
-				};
-			}
-			else if(path == "/Things")
-			{
-				return new List<IRpcMethodProvider>
-				{
-					new ThingsMethodProvider()
-				};
-			}
-			else
-			{
-				return new List<IRpcMethodProvider>();
-			}
-		}
-
-		//Set of all possible routes
-		public HashSet<RpcPath> GetRoutes()
-		{
-			return new HashSet<RpcPath>
-			{
-				"/Items",
-				"/Things"
+				new ItemsMethodProvider()
 			};
 		}
-	}
-
-	//Method provider for items controller
-	public class ItemsMethodProvider : IRpcMethodProvider
-	{
-		public List<MethodInfo> GetRouteMethods()
+		else if(path == "/Things")
 		{
-			//Reflection to get all public and instanced methods
-			return typeof(ItemsController).GetTypeInfo()
-				.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-				.ToList();
+			return new List<IRpcMethodProvider>
+			{
+				new ThingsMethodProvider()
+			};
+		}
+		else
+		{
+			return new List<IRpcMethodProvider>();
 		}
 	}
 
-	//Method provider for things controller
-	public class ThingsMethodProvider : IRpcMethodProvider
+	//Set of all possible routes
+	public HashSet<RpcPath> GetRoutes()
 	{
-		public List<MethodInfo> GetRouteMethods()
+		return new HashSet<RpcPath>
 		{
-			//Reflection to get all public and instanced methods
-			return typeof(ThingsController).GetTypeInfo()
-				.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-				.ToList();
-		}
+			"/Items",
+			"/Things"
+		};
 	}
+}
+
+//Method provider for items controller
+public class ItemsMethodProvider : IRpcMethodProvider
+{
+	public List<MethodInfo> GetRouteMethods()
+	{
+		//Reflection to get all public and instanced methods
+		return typeof(ItemsController).GetTypeInfo()
+			.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+			.ToList();
+	}
+}
+
+//Method provider for things controller
+public class ThingsMethodProvider : IRpcMethodProvider
+{
+	public List<MethodInfo> GetRouteMethods()
+	{
+		//Reflection to get all public and instanced methods
+		return typeof(ThingsController).GetTypeInfo()
+			.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+			.ToList();
+	}
+}
 ```
 
 
