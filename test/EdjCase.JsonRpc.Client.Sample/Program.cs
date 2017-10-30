@@ -55,6 +55,14 @@ namespace EdjCase.JsonRpc.Client.Sample
 			{
 				Console.WriteLine(responseValue.Test);
 			}
+
+			var additionalHeaders = new List<KeyValuePair<string, string>>
+			{
+				new KeyValuePair<string, string>("Accept-Encoding", "gzip")
+			};
+			var compressedClient = new RpcClient(new Uri("http://localhost:62390/RpcApi/"), authHeaderValue, headers: additionalHeaders);
+			var compressedRequest = new RpcRequest("Id1", "CharacterCount", "Test");
+			var compressedResponse = await compressedClient.SendRequestAsync(request, "Strings");
 		}
 	}
 

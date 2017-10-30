@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
 using EdjCase.JsonRpc.Core;
@@ -39,20 +41,26 @@ namespace EdjCase.JsonRpc.Client
 		/// Request content type for json content. If null, will default to application/json
 		/// </summary>
 		public string ContentType { get; set; }
+		/// <summary>
+		/// Add headers to the underlying http client
+		/// </summary>
+		public List<KeyValuePair<string, string>> Headers { get; set; }
 
 		/// <param name="baseUrl">Base url for the rpc server</param>
 		/// <param name="authHeaderValue">Http authentication header for rpc request</param>
 		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <param name="encoding">(Optional)Encoding type for request. Defaults to UTF-8</param>
 		/// <param name="contentType">(Optional)Content type header for the request. Defaults to application/json</param>
-		public RpcClient(Uri baseUrl, AuthenticationHeaderValue authHeaderValue = null, JsonSerializerSettings jsonSerializerSettings = null, 
-			Encoding encoding = null, string contentType = null)
+		/// <param name="headers">(Optional)Extra headers</param>
+		public RpcClient(Uri baseUrl, AuthenticationHeaderValue authHeaderValue = null, JsonSerializerSettings jsonSerializerSettings = null,
+			Encoding encoding = null, string contentType = null, List<KeyValuePair<string, string>> headers = null)
 		{
 			this.BaseUrl = baseUrl;
 			this.AuthHeaderValueFactory = () => Task.FromResult(authHeaderValue);
 			this.JsonSerializerSettings = jsonSerializerSettings;
 			this.Encoding = encoding;
 			this.ContentType = contentType;
+			this.Headers = headers;
 		}
 
 		/// <param name="baseUrl">Base url for the rpc server</param>
@@ -60,14 +68,16 @@ namespace EdjCase.JsonRpc.Client
 		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
 		/// <param name="encoding">(Optional)Encoding type for request. Defaults to UTF-8</param>
 		/// <param name="contentType">(Optional)Content type header for the request. Defaults to application/json</param>
+		/// <param name="headers">(Optional)Extra headers</param>
 		public RpcClient(Uri baseUrl, Func<Task<AuthenticationHeaderValue>> authHeaderValueFactory = null, JsonSerializerSettings jsonSerializerSettings = null,
-			Encoding encoding = null, string contentType = null)
+			Encoding encoding = null, string contentType = null, List<KeyValuePair<string, string>> headers = null)
 		{
 			this.BaseUrl = baseUrl;
 			this.AuthHeaderValueFactory = authHeaderValueFactory;
 			this.JsonSerializerSettings = jsonSerializerSettings;
 			this.Encoding = encoding;
 			this.ContentType = contentType;
+			this.Headers = headers;
 		}
 
 
@@ -115,7 +125,7 @@ namespace EdjCase.JsonRpc.Client
 			{
 				throw new ArgumentNullException(nameof(method));
 			}
-			RpcRequest request= new RpcRequest(Guid.NewGuid().ToString(), method, paramList);
+			RpcRequest request = new RpcRequest(Guid.NewGuid().ToString(), method, paramList);
 			return await this.SendRequestAsync(request, route).ConfigureAwait(false);
 		}
 
@@ -143,7 +153,7 @@ namespace EdjCase.JsonRpc.Client
 			{
 				case JTokenType.Object:
 					RpcResponse response = token.ToObject<RpcResponse>(serializer);
-					return new List<RpcResponse> {response};
+					return new List<RpcResponse> { response };
 				case JTokenType.Array:
 					return token.ToObject<List<RpcResponse>>(serializer);
 				default:
@@ -158,7 +168,7 @@ namespace EdjCase.JsonRpc.Client
 		/// <param name="deserializer">Function to deserialize the json response</param>
 		/// <param name="route">(Optional) Route that will append to the base url if the request method call is not located at the base route</param>
 		/// <returns>The response for the sent request</returns>
-		private async Task<TResponse>  SendAsync<TRequest, TResponse>(TRequest request, Func<string, TResponse> deserializer, string route = null)
+		private async Task<TResponse> SendAsync<TRequest, TResponse>(TRequest request, Func<string, TResponse> deserializer, string route = null)
 		{
 			try
 			{
@@ -171,7 +181,15 @@ namespace EdjCase.JsonRpc.Client
 					HttpResponseMessage httpResponseMessage = await httpClient.PostAsync(route, httpContent).ConfigureAwait(false);
 					httpResponseMessage.EnsureSuccessStatusCode();
 
-					string responseJson = await httpResponseMessage.Content.ReadAsStringAsync();
+					string responseJson = null;
+					try
+					{
+						responseJson = await this.HandleResponse(httpResponseMessage);
+					}
+					catch (JsonSerializationException)
+					{
+						throw new RpcClientUnknownException($"Unable to decode response from the rpc server. Response Json: {responseJson}");
+					}
 
 					try
 					{
@@ -183,7 +201,7 @@ namespace EdjCase.JsonRpc.Client
 					}
 				}
 			}
-			catch (Exception ex) when(!(ex is RpcClientException) && !(ex is RpcException))
+			catch (Exception ex) when (!(ex is RpcClientException) && !(ex is RpcException))
 			{
 				throw new RpcClientUnknownException("Error occurred when trying to send rpc requests(s)", ex);
 			}
@@ -193,7 +211,88 @@ namespace EdjCase.JsonRpc.Client
 		{
 			HttpClient httpClient = new HttpClient();
 			httpClient.DefaultRequestHeaders.Authorization = await this.AuthHeaderValueFactory();
+
+			//attach any extra headers that have been passed
+			if (this.Headers != null && this.Headers.Any())
+			{
+				foreach (var header in this.Headers)
+				{
+					httpClient.DefaultRequestHeaders.Add(header.Key, header.Value);
+				}
+			}
+
 			return httpClient;
+		}
+
+		/// <summary>
+		/// Handles the response.
+		/// </summary>
+		/// <param name="httpResponseMessage">The HTTP response message.</param>
+		/// <returns></returns>
+		private async Task<string> HandleResponse(HttpResponseMessage httpResponseMessage)
+		{
+			string responseJson = null;
+			httpResponseMessage.Content.Headers.TryGetValues("Content-Encoding", out var encodings);
+
+			//handle compressions
+			if (encodings != null && encodings.Any())
+			{
+				foreach (string encoding in encodings)
+				{
+					bool haveType = Enum.TryParse(encoding, true, out CompressionType compressionType);
+					if (!haveType)
+					{
+						continue;
+					}
+
+					var data = this.DecompressText(await httpResponseMessage.Content.ReadAsStreamAsync(), compressionType);
+					responseJson = Encoding.UTF8.GetString(data, 0, data.Length);
+					break;
+				}
+			}
+			// uncompressed, standard response
+			else
+			{
+				responseJson = await httpResponseMessage.Content.ReadAsStringAsync();
+			}
+
+			return responseJson;
+		}
+
+		/// <summary>
+		/// Decompresses the input stream to byte[].
+		/// </summary>
+		/// <param name="inputStream">The input stream.</param>
+		/// <param name="compressionType">Type of the compression.</param>
+		/// <returns></returns>
+		/// <exception cref="ArgumentOutOfRangeException">compressionType - null</exception>
+		private byte[] DecompressText(Stream inputStream, CompressionType compressionType)
+		{
+			switch (compressionType)
+			{
+				case CompressionType.Gzip:
+					using (var zipStream = new GZipStream(inputStream, CompressionMode.Decompress))
+					using (var resultStream = new MemoryStream())
+					{
+						zipStream.CopyTo(resultStream);
+						return resultStream.ToArray();
+					}
+				case CompressionType.Deflate:
+					using (var deflateStream = new DeflateStream(inputStream, CompressionMode.Decompress))
+					using (var resultStream = new MemoryStream())
+					{
+						deflateStream.CopyTo(resultStream);
+						return resultStream.ToArray();
+					}
+				default:
+					throw new ArgumentOutOfRangeException(nameof(compressionType), compressionType, null);
+			}
+		}
+
+		public enum CompressionType
+		{
+			Gzip,
+			Deflate
 		}
 	}
 }
