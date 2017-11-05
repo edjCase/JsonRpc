@@ -46,6 +46,8 @@ namespace EdjCase.JsonRpc.Client
 		/// </summary>
 		public List<KeyValuePair<string, string>> Headers { get; set; }
 
+		private JsonSerializer jsonSerializerCache { get; set; }
+
 		/// <param name="baseUrl">Base url for the rpc server</param>
 		/// <param name="authHeaderValue">Http authentication header for rpc request</param>
 		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
@@ -125,7 +127,26 @@ namespace EdjCase.JsonRpc.Client
 			{
 				throw new ArgumentNullException(nameof(method));
 			}
-			RpcRequest request = new RpcRequest(Guid.NewGuid().ToString(), method, paramList);
+			JsonSerializer jsonSerializer = this.GetJsonSerializer();
+			RpcRequest request = RpcRequest.WithParameterList(Guid.NewGuid().ToString(), method, paramList, jsonSerializer);
+			return await this.SendRequestAsync(request, route).ConfigureAwait(false);
+		}
+
+		/// <summary>
+		/// Sends the specified rpc request to the server (Wrapper for other SendRequestAsync)
+		/// </summary>
+		/// <param name="method">Rpc method that is to be called</param>
+		/// <param name="route">(Optional) Route that will append to the base url if the request method call is not located at the base route</param>
+		/// <param name="paramMap">Map of parameters for the rpc method</param>
+		/// <returns>The rpc response for the sent request</returns>
+		public async Task<RpcResponse> SendRequestAsync(string method, string route, Dictionary<string, object> paramMap)
+		{
+			if (string.IsNullOrWhiteSpace(method))
+			{
+				throw new ArgumentNullException(nameof(method));
+			}
+			JsonSerializer jsonSerializer = this.GetJsonSerializer();
+			RpcRequest request = RpcRequest.WithParameterMap(Guid.NewGuid().ToString(), method, paramMap, jsonSerializer);
 			return await this.SendRequestAsync(request, route).ConfigureAwait(false);
 		}
 
@@ -287,6 +308,22 @@ namespace EdjCase.JsonRpc.Client
 				default:
 					throw new ArgumentOutOfRangeException(nameof(compressionType), compressionType, null);
 			}
+		}
+
+		private JsonSerializer GetJsonSerializer()
+		{
+			if(this.jsonSerializerCache == null)
+			{
+				if(this.JsonSerializerSettings != null)
+				{
+					this.jsonSerializerCache = JsonSerializer.Create(this.JsonSerializerSettings);
+				}
+				else
+				{
+					this.jsonSerializerCache = JsonSerializer.CreateDefault();
+				}
+			}
+			return this.jsonSerializerCache;
 		}
 
 		public enum CompressionType

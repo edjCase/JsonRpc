@@ -39,22 +39,21 @@ namespace EdjCase.JsonRpc.Core.JsonConverters
 		/// <param name="value"></param>
 		/// <exception cref="RpcInvalidRequestException">Thrown when value is not a string, number or null</exception>
 		/// <returns>The same value or null if it is a string and empty</returns>
-		private object ValidateValue(object value)
+		private RpcId ValidateValue(object value)
 		{
 			if (value == null)
 			{
-				return null;
+				return default;
 			}
-			if(!this.CanConvert(value.GetType()))
+			if(value is string stringValue)
 			{
-				throw new RpcInvalidRequestException("Id must be a string, a number or null.");
+				return new RpcId(stringValue);
 			}
-			string idString = value as string;
-			if (idString != null && string.IsNullOrWhiteSpace(idString))
+			if (this.IsNumericType(value.GetType()))
 			{
-				value = null; //If just empty or whitespace id should be null
+				return new RpcId(Convert.ToDouble(value));
 			}
-			return value;
+			throw new RpcInvalidRequestException("Id must be a string, a number or null.");
 		}
 
 		/// <summary>

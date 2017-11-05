@@ -4,8 +4,7 @@ using System.Linq;
 using EdjCase.JsonRpc.Core;
 using EdjCase.JsonRpc.Router.Defaults;
 using Xunit;
-using EdjCase.JsonRpc.Router.Abstractions;
-using EdjCase.JsonRpc.Router.Criteria;
+using Newtonsoft.Json.Linq;
 
 namespace EdjCase.JsonRpc.Router.Tests
 {
@@ -52,7 +51,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		}
 
 		[Theory]
-		[InlineData("{\"jsonrpc\": \"2.0\", \"method\": \"subtract\", \"params\": [42, 23], \"id\": 1}", (long)1, "subtract", new object[] { (long)42, (long)23 })]
+		[InlineData("{\"jsonrpc\": \"2.0\", \"method\": \"subtract\", \"params\": [42, 23], \"id\": 1}", 1, "subtract", new object[] { 42, 23 })]
 		[InlineData("{\"jsonrpc\": \"2.0\", \"method\": \"subtract2\", \"params\": [\"42\", \"23\"], \"id\": \"4\"}", "4", "subtract2", new object[] { "42", "23" })]
 		public void ParseRequests_Valid(string json, object id, string method, object[] parameters)
 		{
@@ -61,11 +60,43 @@ namespace EdjCase.JsonRpc.Router.Tests
 			RpcRequest rpcRequest = parser.ParseRequests(json, out bool isBulkRequest).FirstOrDefault();
 
 			Assert.NotNull(rpcRequest);
-			Assert.Equal(rpcRequest.Id, id);
-			Assert.Equal(rpcRequest.Method, method);
-			Assert.Equal(rpcRequest.JsonRpcVersion, JsonRpcContants.JsonRpcVersion);
-			Assert.Equal(rpcRequest.ParameterList, parameters);
-			Assert.Equal(false, isBulkRequest);
+			ParserTests.CompareId(id, rpcRequest.Id);
+			Assert.Equal(method, rpcRequest.Method);
+			Assert.Equal(JsonRpcContants.JsonRpcVersion, rpcRequest.JsonRpcVersion);
+			ParserTests.CompareParameters(parameters, rpcRequest.Parameters);
+			Assert.False(isBulkRequest);
+		}
+
+		private static void CompareId(object id, RpcId jId)
+		{
+			if (!jId.HasValue)
+			{
+				Assert.Null(id);
+				return;
+			}
+			if (jId.IsString)
+			{
+				Assert.Equal(id, jId.StringValue);
+				return;
+			}
+			id = Convert.ToDouble(id);
+			Assert.Equal(id, jId.NumberValue);
+		}
+
+		private static void CompareParameters(object[] parameters, JToken jParameters)
+		{
+			if (parameters != null)
+			{
+				Assert.NotNull(jParameters);
+				Assert.Equal(JTokenType.Array, jParameters.Type);
+				JToken[] jArray = jParameters.ToArray();
+				Assert.Equal(parameters.Length, jArray.Length);
+				//TODO compare types?
+			}
+			else
+			{
+				Assert.Null(jParameters);
+			}
 		}
 
 		[Fact]
@@ -78,10 +109,10 @@ namespace EdjCase.JsonRpc.Router.Tests
 			RpcRequest rpcRequest = parser.ParseRequests(json, out bool isBulkRequest).FirstOrDefault();
 
 			Assert.NotNull(rpcRequest);
-			Assert.Equal(rpcRequest.Id, (long)1);
-			Assert.Equal(rpcRequest.Method, "datetime");
-			Assert.Equal(rpcRequest.JsonRpcVersion, JsonRpcContants.JsonRpcVersion);
-			Assert.Equal(rpcRequest.ParameterList, new object[] { dateTime });
+			ParserTests.CompareId(1, rpcRequest.Id);
+			Assert.Equal("datetime", rpcRequest.Method);
+			Assert.Equal(JsonRpcContants.JsonRpcVersion, rpcRequest.JsonRpcVersion);
+			ParserTests.CompareParameters(new object[] { dateTime }, rpcRequest.Parameters);
 			Assert.False(isBulkRequest);
 		}
 
@@ -95,17 +126,28 @@ namespace EdjCase.JsonRpc.Router.Tests
 			List<RpcRequest> rpcRequests = parser.ParseRequests(json, out bool isBulkRequest);
 
 			Assert.NotNull(rpcRequests);
-			Assert.Equal(rpcRequests.Count, 2);
-			Assert.Equal(rpcRequests[0].Id, "1");
-			Assert.Equal(rpcRequests[0].Method, "one");
-			Assert.Equal(rpcRequests[0].JsonRpcVersion, JsonRpcContants.JsonRpcVersion);
-			Assert.Equal(rpcRequests[0].ParameterList, new object[] { "1" });
+			Assert.Equal(2, rpcRequests.Count);
+			ParserTests.CompareId("1", rpcRequests[0].Id);
+			Assert.Equal("one", rpcRequests[0].Method);
+			Assert.Equal(JsonRpcContants.JsonRpcVersion, rpcRequests[0].JsonRpcVersion);
+			ParserTests.CompareParameters(new object[] { "1" }, rpcRequests[0].Parameters);
 
-			Assert.Equal(rpcRequests[1].Id, "2");
-			Assert.Equal(rpcRequests[1].Method, "two");
-			Assert.Equal(rpcRequests[1].JsonRpcVersion, JsonRpcContants.JsonRpcVersion);
-			Assert.Equal(rpcRequests[1].ParameterList, new object[] { "2" });
+			ParserTests.CompareId("2", rpcRequests[1].Id);
+			Assert.Equal("two", rpcRequests[1].Method);
+			Assert.Equal(JsonRpcContants.JsonRpcVersion, rpcRequests[1].JsonRpcVersion);
+			ParserTests.CompareParameters(new object[] { "2" }, rpcRequests[1].Parameters);
 			Assert.True(isBulkRequest);
+		}
+
+		[Fact]
+		public void ParseRequests_DuplicateIds_InvalidRequestException()
+		{
+			const string json = "[{\"jsonrpc\": \"2.0\", \"method\": \"one\", \"params\": [\"1\"], \"id\": \"1\"}, {\"jsonrpc\": \"2.0\", \"method\": \"two\", \"params\": [\"2\"], \"id\": \"1\"}]";
+
+			DefaultRpcParser parser = new DefaultRpcParser(null);
+
+			Assert.ThrowsAny<RpcInvalidRequestException>(() => parser.ParseRequests(json, out bool isBulkRequest));
+			
 		}
 
 		[Fact]
@@ -118,11 +160,11 @@ namespace EdjCase.JsonRpc.Router.Tests
 			List<RpcRequest> rpcRequests = parser.ParseRequests(json, out bool isBulkRequest);
 
 			Assert.NotNull(rpcRequests);
-			Assert.Equal(rpcRequests.Count, 1);
-			Assert.Equal(rpcRequests[0].Id, "1");
-			Assert.Equal(rpcRequests[0].Method, "one");
-			Assert.Equal(rpcRequests[0].JsonRpcVersion, JsonRpcContants.JsonRpcVersion);
-			Assert.Equal(rpcRequests[0].ParameterList, new object[] { "1" });
+			Assert.Single(rpcRequests);
+			ParserTests.CompareId("1", rpcRequests[0].Id);
+			Assert.Equal("one", rpcRequests[0].Method);
+			Assert.Equal(JsonRpcContants.JsonRpcVersion, rpcRequests[0].JsonRpcVersion);
+			ParserTests.CompareParameters(new object[] { "1" }, rpcRequests[0].Parameters);
 			Assert.True(isBulkRequest);
 		}
 
@@ -169,7 +211,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			DefaultRpcParser parser = new DefaultRpcParser(null);
 
 			parser.ParseRequests(json, out bool isBulkRequest);
-			Assert.Equal(false, isBulkRequest);
+			Assert.False(isBulkRequest);
 		}
 
 		[Fact]
@@ -179,7 +221,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			DefaultRpcParser parser = new DefaultRpcParser(null);
 
 			parser.ParseRequests(json, out bool isBulkRequest);
-			Assert.Equal(false, isBulkRequest);
+			Assert.False(isBulkRequest);
 		}
 	}
 }

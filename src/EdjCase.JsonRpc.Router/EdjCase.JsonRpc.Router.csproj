@@ -1,28 +1,29 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <Description>A AspNet Core IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing.</Description>
+	<PropertyGroup>
+		<Description>A AspNet Core IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing.</Description>
 		<Version>2.0.0</Version>
-    <Authors>Gekctek</Authors>
-    <TargetFrameworks>netstandard2.0</TargetFrameworks>
-    <AssemblyName>EdjCase.JsonRpc.Router</AssemblyName>
-    <PackageId>EdjCase.JsonRpc.Router</PackageId>
-    <PackageTags>JsonRpc Rpc AspNet Json-Rpc .Net Core</PackageTags>
-    <PackageReleaseNotes>Upgrading to NetStandard 2</PackageReleaseNotes>
-    <PackageProjectUrl>https://github.com/edjCase/JsonRpc</PackageProjectUrl>
-    <PackageLicenseUrl>https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE</PackageLicenseUrl>
-    <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/edjCase/JsonRpc</RepositoryUrl>
-  </PropertyGroup>
+		<Authors>Gekctek</Authors>
+		<TargetFrameworks>netstandard2.0</TargetFrameworks>
+		<AssemblyName>EdjCase.JsonRpc.Router</AssemblyName>
+		<PackageId>EdjCase.JsonRpc.Router</PackageId>
+		<PackageTags>JsonRpc Rpc AspNet Json-Rpc .Net Core</PackageTags>
+		<PackageReleaseNotes>Upgrading to NetStandard 2</PackageReleaseNotes>
+		<PackageProjectUrl>https://github.com/edjCase/JsonRpc</PackageProjectUrl>
+		<PackageLicenseUrl>https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE</PackageLicenseUrl>
+		<RepositoryType>git</RepositoryType>
+		<RepositoryUrl>https://github.com/edjCase/JsonRpc</RepositoryUrl>
+		<LangVersion>latest</LangVersion>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\EdjCase.JsonRpc.Core\EdjCase.JsonRpc.Core.csproj" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\EdjCase.JsonRpc.Core\EdjCase.JsonRpc.Core.csproj" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="2.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Routing" Version="2.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="2.0.0" />
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Authorization" Version="2.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Routing" Version="2.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="2.0.0" />
 		<PackageReference Include="System.IO.Compression" Version="4.3.0" />
 		<PackageReference Include="Microsoft.Extensions.DependencyModel" Version="2.0.0" />
 	</ItemGroup>

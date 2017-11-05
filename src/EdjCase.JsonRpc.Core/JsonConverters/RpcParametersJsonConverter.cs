@@ -38,14 +38,14 @@ namespace EdjCase.JsonRpc.Core.JsonConverters
 					try
 					{
 						JObject jObject = JObject.Load(reader);
-						return jObject.ToObject<Dictionary<string, object>>();
+						return jObject.ToObject<Dictionary<string, JToken>>();
 					}
 					catch (Exception)
 					{
 						throw new RpcInvalidRequestException("Request parameters can only be an associative array, list or null.");
 					}
 				case JsonToken.StartArray:
-					return JArray.Load(reader).ToObject<object[]>(serializer);
+					return JArray.Load(reader).ToArray();
 				case JsonToken.Null:
 					return null;
 			}

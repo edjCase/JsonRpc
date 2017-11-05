@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -8,16 +9,12 @@ namespace EdjCase.JsonRpc.Router
 {
 	public class RpcRouteInfo
 	{
-		public Type Controller { get; }
-		public string MethodName { get; }
-		public object[] Parameters { get; }
+		public RpcMethodInfo MethodInfo { get; }
 		public RpcPath Path { get; }
 
-		internal RpcRouteInfo(Type controller, string methodName, object[] paramters, RpcPath path)
+		internal RpcRouteInfo(RpcMethodInfo methodInfo, RpcPath path)
 		{
-			this.Controller = controller;
-			this.MethodName = methodName;
-			this.Parameters = paramters;
+			this.MethodInfo = methodInfo;
 			this.Path = path;
 		}
 	}

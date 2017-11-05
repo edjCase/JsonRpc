@@ -81,11 +81,11 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				throw new RpcInvalidRequestException("No rpc json requests found");
 			}
 			this.logger?.LogDebug($"Successfully parsed {rpcRequests.Count} Rpc request(s)");
-			HashSet<object> uniqueIds = new HashSet<object>();
-			foreach (RpcRequest rpcRequest in rpcRequests)
+			var uniqueIds = new HashSet<RpcId>();
+			foreach (RpcRequest rpcRequest in rpcRequests.Where(r => r.Id.HasValue))
 			{
 				bool unique = uniqueIds.Add(rpcRequest.Id);
-				if (!unique && rpcRequest.Id != null)
+				if (!unique)
 				{
 					throw new RpcInvalidRequestException("Duplicate ids in batch requests are not allowed");
 				}

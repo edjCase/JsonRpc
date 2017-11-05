@@ -35,15 +35,15 @@ namespace EdjCase.JsonRpc.Client.Sample
 		{
 			AuthenticationHeaderValue authHeaderValue = AuthenticationHeaderValue.Parse("Basic R2VrY3RlazpXZWxjMG1lIQ==");
 			RpcClient client = new RpcClient(new Uri("http://localhost:62390/RpcApi/"), authHeaderValue);
-			RpcRequest request = new RpcRequest("Id1", "CharacterCount", "Test");
+			RpcRequest request = RpcRequest.WithParameterList("Id1", "CharacterCount", new[] { "Test" });
 			RpcResponse response = await client.SendRequestAsync(request, "Strings");
 
 			List<RpcRequest> requests = new List<RpcRequest>
 				{
 					request,
-					new RpcRequest("id2", "CharacterCount", "Test2"),
-					new RpcRequest("id3", "CharacterCount", "Test23")
-				};
+					RpcRequest.WithParameterList("Id2", "CharacterCount", new[] { "Test2" }),
+					RpcRequest.WithParameterList("Id3", "CharacterCount", new[] { "Test23" })
+		};
 			List<RpcResponse> bulkResponse = await client.SendBulkRequestAsync(requests, "Strings");
 
 			IntegerFromSpace responseValue = response.GetResult<IntegerFromSpace>();
@@ -61,7 +61,7 @@ namespace EdjCase.JsonRpc.Client.Sample
 				new KeyValuePair<string, string>("Accept-Encoding", "gzip")
 			};
 			var compressedClient = new RpcClient(new Uri("http://localhost:62390/RpcApi/"), authHeaderValue, headers: additionalHeaders);
-			var compressedRequest = new RpcRequest("Id1", "CharacterCount", "Test");
+			var compressedRequest = RpcRequest.WithParameterList("Id1", "CharacterCount", new[] { "Test" });
 			var compressedResponse = await compressedClient.SendRequestAsync(request, "Strings");
 		}
 	}
