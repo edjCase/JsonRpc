@@ -7,9 +7,14 @@ using System.Threading.Tasks;
 
 namespace EdjCase.JsonRpc.Router.Sample.RpcRoutes
 {
+	public abstract class ControllerBase : RpcController
+	{
+
+	}
+
 	[Authorize]
 	[RpcRoute("Testz")]
-	public class TestController : RpcController
+	public class TestController : ControllerBase
 	{
 		public async Task<int> Add(int a, int b)
 		{
@@ -34,8 +39,9 @@ namespace EdjCase.JsonRpc.Router.Sample.RpcRoutes
 		}
 
 	}
-	public class TestEnum
+	public enum TestEnum
 	{
-		public string Test { get; set; }
+		Test1,
+		Test2
 	}
 }

@@ -59,7 +59,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <param name="policyProvider">Provides authorization policies for the authroziation service</param>
 		/// <param name="logger">Optional logger for logging Rpc invocation</param>
 		/// <param name="serverConfig">Configuration data for the server</param>
-		public DefaultRpcInvoker(IAuthorizationService authorizationService, IAuthorizationPolicyProvider policyProvider, 
+		public DefaultRpcInvoker(IAuthorizationService authorizationService, IAuthorizationPolicyProvider policyProvider,
 			ILogger<DefaultRpcInvoker> logger, IOptions<RpcServerConfiguration> serverConfig)
 		{
 			this.authorizationService = authorizationService;
@@ -131,7 +131,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				{
 					throw new RpcInvalidRequestException($"Request must be jsonrpc version '{JsonRpcContants.JsonRpcVersion}'");
 				}
-				
+
 				RpcMethodInfo rpcMethod = this.GetMatchingMethod(path, request, routeContext.RouteProvider, routeContext.RequestServices);
 
 				bool isAuthorized = await this.IsAuthorizedAsync(rpcMethod.Method, routeContext);
@@ -280,22 +280,34 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			var potentialMatches = new List<RpcMethodInfo>();
 			foreach (MethodInfo method in methodsWithSameName)
 			{
-				if (this.HasParameterSignature(method, request, out RpcMethodInfo rpcMethodInfo))
+				(bool isMatch, RpcMethodInfo methodInfo) = this.HasParameterSignature(method, request);
+				if (isMatch)
 				{
-					potentialMatches.Add(rpcMethodInfo);
+					potentialMatches.Add(methodInfo);
 				}
 			}
 
 			if (potentialMatches.Count > 1)
 			{
-				//Try to remove ambiguity with case sensitive check
-				potentialMatches = potentialMatches
-					.Where(m => string.Equals(m.Method.Name, request.Method, StringComparison.Ordinal))
+				//Try to remove ambiguity with 'perfect matching' (usually optional params and types)
+				List<RpcMethodInfo> exactMatches = potentialMatches
+					.Where(p => p.HasExactParameterMatch())
 					.ToList();
-				if (potentialMatches.Count != 1)
+				if (exactMatches.Any())
 				{
-					this.logger?.LogError("More than one method matched the rpc request. Unable to invoke due to ambiguity.");
-					throw new RpcMethodNotFoundException();
+					potentialMatches = exactMatches;
+				}
+				if (potentialMatches.Count > 1)
+				{
+					//Try to remove ambiguity with case sensitive check
+					potentialMatches = potentialMatches
+						.Where(m => string.Equals(m.Method.Name, request.Method, StringComparison.Ordinal))
+						.ToList();
+					if (potentialMatches.Count != 1)
+					{
+						this.logger?.LogError("More than one method matched the rpc request. Unable to invoke due to ambiguity.");
+						throw new RpcMethodNotFoundException();
+					}
 				}
 			}
 
@@ -389,7 +401,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 				//Controller error handling
 				RpcErrorFilterAttribute errorFilter = methodInfo.Method.DeclaringType.GetTypeInfo().GetCustomAttribute<RpcErrorFilterAttribute>();
-				if(errorFilter != null)
+				if (errorFilter != null)
 				{
 					OnExceptionResult result = errorFilter.OnException(routeInfo, ex.InnerException);
 					if (!result.ThrowException)
@@ -510,7 +522,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// </summary>
 		/// <param name="parameterList">Array of parameters for the method</param>
 		/// <returns>True if the method signature matches the parameterList, otherwise False</returns>
-		private bool HasParameterSignature(MethodInfo method, RpcRequest rpcRequest, out RpcMethodInfo rpcMethodInfo)
+		private (bool Matches, RpcMethodInfo MethodInfo) HasParameterSignature(MethodInfo method, RpcRequest rpcRequest)
 		{
 			JToken[] orignialParameterList;
 			if (rpcRequest.Parameters == null)
@@ -527,8 +539,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 						bool canParse = this.TryParseParameterList(method, parameterMap, out orignialParameterList);
 						if (!canParse)
 						{
-							rpcMethodInfo = null;
-							return false;
+							return (false, null);
 						}
 						break;
 					case JTokenType.Array:
@@ -542,8 +553,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			ParameterInfo[] parameterInfoList = method.GetParameters();
 			if (orignialParameterList.Length > parameterInfoList.Length)
 			{
-				rpcMethodInfo = null;
-				return false;
+				return (false, null);
 			}
 			object[] correctedParameterList = new object[parameterInfoList.Length];
 
@@ -554,28 +564,26 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				bool isMatch = this.ParameterMatches(parameterInfo, parameter, out object convertedParameter);
 				if (!isMatch)
 				{
-					rpcMethodInfo = null;
-					return false;
+					return (false, null);
 				}
 				correctedParameterList[i] = convertedParameter;
 			}
-
-			if(orignialParameterList.Length < parameterInfoList.Length)
+			
+			if (orignialParameterList.Length < parameterInfoList.Length)
 			{
 				//make a new array at the same length with padded 'missing' parameters (if optional)
 				for (int i = orignialParameterList.Length; i < parameterInfoList.Length; i++)
 				{
 					if (!parameterInfoList[i].IsOptional)
 					{
-						rpcMethodInfo = null;
-						return false;
+						return (false, null);
 					}
 					correctedParameterList[i] = Type.Missing;
 				}
 			}
 
-			rpcMethodInfo = new RpcMethodInfo(method, correctedParameterList, orignialParameterList);
-			return true;
+			var rpcMethodInfo = new RpcMethodInfo(method, correctedParameterList, orignialParameterList);
+			return (true, rpcMethodInfo);
 		}
 
 		/// <summary>
@@ -665,18 +673,16 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				{
 					case JTokenType.Array:
 						{
-							//TODO should just assume they will work and have the end just fail if cant convert?
 							JsonSerializer serializer = this.GetJsonSerializer();
 							JArray jArray = (JArray)value;
-							convertedValue = jArray.ToObject(parameterType, serializer); //Test conversion
+							convertedValue = jArray.ToObject(parameterType, serializer);
 							return true;
 						}
 					case JTokenType.Object:
 						{
-							//TODO should just assume they will work and have the end just fail if cant convert?
 							JsonSerializer serializer = this.GetJsonSerializer();
 							JObject jObject = (JObject)value;
-							convertedValue = jObject.ToObject(parameterType, serializer); //Test conversion
+							convertedValue = jObject.ToObject(parameterType, serializer);
 							return true;
 						}
 					default:
@@ -691,7 +697,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				return false;
 			}
 		}
-		
+
 
 		/// <summary>
 		/// Tries to parse the parameter map into an ordered parameter list

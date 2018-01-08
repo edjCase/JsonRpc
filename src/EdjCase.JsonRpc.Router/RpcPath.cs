@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EdjCase.JsonRpc.Core;
+using System;
 using System.Linq;
 
 namespace EdjCase.JsonRpc.Router
@@ -128,6 +129,46 @@ namespace EdjCase.JsonRpc.Router
 				return new RpcPath(basePath);
 			}
 			return new RpcPath(path);
+		}
+
+		/// <summary>
+		/// Removes the base path path from this path
+		/// </summary>
+		/// <param name="basePath">Base path to remove</param>
+		/// <returns>A new path that is the full path without the base path</returns>
+		public RpcPath RemoveBasePath(RpcPath basePath)
+		{
+			if(!this.TryRemoveBasePath(basePath, out RpcPath path))
+			{
+				throw new RpcParseException($"Count not remove path '{basePath}' from path '{this}'.");
+			}
+			return path;
+		}
+
+		/// <summary>
+		/// Tries to remove the base path path from this path
+		/// </summary>
+		/// <param name="basePath">Base path to remove</param>
+		/// <returns>True if removed the base path. Otherwise false</returns>
+		public bool TryRemoveBasePath(RpcPath basePath, out RpcPath path)
+		{
+			if (basePath == default)
+			{
+				path = this;
+				return true;
+			}
+			if (!this.StartsWith(basePath))
+			{
+				path = default;
+				return false;
+			}
+			var newComponents = new string[this.components.Length - basePath.components.Length];
+			if(newComponents.Length > 0)
+			{
+				Array.Copy(this.components, basePath.components.Length, newComponents, 0, 1);
+			}
+			path = new RpcPath(newComponents);
+			return true;
 		}
 
 		/// <summary>

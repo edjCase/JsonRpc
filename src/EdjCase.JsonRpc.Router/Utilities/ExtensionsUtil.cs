@@ -5,6 +5,18 @@ using System.Threading.Tasks;
 
 namespace EdjCase.JsonRpc.Router.Utilities
 {
+	public static class TypeExtensions
+	{
+		/// <summary>
+		/// Determines if the type is nullable
+		/// </summary>
+		/// <param name="type">Type of the object</param>
+		/// <returns>True if the type is nullable, otherwise False</returns>
+		public static bool IsNullableType(this Type type)
+		{
+			return !type.IsValueType || Nullable.GetUnderlyingType(type) != null;
+		}
+	}
 
 	public static class RouteContextExtensions
 	{
