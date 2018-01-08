@@ -1,5 +1,6 @@
 ﻿using System;
 using Newtonsoft.Json;
+using EdjCase.JsonRpc.Core.Utilities;
 
 namespace EdjCase.JsonRpc.Core.JsonConverters
 {
@@ -16,8 +17,8 @@ namespace EdjCase.JsonRpc.Core.JsonConverters
 		/// <param name="serializer">Json serializer</param>
 		public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
 		{
-			value = this.ValidateValue(value);
-			writer.WriteValue(value);
+			RpcId id = this.ValidateValue(value);
+			writer.WriteValue(id.Value);
 		}
 
 		/// <summary>
@@ -45,11 +46,15 @@ namespace EdjCase.JsonRpc.Core.JsonConverters
 			{
 				return default;
 			}
+			if(value is RpcId rpcId)
+			{
+				return rpcId;
+			}
 			if(value is string stringValue)
 			{
 				return new RpcId(stringValue);
 			}
-			if (this.IsNumericType(value.GetType()))
+			if (value.GetType().IsNumericType())
 			{
 				return new RpcId(Convert.ToDouble(value));
 			}
@@ -63,22 +68,8 @@ namespace EdjCase.JsonRpc.Core.JsonConverters
 		/// <returns>True if the converter converts the specified type, otherwise False</returns>
 		public override bool CanConvert(Type objectType)
 		{
-			return objectType == typeof (string) || this.IsNumericType(objectType);
+			return objectType == typeof (string) || objectType.IsNumericType();
 		}
 
-		/// <summary>
-		/// Determines if the type is a number
-		/// </summary>
-		/// <param name="type">Type of the object</param>
-		/// <returns>True if the type is a number, otherwise False</returns>
-		private bool IsNumericType(Type type)
-		{
-			return type == typeof (long)
-					|| type == typeof (int)
-					|| type == typeof (short)
-					|| type == typeof (float)
-					|| type == typeof (double)
-					|| type == typeof (decimal);
-		}
 	}
 }

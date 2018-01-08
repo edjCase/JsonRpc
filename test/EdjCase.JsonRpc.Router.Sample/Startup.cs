@@ -37,7 +37,7 @@ namespace EdjCase.JsonRpc.Router.Sample
 						{
 							var claims = new List<Claim>
 							{
-							new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())
+								new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())
 							};
 							var identity = new ClaimsIdentity(claims, "Basic");
 							var principal = new ClaimsPrincipal(identity);
@@ -74,6 +74,12 @@ namespace EdjCase.JsonRpc.Router.Sample
 				});
 			});
 
+			app.UseJsonRpc(builder =>
+			{
+				builder.BaseControllerType = typeof(ControllerBase);
+				builder.BaseRequestPath = "Auto";
+			});
+
 		}
 	}
 
@@ -83,7 +89,6 @@ namespace EdjCase.JsonRpc.Router.Sample
 		{
 			var host = new WebHostBuilder()
 				.UseKestrel()
-				.UseUrls("http://0.0.0.0:62390")
 				.UseContentRoot(Directory.GetCurrentDirectory())
 				.UseIISIntegration()
 				.UseStartup<Startup>()

@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace EdjCase.JsonRpc.Router.Sample.RpcRoutes
@@ -16,7 +17,12 @@ namespace EdjCase.JsonRpc.Router.Sample.RpcRoutes
 		}
 
 
-		public int Add(int[] a)
+		public int AddArray(int[] a)
+		{
+			return a[0] + a[1];
+		}
+
+		public int AddList(List<int> a)
 		{
 			return a[0] + a[1];
 		}

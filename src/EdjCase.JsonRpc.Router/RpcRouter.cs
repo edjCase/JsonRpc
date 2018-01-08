@@ -76,7 +76,7 @@ namespace EdjCase.JsonRpc.Router
 				{
 					requestPath = RpcPath.Parse(context.HttpContext.Request.Path.Value);
 				}
-				if (!requestPath.StartsWith(this.routeProvider.BaseRequestPath))
+				if (!requestPath.TryRemoveBasePath(this.routeProvider.BaseRequestPath, out requestPath))
 				{
 					this.logger?.LogTrace("Request did not match the base request path. Skipping rpc router.");
 					return;
@@ -112,6 +112,8 @@ namespace EdjCase.JsonRpc.Router
 					//No response required
 					return;
 				}
+
+				context.HttpContext.Response.ContentType = "application/json";
 
 				bool responseSet = false;
 				string acceptEncoding = context.HttpContext.Request.Headers["Accept-Encoding"];
