@@ -40,7 +40,7 @@ namespace EdjCase.JsonRpc.Router.RouteProviders
 				{
 					var attribute = controllerType.GetCustomAttribute<RpcRouteAttribute>(true);
 					string routePathString;
-					if (attribute == null || string.IsNullOrWhiteSpace(attribute.RouteName))
+					if (attribute == null || attribute.RouteName == null)
 					{
 						if (controllerType.Name.EndsWith("Controller"))
 						{
