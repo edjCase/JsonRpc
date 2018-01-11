@@ -74,28 +74,33 @@ namespace EdjCase.JsonRpc.Router.Tests
 				Assert.Null(id);
 				return;
 			}
-			if (jId.IsString)
+			switch(jId.Type)
 			{
-				Assert.Equal(id, jId.StringValue);
-				return;
+				case RpcIdType.Number:
+					id = Convert.ToDouble(id);
+					Assert.Equal(id, jId.NumberValue);
+					break;
+				case RpcIdType.String:
+					Assert.Equal(id, jId.StringValue);
+					break;
+				default:
+					throw new ArgumentOutOfRangeException(nameof(jId.Type));
+
 			}
-			id = Convert.ToDouble(id);
-			Assert.Equal(id, jId.NumberValue);
 		}
 
-		private static void CompareParameters(object[] parameters, JToken jParameters)
+		private static void CompareParameters(object[] parameters, RpcParameters jParameters)
 		{
 			if (parameters != null)
 			{
-				Assert.NotNull(jParameters);
-				Assert.Equal(JTokenType.Array, jParameters.Type);
-				JToken[] jArray = jParameters.ToArray();
-				Assert.Equal(parameters.Length, jArray.Length);
+				Assert.NotEqual(default(RpcParameters), jParameters);
+				Assert.Equal(RpcParametersType.Array, jParameters.Type);
+				Assert.Equal(parameters.Length, jParameters.ArrayValue.Length);
 				//TODO compare types?
 			}
 			else
 			{
-				Assert.Null(jParameters);
+				Assert.Equal(default(RpcParameters), jParameters);
 			}
 		}
 

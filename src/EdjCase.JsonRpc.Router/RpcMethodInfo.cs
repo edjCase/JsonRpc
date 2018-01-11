@@ -14,9 +14,9 @@ namespace EdjCase.JsonRpc.Router
 	{
 		public MethodInfo Method { get; }
 		public object[] ConvertedParameters { get; }
-		public JToken[] RawParameters { get; }
+		public object[] RawParameters { get; }
 
-		public RpcMethodInfo(MethodInfo method, object[] convertedParameters, JToken[] rawParameters)
+		public RpcMethodInfo(MethodInfo method, object[] convertedParameters, object[] rawParameters)
 		{
 			this.Method = method;
 			this.ConvertedParameters = convertedParameters;
@@ -30,7 +30,7 @@ namespace EdjCase.JsonRpc.Router
 				ParameterInfo[] parameters = this.Method.GetParameters();
 				for (int i = 0; i < this.RawParameters.Length; i++)
 				{
-					JToken original = this.RawParameters[i];
+					object original = this.RawParameters[i];
 					ParameterInfo parameter = parameters[i];
 					if (!RpcUtil.TypesMatch(original, parameter.ParameterType))
 					{

@@ -4,13 +4,17 @@ using System.Text;
 
 namespace EdjCase.JsonRpc.Core
 {
+	public enum RpcIdType
+	{
+		String,
+		Number
+	}
+
 	public struct RpcId : IEquatable<RpcId>
 	{
 		public bool HasValue { get; }
 
-		public bool IsString { get; }
-
-		public bool IsNumber { get; }
+		public RpcIdType Type { get; }
 
 		public object Value { get; }
 
@@ -18,7 +22,7 @@ namespace EdjCase.JsonRpc.Core
 		{
 			get
 			{
-				if (!this.IsNumber)
+				if (this.Type != RpcIdType.Number)
 				{
 					throw new InvalidOperationException("Cannot cast id to number.");
 				}
@@ -30,7 +34,7 @@ namespace EdjCase.JsonRpc.Core
 		{
 			get
 			{
-				if (!this.IsString)
+				if (this.Type != RpcIdType.String)
 				{
 					throw new InvalidOperationException("Cannot cast id to string.");
 				}
@@ -42,16 +46,14 @@ namespace EdjCase.JsonRpc.Core
 		{
 			this.HasValue = true;
 			this.Value = id;
-			this.IsString = true;
-			this.IsNumber = false;
+			this.Type = RpcIdType.String;
 		}
 
 		public RpcId(double id)
 		{
 			this.HasValue = true;
 			this.Value = id;
-			this.IsNumber = true;
-			this.IsString = false;
+			this.Type = RpcIdType.Number;
 		}
 
 		public static bool operator ==(RpcId x, RpcId y)
@@ -66,19 +68,28 @@ namespace EdjCase.JsonRpc.Core
 
 		public bool Equals(RpcId other)
 		{
-			if(this.HasValue && other.HasValue)
+			if (this.HasValue && other.HasValue)
 			{
 				return true;
 			}
-			if(this.HasValue || other.HasValue)
+			if (this.HasValue || other.HasValue)
 			{
 				return false;
 			}
-			if(this.IsNumber && other.IsNumber)
+			if (this.Type != other.Type)
 			{
-				return this.NumberValue == other.NumberValue;
+				return false;
 			}
-			return this.StringValue == other.StringValue;
+			switch (this.Type)
+			{
+				case RpcIdType.Number:
+					return this.NumberValue == other.NumberValue;
+				case RpcIdType.String:
+					return this.StringValue == other.StringValue;
+				default:
+					throw new ArgumentOutOfRangeException(nameof(this.Type));
+			}
+
 		}
 
 		public override bool Equals(object obj)
@@ -97,6 +108,16 @@ namespace EdjCase.JsonRpc.Core
 				return 0;
 			}
 			return this.Value.GetHashCode();
+		}
+
+		public static implicit operator RpcId(double id)
+		{
+			return new RpcId(id);
+		}
+
+		public static implicit operator RpcId(string id)
+		{
+			return new RpcId(id);
 		}
 	}
 }

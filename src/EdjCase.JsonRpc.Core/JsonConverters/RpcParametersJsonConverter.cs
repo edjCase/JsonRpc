@@ -19,7 +19,8 @@ namespace EdjCase.JsonRpc.Core.JsonConverters
 		/// <param name="serializer">Json serializer</param>
 		public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
 		{
-			serializer.Serialize(writer, value);
+			RpcParameters parameters = (RpcParameters)value;
+			serializer.Serialize(writer, parameters.Value ?? new object[0]);
 		}
 
 		/// <summary>
@@ -38,16 +39,19 @@ namespace EdjCase.JsonRpc.Core.JsonConverters
 					try
 					{
 						JObject jObject = JObject.Load(reader);
-						return jObject.ToObject<Dictionary<string, JToken>>();
+						Dictionary<string, object> dic = jObject.ToObject<Dictionary<string, JToken>>()
+							.ToDictionary(kv => kv.Key, kv => (object)kv.Value);
+						return RpcParameters.FromDictionary(dic);
 					}
 					catch (Exception)
 					{
 						throw new RpcInvalidRequestException("Request parameters can only be an associative array, list or null.");
 					}
 				case JsonToken.StartArray:
-					return JArray.Load(reader).ToArray();
+					var a = JArray.Load(reader).ToArray();
+					return RpcParameters.FromList(a);
 				case JsonToken.Null:
-					return null;
+					return RpcParameters.Empty;
 			}
 			throw new RpcInvalidRequestException("Request parameters can only be an associative array, list or null.");
 		}

@@ -127,8 +127,7 @@ namespace EdjCase.JsonRpc.Client
 			{
 				throw new ArgumentNullException(nameof(method));
 			}
-			JsonSerializer jsonSerializer = this.GetJsonSerializer();
-			RpcRequest request = RpcRequest.WithParameterList(Guid.NewGuid().ToString(), method, paramList, jsonSerializer);
+			RpcRequest request = RpcRequest.WithParameterList(method, paramList, Guid.NewGuid().ToString());
 			return await this.SendRequestAsync(request, route).ConfigureAwait(false);
 		}
 
@@ -145,8 +144,7 @@ namespace EdjCase.JsonRpc.Client
 			{
 				throw new ArgumentNullException(nameof(method));
 			}
-			JsonSerializer jsonSerializer = this.GetJsonSerializer();
-			RpcRequest request = RpcRequest.WithParameterMap(Guid.NewGuid().ToString(), method, paramMap, jsonSerializer);
+			RpcRequest request = RpcRequest.WithParameterMap(method, paramMap, Guid.NewGuid().ToString());
 			return await this.SendRequestAsync(request, route).ConfigureAwait(false);
 		}
 

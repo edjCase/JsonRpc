@@ -69,7 +69,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public async Task InvokeRequest_StringParam_ParseAsGuidType()
 		{
 			Guid randomGuid = Guid.NewGuid();
-			RpcRequest stringRequest = RpcRequest.WithParameterList("1", "GuidTypeMethod", new[] { randomGuid.ToString() });
+			RpcRequest stringRequest = RpcRequest.WithParameterList("GuidTypeMethod", new[] { JToken.FromObject(randomGuid.ToString()) }, "1");
 
 			IRouteContext routeContext = this.GetRouteContext<TestRouteClass>();
 			DefaultRpcInvoker invoker = this.GetInvoker();
@@ -82,7 +82,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		[Fact]
 		public async Task InvokeRequest_AmbiguousRequest_ErrorResponse()
 		{
-			RpcRequest stringRequest = RpcRequest.WithParameterList("1", "AmbiguousMethod", new object[] { 1 });
+			RpcRequest stringRequest = RpcRequest.WithParameterList("AmbiguousMethod", new object[] { JToken.FromObject(1) }, "1");
 
 			IRouteContext routeContext = this.GetRouteContext<TestRouteClass>();
 			DefaultRpcInvoker invoker = this.GetInvoker();
@@ -95,7 +95,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		[Fact]
 		public async Task InvokeRequest_AsyncMethod_Valid()
 		{
-			RpcRequest stringRequest = RpcRequest.WithParameterList("1", "AddAsync", new object[] { 1, 1 });
+			RpcRequest stringRequest = RpcRequest.WithParameterList("AddAsync", new object[] { JToken.FromObject(1), JToken.FromObject(1) }, "1");
 
 			IRouteContext routeContext = this.GetRouteContext<TestRouteClass>();
 			DefaultRpcInvoker invoker = this.GetInvoker();
@@ -110,7 +110,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		[Fact]
 		public async Task InvokeRequest_Int64RequestParam_ConvertToInt32Param()
 		{
-			RpcRequest stringRequest = RpcRequest.WithParameterList("1", "IntParameter", new object[] { 1L });
+			RpcRequest stringRequest = RpcRequest.WithParameterList("IntParameter", new object[] { JToken.FromObject(1L) }, "1");
 			
 			IRouteContext routeContext = this.GetRouteContext<TestRouteClass>();
 			DefaultRpcInvoker invoker = this.GetInvoker();
@@ -126,7 +126,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		[Fact]
 		public async Task InvokeRequest_ServiceProvider_Pass()
 		{
-			RpcRequest stringRequest = RpcRequest.WithNoParameters("1", "Test");
+			RpcRequest stringRequest = RpcRequest.WithNoParameters("Test", "1");
 
 			DefaultRpcInvoker invoker = this.GetInvoker();
 			IServiceProvider serviceProvider = this.GetServiceProvider();
@@ -148,15 +148,15 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 
 			//No params specified
-			RpcRequest stringRequest = RpcRequest.WithNoParameters("1", "Optional");
+			RpcRequest stringRequest = RpcRequest.WithNoParameters("Optional", "1");
 			RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, RpcPath.Default, routeContext);
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.Null(resultResponse.Result);
 			Assert.False(resultResponse.HasError);
 
-			//Param is null
-			stringRequest = RpcRequest.WithParameterList("1", "Optional", null);
+			//Param is empty
+			stringRequest = RpcRequest.WithParameterList("Optional", new object[0], "1");
 			response = await invoker.InvokeRequestAsync(stringRequest, RpcPath.Default, routeContext);
 
 			resultResponse = Assert.IsType<RpcResponse>(response);
@@ -165,7 +165,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 
 			//Param is a string
-			stringRequest = RpcRequest.WithParameterList("1", "Optional", new[] { "Test" });
+			stringRequest = RpcRequest.WithParameterList("Optional", new[] { JToken.FromObject("Test") }, "1");
 			response = await invoker.InvokeRequestAsync(stringRequest, RpcPath.Default, routeContext);
 
 			resultResponse = Assert.IsType<RpcResponse>(response);

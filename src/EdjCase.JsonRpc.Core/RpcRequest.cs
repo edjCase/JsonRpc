@@ -25,9 +25,19 @@ namespace EdjCase.JsonRpc.Core
 		/// <param name="id">Request id</param>
 		/// <param name="method">Target method name</param>
 		/// <param name="parameterList">Json parameters for the target method</param>
-		public RpcRequest(RpcId id, string method, JToken parameters)
+		public RpcRequest(RpcId id, string method, RpcParameters parameters = default)
 		{
 			this.Id = id;
+			this.JsonRpcVersion = JsonRpcContants.JsonRpcVersion;
+			this.Method = method;
+			this.Parameters = parameters;
+		}
+		
+		/// <param name="method">Target method name</param>
+		/// <param name="parameterList">Json parameters for the target method</param>
+		public RpcRequest(string method, RpcParameters parameters = default)
+		{
+			this.Id = null;
 			this.JsonRpcVersion = JsonRpcContants.JsonRpcVersion;
 			this.Method = method;
 			this.Parameters = parameters;
@@ -53,61 +63,33 @@ namespace EdjCase.JsonRpc.Core
 		/// Parameters to invoke the method with (Optional)
 		/// </summary>
 		[JsonProperty("params")]
-		public JToken Parameters { get; private set; }
+		[JsonConverter(typeof(RpcParametersJsonConverter))]
+		public RpcParameters Parameters { get; private set; }
 
-
-		public static RpcRequest WithNoParameters(string id, string method)
+		public static RpcRequest WithNoParameters(string method, RpcId id = default)
 		{
-			return RpcRequest.ConvertInternal(new RpcId(id), method, null, null);
+			return RpcRequest.WithParameters(method, default, id);
 		}
 
-		public static RpcRequest WithNoParameters(string method)
+		public static RpcRequest WithParameterList(string method, IList<object> parameterList, RpcId id = default)
 		{
-			return RpcRequest.ConvertInternal(default, method, null, null);
+			RpcParameters parameters = RpcParameters.FromList(parameterList);
+			return RpcRequest.WithParameters(method, parameters, id);
 		}
 
-		public static RpcRequest WithParameterList(string id, string method, IList<object> parameters, JsonSerializer jsonSerializer = null)
+		public static RpcRequest WithParameterMap(string method, IDictionary<string, object> parameterDictionary, RpcId id = default)
 		{
-			return RpcRequest.ConvertInternal(new RpcId(id), method, parameters, jsonSerializer);
+			RpcParameters parameters = RpcParameters.FromDictionary(parameterDictionary);
+			return RpcRequest.WithParameters(method, parameters, id);
 		}
 
-		public static RpcRequest WithParameterList(int id, string method, IList<object> parameters, JsonSerializer jsonSerializer = null)
-		{
-			return RpcRequest.ConvertInternal(new RpcId(id), method, parameters, jsonSerializer);
-		}
-
-		public static RpcRequest WithParameterList(string method, IList<object> parameters, JsonSerializer jsonSerializer = null)
-		{
-			return RpcRequest.ConvertInternal(default, method, parameters, jsonSerializer);
-		}
-
-		public static RpcRequest WithParameterMap(string id, string method, IDictionary<string, object> parameters, JsonSerializer jsonSerializer = null)
-		{
-			return RpcRequest.ConvertInternal(new RpcId(id), method, parameters, jsonSerializer);
-		}
-
-		public static RpcRequest WithParameterMap(int id, string method, IDictionary<string, object> parameters, JsonSerializer jsonSerializer = null)
-		{
-			return RpcRequest.ConvertInternal(new RpcId(id), method, parameters, jsonSerializer);
-		}
-
-		public static RpcRequest WithParameterMap(string method, IDictionary<string, object> parameters, JsonSerializer jsonSerializer = null)
-		{
-			return RpcRequest.ConvertInternal(default, method, parameters, jsonSerializer);
-		}
-
-		private static RpcRequest ConvertInternal(RpcId id, string method, object parameters, JsonSerializer jsonSerializer = null)
+		public static RpcRequest WithParameters(string method, RpcParameters parameters, RpcId id = default)
 		{
 			if(method == null)
 			{
 				throw new ArgumentNullException(nameof(method));
 			}
-			JToken sParameters = parameters == null 
-				? null
-				: jsonSerializer == null
-					? JToken.FromObject(parameters)
-					: JToken.FromObject(parameters, jsonSerializer);
-			return new RpcRequest(id, method, sParameters);
+			return new RpcRequest(id, method, parameters);
 		}
 	}
 }

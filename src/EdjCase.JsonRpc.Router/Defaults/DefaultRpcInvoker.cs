@@ -524,26 +524,25 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <returns>True if the method signature matches the parameterList, otherwise False</returns>
 		private (bool Matches, RpcMethodInfo MethodInfo) HasParameterSignature(MethodInfo method, RpcRequest rpcRequest)
 		{
-			JToken[] orignialParameterList;
-			if (rpcRequest.Parameters == null)
+			object[] orignialParameterList;
+			if (!rpcRequest.Parameters.HasValue)
 			{
-				orignialParameterList = new JToken[0];
+				orignialParameterList = new object[0];
 			}
 			else
 			{
 				switch (rpcRequest.Parameters.Type)
 				{
-					case JTokenType.Object:
-						JsonSerializer jsonSerializer = this.GetJsonSerializer();
-						Dictionary<string, JToken> parameterMap = rpcRequest.Parameters.ToObject<Dictionary<string, JToken>>(jsonSerializer);
+					case RpcParametersType.Dictionary:
+						Dictionary<string, object> parameterMap = rpcRequest.Parameters.DictionaryValue;
 						bool canParse = this.TryParseParameterList(method, parameterMap, out orignialParameterList);
 						if (!canParse)
 						{
 							return (false, null);
 						}
 						break;
-					case JTokenType.Array:
-						orignialParameterList = rpcRequest.Parameters.ToArray();
+					case RpcParametersType.Array:
+						orignialParameterList = rpcRequest.Parameters.ArrayValue;
 						break;
 					default:
 						orignialParameterList = new JToken[0];
@@ -560,7 +559,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			for (int i = 0; i < orignialParameterList.Length; i++)
 			{
 				ParameterInfo parameterInfo = parameterInfoList[i];
-				JToken parameter = orignialParameterList[i];
+				object parameter = orignialParameterList[i];
 				bool isMatch = this.ParameterMatches(parameterInfo, parameter, out object convertedParameter);
 				if (!isMatch)
 				{
@@ -568,7 +567,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				}
 				correctedParameterList[i] = convertedParameter;
 			}
-			
+
 			if (orignialParameterList.Length < parameterInfoList.Length)
 			{
 				//make a new array at the same length with padded 'missing' parameters (if optional)
@@ -592,102 +591,39 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <param name="parameterInfo">Reflection info about a method parameter</param>
 		/// <param name="value">The request's value for the parameter</param>
 		/// <returns>True if the request parameter matches the type of the method parameter</returns>
-		private bool ParameterMatches(ParameterInfo parameterInfo, JToken value, out object convertedValue)
+		private bool ParameterMatches(ParameterInfo parameterInfo, object value, out object convertedValue)
 		{
 			Type parameterType = parameterInfo.ParameterType;
-			//Type nullableType = Nullable.GetUnderlyingType(parameterType);
-			//if (value == null)
-			//{
-			//	bool isNullable = nullableType != null
-			//		|| parameterType.GetTypeInfo().IsClass
-			//		|| (parameterInfo.HasDefaultValue && parameterInfo.DefaultValue == null);
-			//	convertedValue = null;
-			//	return isNullable;
-			//}
-			//Type valueType = value.GetType();
-			//if (parameterType == valueType)
-			//{
-			//	convertedValue = value;
-			//	return true;
-			//}
-			//if (nullableType != null)
-			//{
-			//	parameterType = nullableType;
-			//}
-			//if (value is long)
-			//{
-			//	bool integer = parameterType == typeof(short)
-			//		|| parameterType == typeof(int);
-			//	if (integer)
-			//	{
-			//		convertedObject = value;
-			//		return true;
-			//	}
-			//	TypeInfo typeInfo = parameterType.GetTypeInfo();
-			//	if (typeInfo.IsEnum)
-			//	{
-			//		try
-			//		{
-			//			if(Enum.IsDefined(parameterType, (int)(long)value))
-			//			{							
-			//				convertedObject = Enum.ToObject(parameterType, value);
-			//				return true;
-			//			}
-			//		}
-			//		catch (Exception)
-			//		{
-			//			Type enumType = Enum.GetUnderlyingType(parameterType);
-			//			//Check if the enum is long or short instead of int
-			//			if (enumType == typeof(long))
-			//			{
-			//				return Enum.IsDefined(parameterType, value);
-			//			}
-			//			else if (enumType == typeof(short))
-			//			{
-			//				return Enum.IsDefined(parameterType, (short)(long)value);
-			//			}
-			//		}
-			//	}
-			//	return false;
-			//}
-			//if (value is double || value is decimal)
-			//{
-			//	return parameterType == typeof(double)
-			//		|| parameterType == typeof(decimal)
-			//		|| parameterType == typeof(float);
-			//}
-			//if (value is string)
-			//{
-			//	if (parameterType == typeof(Guid))
-			//	{
-			//		return Guid.TryParse((string)value, out Guid guid);
-			//	}
-			//	if (parameterType.GetTypeInfo().IsEnum)
-			//	{
-			//		return Enum.IsDefined(parameterType, value);
-			//	}
-			//}
+
 			try
 			{
-				switch (value.Type)
+				if (value is JToken tokenValue)
 				{
-					case JTokenType.Array:
-						{
-							JsonSerializer serializer = this.GetJsonSerializer();
-							JArray jArray = (JArray)value;
-							convertedValue = jArray.ToObject(parameterType, serializer);
+					switch (tokenValue.Type)
+					{
+						case JTokenType.Array:
+							{
+								JsonSerializer serializer = this.GetJsonSerializer();
+								JArray jArray = (JArray)tokenValue;
+								convertedValue = jArray.ToObject(parameterType, serializer);
+								return true;
+							}
+						case JTokenType.Object:
+							{
+								JsonSerializer serializer = this.GetJsonSerializer();
+								JObject jObject = (JObject)tokenValue;
+								convertedValue = jObject.ToObject(parameterType, serializer);
+								return true;
+							}
+						default:
+							convertedValue = tokenValue.ToObject(parameterType);
 							return true;
-						}
-					case JTokenType.Object:
-						{
-							JsonSerializer serializer = this.GetJsonSerializer();
-							JObject jObject = (JObject)value;
-							convertedValue = jObject.ToObject(parameterType, serializer);
-							return true;
-						}
-					default:
-						convertedValue = value.ToObject(parameterType);
-						return true;
+					}
+				}
+				else
+				{
+					convertedValue = value;
+					return true;
 				}
 			}
 			catch (Exception ex)
@@ -705,10 +641,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <param name="parametersMap">Map of parameter name to parameter value</param>
 		/// <param name="parameterList">Result of converting the map to an ordered list, null if result is False</param>
 		/// <returns>True if the parameters can convert to an ordered list based on the method signature, otherwise Fasle</returns>
-		private bool TryParseParameterList(MethodInfo method, Dictionary<string, JToken> parametersMap, out JToken[] parameterList)
+		private bool TryParseParameterList(MethodInfo method, Dictionary<string, object> parametersMap, out object[] parameterList)
 		{
 			ParameterInfo[] parameterInfoList = method.GetParameters();
-			parameterList = new JObject[parameterInfoList.Count()];
+			parameterList = new object[parameterInfoList.Count()];
 			foreach (ParameterInfo parameterInfo in parameterInfoList)
 			{
 				if (!parametersMap.ContainsKey(parameterInfo.Name) && !parameterInfo.IsOptional)
