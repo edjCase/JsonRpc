@@ -73,12 +73,14 @@ namespace EdjCase.JsonRpc.Core
 
 		public static RpcRequest WithParameterList(string method, IList<object> parameterList, RpcId id = default)
 		{
+			parameterList = parameterList ?? new object[0];
 			RpcParameters parameters = RpcParameters.FromList(parameterList);
 			return RpcRequest.WithParameters(method, parameters, id);
 		}
 
 		public static RpcRequest WithParameterMap(string method, IDictionary<string, object> parameterDictionary, RpcId id = default)
 		{
+			parameterDictionary = parameterDictionary ?? new Dictionary<string, object>();
 			RpcParameters parameters = RpcParameters.FromDictionary(parameterDictionary);
 			return RpcRequest.WithParameters(method, parameters, id);
 		}

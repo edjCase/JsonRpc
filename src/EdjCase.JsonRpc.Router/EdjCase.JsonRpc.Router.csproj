@@ -2,13 +2,13 @@
 
 	<PropertyGroup>
 		<Description>A AspNet Core IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing.</Description>
-		<Version>2.1.0</Version>
+		<Version>2.1.2</Version>
 		<Authors>Gekctek</Authors>
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<AssemblyName>EdjCase.JsonRpc.Router</AssemblyName>
 		<PackageId>EdjCase.JsonRpc.Router</PackageId>
 		<PackageTags>JsonRpc Rpc AspNet Json-Rpc .Net Core</PackageTags>
-		<PackageReleaseNotes>Changing Request Structure</PackageReleaseNotes>
+		<PackageReleaseNotes>Misc fixes</PackageReleaseNotes>
 		<PackageProjectUrl>https://github.com/edjCase/JsonRpc</PackageProjectUrl>
 		<PackageLicenseUrl>https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE</PackageLicenseUrl>
 		<RepositoryType>git</RepositoryType>

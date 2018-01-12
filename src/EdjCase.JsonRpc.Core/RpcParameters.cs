@@ -47,27 +47,38 @@ namespace EdjCase.JsonRpc.Core
 		{
 			this.HasValue = true;
 			this.Type = RpcParametersType.Array;
-			this.Value = parameters;
+			this.Value = parameters ?? new object[0];
 		}
 
 		public RpcParameters(Dictionary<string, object> parameters)
 		{
 			this.HasValue = true;
 			this.Type = RpcParametersType.Dictionary;
-			this.Value = parameters;
+			this.Value = parameters ?? new Dictionary<string, object>();
 		}
 
 		public static RpcParameters Empty => new RpcParameters(new object[0]);
 
 		public static RpcParameters FromList(IList<object> parameters)
 		{
-			return new RpcParameters(parameters.ToArray());
+			return new RpcParameters(parameters?.ToArray());
+		}
+
+		public static RpcParameters From(params object[] parameters)
+		{
+			return new RpcParameters(parameters);
 		}
 
 		public static RpcParameters FromDictionary(IDictionary<string, object> parameters)
 		{
-			return new RpcParameters(parameters.ToDictionary(kv => kv.Key, kv => kv.Value));
+			return new RpcParameters(parameters?.ToDictionary(kv => kv.Key, kv => kv.Value));
 		}
+
+		public static implicit operator RpcParameters(List<object> parameters)
+		{
+			return new RpcParameters(parameters?.ToArray());
+		}
+
 
 		public static implicit operator RpcParameters(object[] parameters)
 		{
