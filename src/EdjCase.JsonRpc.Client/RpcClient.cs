@@ -100,17 +100,27 @@ namespace EdjCase.JsonRpc.Client
 
 		private RpcResponse DeserilizeSingleRequest(string json)
 		{
-			JToken token = JToken.Parse(json);
-			JsonSerializer serializer = JsonSerializer.Create(this.JsonSerializerSettings);
-			switch (token.Type)
+			if (string.IsNullOrWhiteSpace(json))
 			{
-				case JTokenType.Object:
-					RpcResponse response = token.ToObject<RpcResponse>(serializer);
-					return response;
-				case JTokenType.Array:
-					return token.ToObject<List<RpcResponse>>(serializer).SingleOrDefault();
-				default:
-					throw new Exception("Cannot parse rpc response from server.");
+				throw new RpcClientParseException("Server did not return a rpc response, just an empty body.");
+			}
+			try
+			{
+				JToken token = JToken.Parse(json);
+				JsonSerializer serializer = JsonSerializer.Create(this.JsonSerializerSettings);
+				switch (token.Type)
+				{
+					case JTokenType.Object:
+						RpcResponse response = token.ToObject<RpcResponse>(serializer);
+						return response;
+					case JTokenType.Array:
+						return token.ToObject<List<RpcResponse>>(serializer).SingleOrDefault();
+					default:
+						throw new Exception("Cannot parse rpc response from server.");
+				}
+			}catch(Exception ex)
+			{
+				throw new RpcClientParseException($"Unable to parse response from server: '{json}'", ex);
 			}
 		}
 
