@@ -40,23 +40,21 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			switch (compressionType)
 			{
 				case CompressionType.Gzip:
-					using (GZipStream gZipStream = new GZipStream(outputStream, CompressionMode.Compress))
+					using (GZipStream gZipStream = new GZipStream(outputStream, CompressionMode.Compress, leaveOpen: true))
 					{
-						using (StreamWriter streamWriter = new StreamWriter(gZipStream))
-						{
-							streamWriter.Write(text);
-							streamWriter.Flush();
-						}
+						StreamWriter streamWriter = new StreamWriter(gZipStream);
+						streamWriter.Write(text);
+						streamWriter.Flush();
+
 					}
 					break;
 				case CompressionType.Deflate:
-					using (DeflateStream deflateStream = new DeflateStream(outputStream, CompressionMode.Compress))
+					using (DeflateStream deflateStream = new DeflateStream(outputStream, CompressionMode.Compress, leaveOpen: true))
 					{
-						using (StreamWriter streamWriter = new StreamWriter(deflateStream))
-						{
-							streamWriter.Write(text);
-							streamWriter.Flush();
-						}
+						StreamWriter streamWriter = new StreamWriter(deflateStream);
+						streamWriter.Write(text);
+						streamWriter.Flush();
+
 					}
 					break;
 				default:

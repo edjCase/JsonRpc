@@ -13,6 +13,8 @@ using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using EdjCase.JsonRpc.Router.Abstractions;
+using Microsoft.AspNetCore.Http;
+using System.Diagnostics;
 
 namespace EdjCase.JsonRpc.Router.Sample
 {
@@ -59,27 +61,65 @@ namespace EdjCase.JsonRpc.Router.Sample
 		// Configure is called after ConfigureServices is called.
 		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
 		{
-			loggerFactory.AddProvider(new DebugLoggerProvider());
+			loggerFactory
+				.AddDebug()
+				.AddConsole();
 
 			app.UseAuthentication();
 
 			app.Map("/RpcApi", rpcApp =>
 			{
-				rpcApp.UseManualJsonRpc(builder =>
+				rpcApp
+				.Use(this.LogBody)
+				.UseManualJsonRpc(builder =>
 				{
 					builder.RegisterController<RpcMath>();
 					builder.RegisterController<RpcString>("Strings");
 					builder.RegisterController<RpcCommands>("Commands");
 					builder.RegisterController<RpcMath>("Math");
 				});
-			});
-
-			app.UseJsonRpc(builder =>
+			})
+			.Use(this.LogBody)
+			.UseJsonRpc(builder =>
 			{
 				builder.BaseControllerType = typeof(ControllerBase);
 				builder.BaseRequestPath = "Auto";
 			});
 
+		}
+
+		public async Task LogBody(HttpContext context, Func<Task> next)
+		{
+			ILogger<Startup> logger = context.RequestServices.GetRequiredService<ILogger<Startup>>();
+			using (MemoryStream newRequestStream = new MemoryStream())
+			{
+				Stream requestStream = context.Request.Body;
+				context.Request.Body.CopyTo(newRequestStream);
+				newRequestStream.Seek(0, SeekOrigin.Begin);
+				string requestBody = new StreamReader(newRequestStream).ReadToEnd();
+				logger.LogInformation(requestBody);
+
+				newRequestStream.Seek(0, SeekOrigin.Begin);
+				context.Request.Body = newRequestStream;
+
+				using (MemoryStream newBodyStream = new MemoryStream())
+				{
+					Stream bodyStream = context.Response.Body;
+					context.Response.Body = newBodyStream;
+
+					await next();
+
+					newBodyStream.Seek(0, SeekOrigin.Begin);
+
+					StreamReader reader = new StreamReader(newBodyStream);
+					string body = reader.ReadToEnd();
+					logger.LogInformation(body);
+
+					newBodyStream.Seek(0, SeekOrigin.Begin);
+					newBodyStream.CopyTo(bodyStream);
+					context.Response.Body = bodyStream;
+				}
+			}
 		}
 	}
 

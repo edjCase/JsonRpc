@@ -12,6 +12,7 @@ using Newtonsoft.Json;
 using EdjCase.JsonRpc.Router.Utilities;
 using Microsoft.Extensions.Options;
 using EdjCase.JsonRpc.Router.Defaults;
+using Microsoft.AspNetCore.Http;
 
 namespace EdjCase.JsonRpc.Router
 {
@@ -98,10 +99,9 @@ namespace EdjCase.JsonRpc.Router
 				}
 				else
 				{
-					using (StreamReader streamReader = new StreamReader(contentStream))
-					{
-						jsonString = streamReader.ReadToEnd().Trim();
-					}
+					StreamReader streamReader = new StreamReader(contentStream);
+					jsonString = streamReader.ReadToEnd().Trim();
+					
 				}
 
 				var routeContext = DefaultRouteContext.FromHttpContext(context.HttpContext, this.routeProvider);
@@ -135,11 +135,7 @@ namespace EdjCase.JsonRpc.Router
 				}
 				if (!responseSet)
 				{
-					Stream responseStream = context.HttpContext.Response.Body;
-					using (StreamWriter streamWriter = new StreamWriter(responseStream))
-					{
-						await streamWriter.WriteAsync(responseJson);
-					}
+					await context.HttpContext.Response.WriteAsync(responseJson);
 				}
 
 				context.MarkAsHandled();
