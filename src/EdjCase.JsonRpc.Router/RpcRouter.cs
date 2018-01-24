@@ -75,7 +75,12 @@ namespace EdjCase.JsonRpc.Router
 				}
 				else
 				{
-					requestPath = RpcPath.Parse(context.HttpContext.Request.Path.Value);
+					if(!RpcPath.TryParse(context.HttpContext.Request.Path.Value, out requestPath))
+					{
+						this.logger?.LogInformation($"Could not parse the path '{context.HttpContext.Request.Path.Value}' for the " +
+							$"request into an rpc path. Skipping rpc router middleware.");
+						return;
+					}
 				}
 				if (!requestPath.TryRemoveBasePath(this.routeProvider.BaseRequestPath, out requestPath))
 				{

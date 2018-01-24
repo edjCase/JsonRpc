@@ -1,5 +1,6 @@
 ﻿using EdjCase.JsonRpc.Core;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace EdjCase.JsonRpc.Router
@@ -19,32 +20,10 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		private readonly string[] componentsValue;
 
-		private string[] components
-		{
-			get
-			{
-				if (this.componentsValue == null)
-				{
-					return new string[0];
-				}
-				return this.componentsValue;
-			}
-		}
-
-
-
-		/// <param name="path">Url/route path</param>
-		private RpcPath(string path)
-		{
-			this.componentsValue = !string.IsNullOrWhiteSpace(path)
-				? path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries)
-				: new string[0];
-		}
-
 		/// <param name="components">Uri components for the path</param>
-		private RpcPath(params string[] components)
+		private RpcPath(string[] components = null)
 		{
-			this.componentsValue = components ?? throw new ArgumentNullException(nameof(components));
+			this.componentsValue = components ?? new string[0];
 		}
 
 		public static bool operator ==(RpcPath path1, RpcPath path2)
@@ -59,7 +38,15 @@ namespace EdjCase.JsonRpc.Router
 
 		public bool StartsWith(RpcPath other)
 		{
-			if (other.components.Count() > this.components.Count())
+			if ((other.componentsValue?.Length ?? 0) == 0)
+			{
+				return true;
+			}
+			if ((this.componentsValue?.Length ?? 0) == 0)
+			{
+				return false;
+			}
+			if (other.componentsValue.Length > this.componentsValue.Length)
 			{
 				return false;
 			}
@@ -68,7 +55,7 @@ namespace EdjCase.JsonRpc.Router
 
 		public bool Equals(RpcPath other)
 		{
-			if (other.components.Count() != this.components.Count())
+			if ((this.componentsValue?.Length ?? 0) != (other.componentsValue?.Length ?? 0))
 			{
 				return false;
 			}
@@ -77,11 +64,11 @@ namespace EdjCase.JsonRpc.Router
 
 		private bool StartsWithInternal(RpcPath other)
 		{
-			for (int i = 0; i < other.components.Length; i++)
+			for (int i = 0; i < other.componentsValue.Length; i++)
 			{
-				string component = this.components[i];
-				string otherComponent = other.components[i];
-				if (!string.Equals(component, otherComponent, StringComparison.OrdinalIgnoreCase))
+				string component = this.componentsValue[i];
+				string otherComponent = other.componentsValue[i];
+				if (!string.Equals(component, otherComponent))
 				{
 					return false;
 				}
@@ -92,9 +79,9 @@ namespace EdjCase.JsonRpc.Router
 
 		public override bool Equals(object obj)
 		{
-			if (obj is RpcPath)
+			if (obj is RpcPath path)
 			{
-				return this.Equals((RpcPath)obj);
+				return this.Equals(path);
 			}
 			return false;
 		}
@@ -102,11 +89,11 @@ namespace EdjCase.JsonRpc.Router
 		public override int GetHashCode()
 		{
 			int hash = 1337;
-			if (this.components == null)
+			if (this.componentsValue == null)
 			{
 				return 0;
 			}
-			foreach (string component in this.components)
+			foreach (string component in this.componentsValue)
 			{
 				hash = (hash * 7) + component.GetHashCode();
 			}
@@ -118,17 +105,42 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		/// <param name="path">Uri/route path</param>
 		/// <returns>Rpc path based on the path string</returns>
-		public static RpcPath Parse(string path, string basePath = null)
+		public static RpcPath Parse(string path)
 		{
-			if (!string.IsNullOrWhiteSpace(basePath))
+			if (!RpcPath.TryParse(path, out RpcPath rpcPath))
 			{
-				if (!string.IsNullOrWhiteSpace(path))
-				{
-					return new RpcPath(basePath, path);
-				}
-				return new RpcPath(basePath);
+				throw new RpcParseException($"Rpc path could not be parsed from '{path}'.");
 			}
-			return new RpcPath(path);
+			return rpcPath;
+		}
+		/// <summary>
+		/// Creates a <see cref="RpcPath"/> based on the string form of the path
+		/// </summary>
+		/// <param name="path">Uri/route path</param>
+		/// <returns>True if the path parses, otherwise false</returns>
+		public static bool TryParse(string path, out RpcPath rpcPath)
+		{
+			if (string.IsNullOrWhiteSpace(path))
+			{
+				rpcPath = new RpcPath();
+				return true;
+			}
+			else
+			{
+				try
+				{
+					string[] pathComponents = path
+						.ToLower()
+						.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
+					rpcPath = new RpcPath(pathComponents);
+					return true;
+				}
+				catch
+				{
+					rpcPath = default;
+					return false;
+				}
+			}
 		}
 
 		/// <summary>
@@ -138,7 +150,7 @@ namespace EdjCase.JsonRpc.Router
 		/// <returns>A new path that is the full path without the base path</returns>
 		public RpcPath RemoveBasePath(RpcPath basePath)
 		{
-			if(!this.TryRemoveBasePath(basePath, out RpcPath path))
+			if (!this.TryRemoveBasePath(basePath, out RpcPath path))
 			{
 				throw new RpcParseException($"Count not remove path '{basePath}' from path '{this}'.");
 			}
@@ -154,7 +166,7 @@ namespace EdjCase.JsonRpc.Router
 		{
 			if (basePath == default)
 			{
-				path = this;
+				path = this.Clone();
 				return true;
 			}
 			if (!this.StartsWith(basePath))
@@ -162,10 +174,10 @@ namespace EdjCase.JsonRpc.Router
 				path = default;
 				return false;
 			}
-			var newComponents = new string[this.components.Length - basePath.components.Length];
-			if(newComponents.Length > 0)
+			var newComponents = new string[this.componentsValue.Length - basePath.componentsValue.Length];
+			if (newComponents.Length > 0)
 			{
-				Array.Copy(this.components, basePath.components.Length, newComponents, 0, 1);
+				Array.Copy(this.componentsValue, basePath.componentsValue.Length, newComponents, 0, newComponents.Length);
 			}
 			path = new RpcPath(newComponents);
 			return true;
@@ -178,16 +190,40 @@ namespace EdjCase.JsonRpc.Router
 		/// <returns>A new path that is the combination of the two paths</returns>
 		public RpcPath Add(RpcPath other)
 		{
-			int componentCount = this.components.Length + other.components.Length;
+			if (other.componentsValue == null)
+			{
+				return this.Clone();
+			}
+			if (this.componentsValue == null)
+			{
+				return other.Clone();
+			}
+			int componentCount = this.componentsValue.Length + other.componentsValue.Length;
 			string[] newComponents = new string[componentCount];
-			this.components.CopyTo(newComponents, 0);
-			other.components.CopyTo(newComponents, this.components.Length);
+			this.componentsValue.CopyTo(newComponents, 0);
+			other.componentsValue.CopyTo(newComponents, this.componentsValue.Length);
 			return new RpcPath(newComponents);
 		}
 
 		public override string ToString()
 		{
-			return "/" + string.Join("/", this.components);
+			if (this.componentsValue == null)
+			{
+				return "/";
+			}
+			return "/" + string.Join("/", this.componentsValue);
+		}
+
+		public RpcPath Clone()
+		{
+			if (this.componentsValue == null || this.componentsValue.Length == 0)
+			{
+				return new RpcPath();
+			}
+			int componentCount = this.componentsValue.Length;
+			string[] newComponents = new string[componentCount];
+			this.componentsValue.CopyTo(newComponents, 0);
+			return new RpcPath(newComponents);
 		}
 
 		public static implicit operator string(RpcPath path)

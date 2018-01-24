@@ -18,6 +18,9 @@ namespace EdjCase.JsonRpc.Router.Tests
 		[InlineData("/Test/Test2", "Test", false)]
 		[InlineData("/Test/Test2", "Test/Test2", true)]
 		[InlineData("Test", "Test", true)]
+		[InlineData("Test", "test", true)]
+		[InlineData("test", "Test", true)]
+		[InlineData("test/Test", "Test/test", true)]
 		public void ParsePath_DifferentPaths_Valid(string requestUrl, string availableRouteName, bool shouldMatch)
 		{
 			RpcPath requestPath = RpcPath.Parse(requestUrl);
