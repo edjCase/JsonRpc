@@ -110,6 +110,23 @@ namespace EdjCase.JsonRpc.Core
 			return this.Value.GetHashCode();
 		}
 
+		public override string ToString()
+		{
+			if (!this.HasValue)
+			{
+				return string.Empty;
+			}
+			switch (this.Type)
+			{
+				case RpcIdType.Number:
+					return this.NumberValue.ToString();
+				case RpcIdType.String:
+					return $"'{this.StringValue}'";
+				default:
+					throw new ArgumentOutOfRangeException(nameof(this.Type));
+			}
+		}
+
 		public static implicit operator RpcId(double id)
 		{
 			return new RpcId(id);

@@ -175,7 +175,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 			if (request.Id.HasValue)
 			{
-				this.logger?.LogDebug($"Finished request with id '{request.Id}'");
+				this.logger?.LogDebug($"Finished request with id: {request.Id}");
 				//Only give a response if there is an id
 				return rpcResponse;
 			}

@@ -62,8 +62,8 @@ namespace EdjCase.JsonRpc.Router.Sample
 		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
 		{
 			loggerFactory
-				.AddDebug()
-				.AddConsole();
+				.AddDebug(LogLevel.Debug)
+				.AddConsole(LogLevel.Debug);
 
 			app.UseAuthentication();
 
