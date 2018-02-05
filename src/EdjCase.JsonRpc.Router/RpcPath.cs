@@ -55,9 +55,16 @@ namespace EdjCase.JsonRpc.Router
 
 		public bool Equals(RpcPath other)
 		{
-			if ((this.componentsValue?.Length ?? 0) != (other.componentsValue?.Length ?? 0))
+			int thisLength = (this.componentsValue?.Length ?? 0);
+			int otherLength = (other.componentsValue?.Length ?? 0);
+			if (thisLength != otherLength)
 			{
 				return false;
+			}
+			if(thisLength < 1)
+			{
+				//Are equal and both have 0 entries
+				return true;
 			}
 			return this.StartsWithInternal(other);
 		}
