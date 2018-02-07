@@ -397,7 +397,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 			catch (TargetInvocationException ex)
 			{
-				var routeInfo = new RpcRouteInfo(methodInfo, path);
+				var routeInfo = new RpcRouteInfo(methodInfo, path, serviceProvider);
 
 				//Controller error handling
 				RpcErrorFilterAttribute errorFilter = methodInfo.Method.DeclaringType.GetTypeInfo().GetCustomAttribute<RpcErrorFilterAttribute>();

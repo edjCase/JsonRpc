@@ -11,11 +11,13 @@ namespace EdjCase.JsonRpc.Router
 	{
 		public RpcMethodInfo MethodInfo { get; }
 		public RpcPath Path { get; }
+		public IServiceProvider RequestServices { get; }
 
-		internal RpcRouteInfo(RpcMethodInfo methodInfo, RpcPath path)
+		internal RpcRouteInfo(RpcMethodInfo methodInfo, RpcPath path, IServiceProvider requestServices)
 		{
 			this.MethodInfo = methodInfo;
 			this.Path = path;
+			this.RequestServices = requestServices;
 		}
 	}
 }
