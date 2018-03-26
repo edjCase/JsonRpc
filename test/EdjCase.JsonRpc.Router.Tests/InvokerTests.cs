@@ -119,8 +119,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.NotNull(resultResponse.Result);
-			Assert.Equal(JTokenType.Integer, resultResponse.Result.Type);
-			Assert.Equal(1, resultResponse.Result.Value<int>());
+			Assert.Equal(1, resultResponse.Result);
 		}
 
 		[Fact]
@@ -135,8 +134,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.NotNull(resultResponse.Result);
-			Assert.Equal(JTokenType.Integer, resultResponse.Result.Type);
-			Assert.Equal(1, resultResponse.Result.Value<int>());
+			Assert.Equal(1, resultResponse.Result);
 		}
 
 		[Fact]
@@ -170,8 +168,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.NotNull(resultResponse.Result);
-			Assert.Equal(JTokenType.String, resultResponse.Result.Type);
-			Assert.Equal("Test", resultResponse.Result.Value<string>());
+			Assert.Equal("Test", resultResponse.Result);
 		}
 	}
 	

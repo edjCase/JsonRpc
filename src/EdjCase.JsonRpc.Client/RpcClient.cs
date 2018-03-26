@@ -29,11 +29,6 @@ namespace EdjCase.JsonRpc.Client
 		/// </summary>
 		public Func<Task<AuthenticationHeaderValue>> AuthHeaderValueFactory { get; set; }
 		/// <summary>
-		/// Json serialization settings that will be used in serialization and deserialization
-		/// for rpc requests
-		/// </summary>
-		public JsonSerializerSettings JsonSerializerSettings { get; set; }
-		/// <summary>
 		/// Request encoding type for json content. If null, will default to UTF-8 
 		/// </summary>
 		public Encoding Encoding { get; set; }
@@ -45,21 +40,23 @@ namespace EdjCase.JsonRpc.Client
 		/// Add headers to the underlying http client
 		/// </summary>
 		public List<KeyValuePair<string, string>> Headers { get; set; }
-
-		private JsonSerializer jsonSerializerCache { get; set; }
+		/// <summary>
+		/// Json serializer for serializing requests and deserializing responses
+		/// </summary>
+		public IJsonSerializer JsonSerializer { get; }
 
 		/// <param name="baseUrl">Base url for the rpc server</param>
 		/// <param name="authHeaderValue">Http authentication header for rpc request</param>
-		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
+		/// <param name="jsonSerializer">(Optional) Json serializer for serializing requests and deserializing responses. Defaults to built in serializer</param>
 		/// <param name="encoding">(Optional)Encoding type for request. Defaults to UTF-8</param>
 		/// <param name="contentType">(Optional)Content type header for the request. Defaults to application/json</param>
 		/// <param name="headers">(Optional)Extra headers</param>
-		public RpcClient(Uri baseUrl, AuthenticationHeaderValue authHeaderValue = null, JsonSerializerSettings jsonSerializerSettings = null,
+		public RpcClient(Uri baseUrl, AuthenticationHeaderValue authHeaderValue = null, IJsonSerializer jsonSerializer = null,
 			Encoding encoding = null, string contentType = null, List<KeyValuePair<string, string>> headers = null)
 		{
 			this.BaseUrl = baseUrl;
 			this.AuthHeaderValueFactory = () => Task.FromResult(authHeaderValue);
-			this.JsonSerializerSettings = jsonSerializerSettings;
+			this.JsonSerializer = jsonSerializer ?? new DefaultJsonSerializer();
 			this.Encoding = encoding;
 			this.ContentType = contentType;
 			this.Headers = headers;
@@ -67,21 +64,20 @@ namespace EdjCase.JsonRpc.Client
 
 		/// <param name="baseUrl">Base url for the rpc server</param>
 		/// <param name="authHeaderValueFactory">Http authentication header factory for rpc request</param>
-		/// <param name="jsonSerializerSettings">Json serialization settings that will be used in serialization and deserialization for rpc requests</param>
+		/// <param name="jsonSerializer">(Optional) Json serializer for serializing requests and deserializing responses. Defaults to built in serializer</param>
 		/// <param name="encoding">(Optional)Encoding type for request. Defaults to UTF-8</param>
 		/// <param name="contentType">(Optional)Content type header for the request. Defaults to application/json</param>
 		/// <param name="headers">(Optional)Extra headers</param>
-		public RpcClient(Uri baseUrl, Func<Task<AuthenticationHeaderValue>> authHeaderValueFactory = null, JsonSerializerSettings jsonSerializerSettings = null,
+		public RpcClient(Uri baseUrl, Func<Task<AuthenticationHeaderValue>> authHeaderValueFactory, IJsonSerializer jsonSerializer = null,
 			Encoding encoding = null, string contentType = null, List<KeyValuePair<string, string>> headers = null)
 		{
 			this.BaseUrl = baseUrl;
 			this.AuthHeaderValueFactory = authHeaderValueFactory;
-			this.JsonSerializerSettings = jsonSerializerSettings;
+			this.JsonSerializer = jsonSerializer ?? new DefaultJsonSerializer();
 			this.Encoding = encoding;
 			this.ContentType = contentType;
 			this.Headers = headers;
 		}
-
 
 		/// <summary>
 		/// Sends the specified rpc request to the server
@@ -95,34 +91,10 @@ namespace EdjCase.JsonRpc.Client
 			{
 				throw new ArgumentNullException(nameof(request));
 			}
-			return await this.SendAsync(request, this.DeserilizeSingleRequest, route).ConfigureAwait(false);
+			return (await this.SendAsync(new[] { request }, route).ConfigureAwait(false)).SingleOrDefault();
 		}
 
-		private RpcResponse DeserilizeSingleRequest(string json)
-		{
-			if (string.IsNullOrWhiteSpace(json))
-			{
-				throw new RpcClientParseException("Server did not return a rpc response, just an empty body.");
-			}
-			try
-			{
-				JToken token = JToken.Parse(json);
-				JsonSerializer serializer = JsonSerializer.Create(this.JsonSerializerSettings);
-				switch (token.Type)
-				{
-					case JTokenType.Object:
-						RpcResponse response = token.ToObject<RpcResponse>(serializer);
-						return response;
-					case JTokenType.Array:
-						return token.ToObject<List<RpcResponse>>(serializer).SingleOrDefault();
-					default:
-						throw new Exception("Cannot parse rpc response from server.");
-				}
-			}catch(Exception ex)
-			{
-				throw new RpcClientParseException($"Unable to parse response from server: '{json}'", ex);
-			}
-		}
+
 
 		/// <summary>
 		/// Sends the specified rpc request to the server (Wrapper for other SendRequestAsync)
@@ -188,23 +160,7 @@ namespace EdjCase.JsonRpc.Client
 				throw new ArgumentNullException(nameof(requests));
 			}
 			List<RpcRequest> requestList = requests.ToList();
-			return await this.SendAsync(requestList, this.DeserilizeBulkRequests, route).ConfigureAwait(false);
-		}
-
-		private List<RpcResponse> DeserilizeBulkRequests(string json)
-		{
-			JToken token = JToken.Parse(json);
-			JsonSerializer serializer = JsonSerializer.Create(this.JsonSerializerSettings);
-			switch (token.Type)
-			{
-				case JTokenType.Object:
-					RpcResponse response = token.ToObject<RpcResponse>(serializer);
-					return new List<RpcResponse> { response };
-				case JTokenType.Array:
-					return token.ToObject<List<RpcResponse>>(serializer);
-				default:
-					throw new Exception("Cannout deserilize rpc response from server.");
-			}
+			return await this.SendAsync(requestList, route).ConfigureAwait(false);
 		}
 
 		/// <summary>
@@ -214,36 +170,48 @@ namespace EdjCase.JsonRpc.Client
 		/// <param name="deserializer">Function to deserialize the json response</param>
 		/// <param name="route">(Optional) Route that will append to the base url if the request method call is not located at the base route</param>
 		/// <returns>The response for the sent request</returns>
-		private async Task<TResponse> SendAsync<TRequest, TResponse>(TRequest request, Func<string, TResponse> deserializer, string route = null)
+		private async Task<List<RpcResponse>> SendAsync(IList<RpcRequest> requests, string route = null)
 		{
+			if (!requests.Any())
+			{
+				throw new ArgumentException("There must be at least one rpc request when sending.");
+			}
 			try
 			{
 				using (HttpClient httpClient = await this.GetHttpClientAsync())
 				{
 					httpClient.BaseAddress = this.BaseUrl;
-
-					string rpcRequestJson = JsonConvert.SerializeObject(request, this.JsonSerializerSettings);
+					string rpcRequestJson;
+					if (requests.Count == 1)
+					{
+						rpcRequestJson = this.JsonSerializer.SerializeBulk(requests);
+					}
+					else
+					{
+						rpcRequestJson = this.JsonSerializer.Serialize(requests.Single());
+					}
 					HttpContent httpContent = new StringContent(rpcRequestJson, this.Encoding ?? Encoding.UTF8, this.ContentType ?? "application/json");
 					HttpResponseMessage httpResponseMessage = await httpClient.PostAsync(route, httpContent).ConfigureAwait(false);
 					httpResponseMessage.EnsureSuccessStatusCode();
 
-					string responseJson = null;
-					try
-					{
-						responseJson = await this.HandleResponse(httpResponseMessage);
-					}
-					catch (JsonSerializationException)
-					{
-						throw new RpcClientUnknownException($"Unable to decode response from the rpc server. Response Json: {responseJson}");
-					}
+					string responseJson = await this.HandleResponse(httpResponseMessage);
 
+					if (string.IsNullOrWhiteSpace(responseJson))
+					{
+						throw new RpcClientParseException("Server did not return a rpc response, just an empty body.");
+					}
 					try
 					{
-						return deserializer(responseJson);
+						if (requests.Count == 1)
+						{
+							RpcResponse response = this.JsonSerializer.Deserialize(responseJson);
+							return new List<RpcResponse> { response };
+						}
+						return this.JsonSerializer.DeserializeBulk(responseJson);
 					}
-					catch (JsonSerializationException)
+					catch (Exception ex)
 					{
-						throw new RpcClientUnknownException($"Unable to parse response from the rpc server. Response Json: {responseJson}");
+						throw new RpcClientParseException($"Unable to parse response from server: '{responseJson}'", ex);
 					}
 				}
 			}
@@ -335,26 +303,28 @@ namespace EdjCase.JsonRpc.Client
 			}
 		}
 
-		private JsonSerializer GetJsonSerializer()
+		public static RpcClient CreateUnauthenticated(Uri baseUrl, IJsonSerializer jsonSerializer = null)
 		{
-			if(this.jsonSerializerCache == null)
-			{
-				if(this.JsonSerializerSettings != null)
-				{
-					this.jsonSerializerCache = JsonSerializer.Create(this.JsonSerializerSettings);
-				}
-				else
-				{
-					this.jsonSerializerCache = JsonSerializer.CreateDefault();
-				}
-			}
-			return this.jsonSerializerCache;
+			return new RpcClient(baseUrl);
 		}
 
-		public enum CompressionType
+		public static RpcClient CreateWithBearerAuth(Uri baseUrl, string bearerToken, IJsonSerializer jsonSerializer = null)
 		{
-			Gzip,
-			Deflate
+			var authHeaderValue = AuthenticationHeaderValue.Parse("Bearer " + bearerToken);
+			return new RpcClient(baseUrl, authHeaderValue);
+		}
+
+		public static RpcClient CreateWithBasicAuth(Uri baseUrl, string username, string password, IJsonSerializer jsonSerializer = null)
+		{
+			byte[] headerBytes = Encoding.UTF8.GetBytes(username + ":" + password);
+			string a = Convert.ToBase64String(headerBytes);
+			var authHeaderValue = AuthenticationHeaderValue.Parse("Basic ");
+			return new RpcClient(baseUrl, authHeaderValue);
+		}
+
+		public static IJsonSerializer CreateSerializerWithSettings(JsonSerializerSettings serializerSettings)
+		{
+			return new DefaultJsonSerializer(serializerSettings);
 		}
 	}
 }

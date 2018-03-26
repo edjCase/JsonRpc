@@ -15,6 +15,12 @@ using System.Threading.Tasks;
 using EdjCase.JsonRpc.Router.Abstractions;
 using Microsoft.AspNetCore.Http;
 using System.Diagnostics;
+using Microsoft.ApplicationInsights.Extensibility.Implementation;
+using Microsoft.Extensions.Configuration;
+using System.Net.WebSockets;
+using System.Threading;
+using EdjCase.JsonRpc.Router.Defaults;
+using EdjCase.JsonRpc.Router.RouteProviders;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore;
 
@@ -63,30 +69,77 @@ namespace EdjCase.JsonRpc.Router.Sample
 		// Configure is called after ConfigureServices is called.
 		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
 		{
-			loggerFactory
-				.AddDebug(LogLevel.Debug)
-				.AddConsole(LogLevel.Debug);
+			//loggerFactory
+			//	.AddDebug(LogLevel.Debug)
+			//	.AddConsole(LogLevel.Debug);
 
-			app.UseAuthentication();
+			//app.UseAuthentication();
 
-			app.Map("/RpcApi", rpcApp =>
-			{
-				rpcApp
-				.Use(this.LogBody)
-				.UseManualJsonRpc(builder =>
+			//app.Map("/RpcApi", rpcApp =>
+			//{
+			//	rpcApp
+			//	//.Use(this.LogBody)
+			//	.UseManualJsonRpc(builder =>
+			//	{
+			//		builder.RegisterController<RpcMath>();
+			//		builder.RegisterController<RpcString>("Strings");
+			//		builder.RegisterController<RpcCommands>("Commands");
+			//		builder.RegisterController<RpcMath>("Math");
+			//	});
+			//})
+			//.Use(this.LogBody)
+			//app
+			//.UseJsonRpc(builder =>
+			//{
+			//	builder.BaseControllerType = typeof(ControllerBase);
+			//	builder.BaseRequestPath = "Auto";
+			//});
+			app.UseWebSockets()
+				.Use(async (context, next) =>
 				{
-					builder.RegisterController<RpcMath>();
-					builder.RegisterController<RpcString>("Strings");
-					builder.RegisterController<RpcCommands>("Commands");
-					builder.RegisterController<RpcMath>("Math");
+					if (!context.WebSockets.IsWebSocketRequest)
+					{
+						await next();
+						return;
+					}
+					var scopeFactory = context.RequestServices.GetRequiredService<IServiceScopeFactory>();
+					using (WebSocket socket = await context.WebSockets.AcceptWebSocketAsync())
+					{
+						while (socket.State == WebSocketState.Open)
+						{
+							var buffer = new ArraySegment<byte>(new byte[1024]);
+
+							WebSocketReceiveResult result = await socket.ReceiveAsync(buffer, CancellationToken.None);
+							while (!result.EndOfMessage)
+							{
+								result = await socket.ReceiveAsync(buffer, CancellationToken.None);
+							}
+
+							switch (result.MessageType)
+							{
+								case WebSocketMessageType.Binary:
+									throw new NotImplementedException();
+								case WebSocketMessageType.Text:
+									using (IServiceScope scope = scopeFactory.CreateScope())
+									{
+										string jsonString = Encoding.UTF8.GetString(buffer.ToArray());
+
+										//var routeProvider = scope.ServiceProvider.GetRequiredService<IRpcRouteProvider>();
+										var routeProvider = new RpcAutoRouteProvider(new RpcAutoRoutingOptions { BaseControllerType = typeof(ControllerBase) });
+										var requestHandler = scope.ServiceProvider.GetRequiredService<IRpcRequestHandler>();
+										var routeContext = new DefaultRouteContext(scope.ServiceProvider, context.User, routeProvider);
+										string responseJson = await requestHandler.HandleRequestAsync(RpcPath.Default, jsonString, routeContext);
+										byte[] responseBytes = Encoding.UTF8.GetBytes(responseJson);
+										await socket.SendAsync(new ArraySegment<byte>(responseBytes), WebSocketMessageType.Text, true, CancellationToken.None);
+									}
+									break;
+								case WebSocketMessageType.Close:
+									return;
+							}
+						}
+					}
+
 				});
-			})
-			.Use(this.LogBody)
-			.UseJsonRpc(builder =>
-			{
-				builder.BaseControllerType = typeof(ControllerBase);
-				builder.BaseRequestPath = "Auto";
-			});
 
 		}
 

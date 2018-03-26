@@ -1,14 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<Version>2.1.3</Version>
+		<Version>3.0.0-pre-001</Version>
 		<Description>A .Net Core Client implementation for Json Rpc v2 requests.</Description>
 		<Authors>Gekctek</Authors>
 		<TargetFrameworks>netstandard2.0;netstandard1.1</TargetFrameworks>
 		<AssemblyName>EdjCase.JsonRpc.Client</AssemblyName>
 		<PackageId>EdjCase.JsonRpc.Client</PackageId>
 		<PackageTags>JsonRpc Rpc Json-Rpc .Net Core</PackageTags>
-		<PackageReleaseNotes>Fixing 'RpcId' ToString override</PackageReleaseNotes>
+		<PackageReleaseNotes>Overhauling everything, focusing on performance</PackageReleaseNotes>
 		<PackageProjectUrl>https://github.com/edjCase/JsonRpc</PackageProjectUrl>
 		<PackageLicenseUrl>https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE</PackageLicenseUrl>
 		<RepositoryType>git</RepositoryType>
@@ -20,7 +20,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
-		<PackageReference Include="System.Net.Http" Version="4.3.1" />
+		<PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+		<PackageReference Include="System.Net.Http" Version="4.3.3" />
+		<PackageReference Include="System.ValueTuple" Version="4.3.1" />
 	</ItemGroup>
 </Project>

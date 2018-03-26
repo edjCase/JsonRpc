@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using EdjCase.JsonRpc.Router.RouteProviders;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 // ReSharper disable once CheckNamespace
 namespace Microsoft.AspNetCore.Builder
@@ -101,14 +102,21 @@ namespace Microsoft.AspNetCore.Builder
 			RpcServerConfiguration configuration = new RpcServerConfiguration();
 			configureOptions?.Invoke(configuration);
 
+			serviceCollection
+				.TryAddSingleton<IRpcInvoker, DefaultRpcInvoker>();
+			serviceCollection
+				.TryAddSingleton<IRpcParser, DefaultRpcParser>();
+			serviceCollection
+				.TryAddSingleton<IRpcRequestHandler, RpcRequestHandler>();
+			serviceCollection
+				.TryAddSingleton<IRpcCompressor, DefaultRpcCompressor>();
+			serviceCollection
+				.TryAddSingleton<IRpcResponseSerializer, DefaultRpcResponseSerializer>();
+
 			return serviceCollection
 				.AddRouting()
 				.AddAuthorization()
-				.Configure<RpcServerConfiguration>(configureOptions ?? (options => { }))
-				.AddScoped<IRpcInvoker, DefaultRpcInvoker>()
-				.AddScoped<IRpcParser, DefaultRpcParser>()
-				.AddScoped<IRpcRequestHandler, RpcRequestHandler>()
-				.AddScoped<IRpcCompressor, DefaultRpcCompressor>();
+				.Configure(configureOptions ?? (options => { }));
 		}
 	}
 }

@@ -2,13 +2,13 @@
 
 	<PropertyGroup>
 		<Description>The core library used by JsonRpc client/router.</Description>
-		<Version>2.1.3</Version>
+		<Version>3.0.0-pre-001</Version>
 		<Authors>Gekctek</Authors>
 		<TargetFrameworks>netstandard2.0;netstandard1.1</TargetFrameworks>
 		<AssemblyName>EdjCase.JsonRpc.Core</AssemblyName>
 		<PackageId>EdjCase.JsonRpc.Core</PackageId>
 		<PackageTags>JsonRpc Rpc Json-Rpc .Net Core</PackageTags>
-		<PackageReleaseNotes>Fixing 'RpcId' ToString override</PackageReleaseNotes>
+		<PackageReleaseNotes>Overhauling everything, focusing on performance</PackageReleaseNotes>
 		<PackageProjectUrl>https://github.com/edjCase/JsonRpc</PackageProjectUrl>
 		<PackageLicenseUrl>https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE</PackageLicenseUrl>
 		<RepositoryType>git</RepositoryType>
@@ -16,8 +16,4 @@
 		<RepositoryUrl>https://github.com/edjCase/JsonRpc</RepositoryUrl>
 		<LangVersion>latest</LangVersion>
 	</PropertyGroup>
-	
-	<ItemGroup>
-		<PackageReference Include="Newtonsoft.Json" Version="10.0.1" />
-	</ItemGroup>
 </Project>

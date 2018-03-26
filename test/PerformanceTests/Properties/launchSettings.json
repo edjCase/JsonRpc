@@ -10,18 +10,18 @@
 	"profiles": {
 		"IIS Express": {
 			"commandName": "IISExpress",
+			"launchBrowser": false,
 			"environmentVariables": {
-				"ASPNETCORE_URLS": "http://*:5000",
 				"ASPNETCORE_ENVIRONMENT": "Development"
 			}
 		},
-		"Web": {
+		"PerformanceTests": {
 			"commandName": "Project",
 			"launchBrowser": false,
 			"environmentVariables": {
-				"ASPNETCORE_URLS": "http://*:5000",
 				"ASPNETCORE_ENVIRONMENT": "Development"
-			}
+			},
+			"applicationUrl": "http://localhost:5000/"
 		}
 	}
 }

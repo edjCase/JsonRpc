@@ -1,6 +1,7 @@
 ﻿using System;
 using EdjCase.JsonRpc.Core;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace EdjCase.JsonRpc.Client
 {
@@ -19,7 +20,7 @@ namespace EdjCase.JsonRpc.Client
 			response.ThrowErrorIfExists();
 			if (response.Result == null)
 			{
-				if(!returnDefaultIfNull && default(T) != null)
+				if (!returnDefaultIfNull && default(T) != null)
 				{
 					throw new RpcClientParseException($"Unable to convert the result (null) to type '{typeof(T)}'");
 				}
@@ -27,14 +28,21 @@ namespace EdjCase.JsonRpc.Client
 			}
 			try
 			{
-				if(settings == null)
+				if (response.Result is JToken jToken)
 				{
-					return response.Result.ToObject<T>();
+					if (settings == null)
+					{
+						return jToken.ToObject<T>();
+					}
+					else
+					{
+						JsonSerializer jsonSerializer = JsonSerializer.Create(settings);
+						return jToken.ToObject<T>(jsonSerializer);
+					}
 				}
 				else
 				{
-					JsonSerializer jsonSerializer = JsonSerializer.Create(settings);
-					return response.Result.ToObject<T>(jsonSerializer);
+					return (T)response.Result;
 				}
 			}
 			catch (Exception ex)

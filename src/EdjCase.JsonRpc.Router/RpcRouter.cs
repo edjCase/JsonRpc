@@ -83,17 +83,28 @@ namespace EdjCase.JsonRpc.Router
 				}
 				logger?.LogInformation($"Rpc request route '{requestPath}' matched.");
 
-				Stream contentStream = context.HttpContext.Request.Body;
-
 				string jsonString;
-				if (contentStream == null)
+				if (context.HttpContext.Request.Body == null)
 				{
 					jsonString = null;
 				}
 				else
 				{
-					StreamReader streamReader = new StreamReader(contentStream);
-					jsonString = streamReader.ReadToEnd().Trim();
+					using (StreamReader streamReader = new StreamReader(context.HttpContext.Request.Body, Encoding.UTF8,
+						detectEncodingFromByteOrderMarks: true,
+						bufferSize: 1024,
+						leaveOpen: true))
+					{
+						try
+						{
+							jsonString = await streamReader.ReadToEndAsync();
+						}
+						catch (TaskCanceledException ex)
+						{
+							throw new RpcCanceledRequestException("Cancelled while reading the request.", ex);
+						}
+						jsonString = jsonString.Trim();
+					}
 
 				}
 

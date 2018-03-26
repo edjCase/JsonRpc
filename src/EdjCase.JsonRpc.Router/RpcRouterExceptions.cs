@@ -12,7 +12,7 @@ namespace EdjCase.JsonRpc.Router
 	public abstract class RpcRouterException : Exception
 	{
 		/// <param name="message">Error message</param>
-		protected RpcRouterException(string message) : base(message)
+		protected RpcRouterException(string message, Exception ex = null) : base(message, ex)
 		{
 		}
 	}
@@ -20,11 +20,22 @@ namespace EdjCase.JsonRpc.Router
 	/// <summary>
 	/// Exception for bad configuration of the Rpc server
 	/// </summary>
-	//Not a request exception so it is not an `RpcException`
+	//Not a response exception so it is not an `RpcException`
 	public class RpcConfigurationException : RpcRouterException
 	{
 		/// <param name="message">Error message</param>
 		public RpcConfigurationException(string message) : base(message)
+		{
+		}
+	}
+	/// <summary>
+	/// Exception for a canceled rpc request
+	/// </summary>
+	//Not a response exception so it is not an `RpcException`
+	public class RpcCanceledRequestException : RpcRouterException
+	{
+		/// <param name="message">Error message</param>
+		public RpcCanceledRequestException(string message, Exception ex = null) : base(message, ex)
 		{
 		}
 	}

@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
 using EdjCase.JsonRpc.Router.Criteria;
+using System.Collections.Concurrent;
 
 namespace EdjCase.JsonRpc.Router.Defaults
 {
@@ -60,6 +61,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			return this.jsonSerializerCache;
 		}
 
+		private ConcurrentDictionary<Type, ObjectFactory> objectFactoryCache { get; } = new ConcurrentDictionary<Type, ObjectFactory>();
+		private ConcurrentDictionary<Type, (List<IAuthorizeData>, bool)> classAttributeCache { get; } = new ConcurrentDictionary<Type, (List<IAuthorizeData>, bool)>();
+		private ConcurrentDictionary<MethodInfo, (List<IAuthorizeData>, bool)> methodAttributeCache { get; } = new ConcurrentDictionary<MethodInfo, (List<IAuthorizeData>, bool)>();
+
 
 		/// <param name="authorizationService">Service that authorizes each method for use if configured</param>
 		/// <param name="policyProvider">Provides authorization policies for the authroziation service</param>
@@ -83,13 +88,13 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <param name="path">Rpc path that applies to the current request</param>
 		/// <param name="httpContext">The context of the current http request</param>
 		/// <returns>List of Rpc responses for the requests</returns>
-		public async Task<List<RpcResponse>> InvokeBatchRequestAsync(List<RpcRequest> requests, RpcPath path, IRouteContext routeContext)
+		public async Task<List<RpcResponse>> InvokeBatchRequestAsync(IList<RpcRequest> requests, RpcPath path, IRouteContext routeContext)
 		{
 			this.logger?.LogDebug($"Invoking '{requests.Count}' batch requests");
 			var invokingTasks = new List<Task<RpcResponse>>();
 			foreach (RpcRequest request in requests)
 			{
-				Task<RpcResponse> invokingTask = Task.Run(async () => await this.InvokeRequestAsync(request, path, routeContext));
+				Task<RpcResponse> invokingTask = this.InvokeRequestAsync(request, path, routeContext);
 				if (request.Id.HasValue)
 				{
 					//Only wait for non-notification requests
@@ -118,27 +123,15 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <returns>An Rpc response for the request</returns>
 		public async Task<RpcResponse> InvokeRequestAsync(RpcRequest request, RpcPath path, IRouteContext routeContext)
 		{
-			try
+			if (request == null)
 			{
-				if (request == null)
-				{
-					throw new ArgumentNullException(nameof(request));
-				}
-			}
-			catch (ArgumentNullException ex) // Dont want to throw any exceptions when doing async requests
-			{
-				return this.GetUnknownExceptionReponse(request, ex);
+				throw new ArgumentNullException(nameof(request));
 			}
 
 			this.logger?.LogDebug($"Invoking request with id '{request.Id}'");
 			RpcResponse rpcResponse;
 			try
 			{
-				if (!string.Equals(request.JsonRpcVersion, JsonRpcContants.JsonRpcVersion))
-				{
-					throw new RpcInvalidRequestException($"Request must be jsonrpc version '{JsonRpcContants.JsonRpcVersion}'");
-				}
-
 				RpcMethodInfo rpcMethod = this.GetMatchingMethod(path, request, routeContext.RouteProvider, routeContext.RequestServices);
 
 				bool isAuthorized = await this.IsAuthorizedAsync(rpcMethod.Method, routeContext);
@@ -150,17 +143,15 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					object result = await this.InvokeAsync(rpcMethod, path, routeContext.RequestServices);
 					this.logger?.LogDebug($"Finished invoking method '{request.Method}'");
 
-					JsonSerializer jsonSerializer = this.GetJsonSerializer();
 					if (result is IRpcMethodResult)
 					{
 						this.logger?.LogTrace($"Result is {nameof(IRpcMethodResult)}.");
-						rpcResponse = ((IRpcMethodResult)result).ToRpcResponse(request.Id, obj => JToken.FromObject(obj, jsonSerializer));
+						rpcResponse = ((IRpcMethodResult)result).ToRpcResponse(request.Id);
 					}
 					else
 					{
 						this.logger?.LogTrace($"Result is plain object.");
-						JToken resultJToken = result != null ? JToken.FromObject(result, jsonSerializer) : null;
-						rpcResponse = new RpcResponse(request.Id, resultJToken);
+						rpcResponse = new RpcResponse(request.Id, result);
 					}
 				}
 				else
@@ -169,15 +160,20 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					rpcResponse = new RpcResponse(request.Id, authError);
 				}
 			}
-			catch (RpcException ex)
-			{
-				this.logger?.LogException(ex, "An Rpc error occurred. Returning an Rpc error response");
-				RpcError error = new RpcError(ex, this.serverConfig.Value.ShowServerExceptions);
-				rpcResponse = new RpcResponse(request.Id, error);
-			}
 			catch (Exception ex)
 			{
-				rpcResponse = this.GetUnknownExceptionReponse(request, ex);
+				string errorMessage = "An Rpc error occurred while trying to invoke request.";
+				this.logger?.LogException(ex, errorMessage);
+				RpcError error;
+				if (ex is RpcException rpcException)
+				{
+					error = rpcException.ToRpcError();
+				}
+				else
+				{
+					error = new RpcError(RpcErrorCode.InternalError, errorMessage, ex);
+				}
+				rpcResponse = new RpcResponse(request.Id, error);
 			}
 
 			if (request.Id.HasValue)
@@ -192,15 +188,11 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 		private async Task<bool> IsAuthorizedAsync(MethodInfo methodInfo, IRouteContext routeContext)
 		{
-			IEnumerable<Attribute> customClassAttributes = methodInfo.DeclaringType.GetTypeInfo().GetCustomAttributes();
-			List<IAuthorizeData> authorizeDataListClass = customClassAttributes.OfType<IAuthorizeData>().ToList();
-			IEnumerable<Attribute> customMethodAttributes = methodInfo.GetCustomAttributes();
-			List<IAuthorizeData> authorizeDataListMethod = customMethodAttributes.OfType<IAuthorizeData>().ToList();
+			(List<IAuthorizeData> authorizeDataListClass, bool allowAnonymousOnClass) = this.classAttributeCache.GetOrAdd(methodInfo.DeclaringType, GetClassAttributeInfo);
+			(List<IAuthorizeData> authorizeDataListMethod, bool allowAnonymousOnMethod) = this.methodAttributeCache.GetOrAdd(methodInfo, GetMethodAttributeInfo);
 
 			if (authorizeDataListClass.Any() || authorizeDataListMethod.Any())
 			{
-				bool allowAnonymousOnClass = customClassAttributes.OfType<IAllowAnonymous>().Any();
-				bool allowAnonymousOnMethod = customMethodAttributes.OfType<IAllowAnonymous>().Any();
 				if (allowAnonymousOnClass || allowAnonymousOnMethod)
 				{
 					this.logger?.LogDebug("Skipping authorization. Allow anonymous specified for method.");
@@ -230,6 +222,34 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				this.logger?.LogDebug("Skipping authorization. None configured for class or method.");
 			}
 			return true;
+
+			//functions
+			(List<IAuthorizeData> Data, bool allowAnonymous) GetClassAttributeInfo(Type type)
+			{
+				return GetAttributeInfo(type.GetCustomAttributes());
+			}
+
+			(List<IAuthorizeData> Data, bool allowAnonymous) GetMethodAttributeInfo(MethodInfo info)
+			{
+				return GetAttributeInfo(info.GetCustomAttributes());
+			}
+			(List<IAuthorizeData> Data, bool allowAnonymous) GetAttributeInfo(IEnumerable<Attribute> attributes)
+			{
+				bool allowAnonymous = false;
+				var dataList = new List<IAuthorizeData>(10);
+				foreach (Attribute attribute in attributes)
+				{
+					if (attribute is IAuthorizeData data)
+					{
+						dataList.Add(data);
+					}
+					if (!allowAnonymous && attribute is IAllowAnonymous)
+					{
+						allowAnonymous = true;
+					}
+				}
+				return (dataList, allowAnonymous);
+			}
 		}
 
 		private async Task<AuthorizationResult> CheckAuthorize(List<IAuthorizeData> authorizeDataList, IRouteContext routeContext)
@@ -242,25 +262,6 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			return await this.authorizationService.AuthorizeAsync(routeContext.User, policy);
 		}
 
-		/// <summary>
-		/// Converts an unknown caught exception into a Rpc response
-		/// </summary>
-		/// <param name="request">Current Rpc request</param>
-		/// <param name="ex">Unknown exception</param>
-		/// <returns>Rpc error response from the exception</returns>
-		private RpcResponse GetUnknownExceptionReponse(RpcRequest request, Exception ex)
-		{
-			this.logger?.LogException(ex, "An unknown error occurred. Returning an Rpc error response");
-
-			RpcUnknownException exception = new RpcUnknownException("An internal server error has occurred", ex);
-			RpcError error = new RpcError(exception, this.serverConfig.Value.ShowServerExceptions);
-			if (request?.Id == null)
-			{
-				return null;
-			}
-			RpcResponse rpcResponse = new RpcResponse(request.Id, error);
-			return rpcResponse;
-		}
 
 		/// <summary>
 		/// Finds the matching Rpc method for the current request
@@ -313,8 +314,9 @@ namespace EdjCase.JsonRpc.Router.Defaults
 						.ToList();
 					if (potentialMatches.Count != 1)
 					{
-						this.logger?.LogError("More than one method matched the rpc request. Unable to invoke due to ambiguity.");
-						throw new RpcMethodNotFoundException();
+						const string errorMessage = "More than one method matched the rpc request. Unable to invoke due to ambiguity.";
+						this.logger?.LogError(errorMessage);
+						throw new RpcException(RpcErrorCode.MethodNotFound, errorMessage);
 					}
 				}
 			}
@@ -348,8 +350,9 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					methodInfoList.Add($"{{Name: '{matchedMethod.Name}', Parameters: [{parameterString}]}}");
 				}
 				this.logger?.LogTrace("Methods that matched the same name: " + string.Join(", ", methodInfoList));
-				this.logger?.LogError("No methods matched request.");
-				throw new RpcMethodNotFoundException();
+				const string errorMessage = "No methods matched request.";
+				this.logger?.LogError(errorMessage);
+				throw new RpcException(RpcErrorCode.MethodNotFound, errorMessage);
 			}
 			this.logger?.LogDebug("Request was matched to a method");
 			return rpcMethod;
@@ -387,7 +390,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			if (serviceProvider != null)
 			{
 				//Use service provider (if exists) to create instance
-				var objectFactory = ActivatorUtilities.CreateFactory(methodInfo.Method.DeclaringType, new Type[0]);
+				ObjectFactory objectFactory = this.objectFactoryCache.GetOrAdd(methodInfo.Method.DeclaringType, (t) => ActivatorUtilities.CreateFactory(t, new Type[0]));
 				obj = objectFactory(serviceProvider, null);
 			}
 			if (obj == null)
@@ -421,11 +424,11 @@ namespace EdjCase.JsonRpc.Router.Defaults
 						throw rEx;
 					}
 				}
-				throw new RpcUnknownException("Exception occurred from target method execution.", ex);
+				throw new RpcException(RpcErrorCode.InternalError, "Exception occurred from target method execution.", ex);
 			}
 			catch (Exception ex)
 			{
-				throw new RpcInvalidParametersException("Exception from attempting to invoke method. Possibly invalid parameters for method.", ex);
+				throw new RpcException(RpcErrorCode.InvalidParams, "Exception from attempting to invoke method. Possibly invalid parameters for method.", ex);
 			}
 		}
 
@@ -512,15 +515,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					return Enum.ToObject(parameterType, parameterValue);
 				}
 			}
-			if (parameterValue is JObject)
+			if (parameterValue is JToken jToken)
 			{
 				JsonSerializer jsonSerializer = this.GetJsonSerializer();
-				return ((JObject)parameterValue).ToObject(parameterType, jsonSerializer);
-			}
-			if (parameterValue is JArray)
-			{
-				JsonSerializer jsonSerializer = this.GetJsonSerializer();
-				return ((JArray)parameterValue).ToObject(parameterType, jsonSerializer);
+				return jToken.ToObject(parameterType, jsonSerializer);
 			}
 			return Convert.ChangeType(parameterValue, parameterType);
 		}

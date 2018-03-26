@@ -1,4 +1,5 @@
-﻿using System;
+﻿using EdjCase.JsonRpc.Core.Utilities;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -44,7 +45,7 @@ namespace EdjCase.JsonRpc.Core
 
 		public RpcId(string id)
 		{
-			this.HasValue = true;
+			this.HasValue = id != null;
 			this.Value = id;
 			this.Type = RpcIdType.String;
 		}
@@ -119,9 +120,9 @@ namespace EdjCase.JsonRpc.Core
 			switch (this.Type)
 			{
 				case RpcIdType.Number:
-					return this.NumberValue.ToString();
+					return this.Value.ToString();
 				case RpcIdType.String:
-					return $"'{this.StringValue}'";
+					return "'" + (string)this.Value + "'";
 				default:
 					throw new ArgumentOutOfRangeException(nameof(this.Type));
 			}
@@ -135,6 +136,27 @@ namespace EdjCase.JsonRpc.Core
 		public static implicit operator RpcId(string id)
 		{
 			return new RpcId(id);
+		}
+
+		public static RpcId FromObject(object value)
+		{
+			if (value == null)
+			{
+				return default;
+			}
+			if(value is RpcId rpcId)
+			{
+				return rpcId;
+			}
+			if(value is string stringValue)
+			{
+				return new RpcId(stringValue);
+			}
+			if (value.GetType().IsNumericType())
+			{
+				return new RpcId(Convert.ToDouble(value));
+			}
+			throw new RpcException(RpcErrorCode.InvalidRequest, "Id must be a string, a number or null.");
 		}
 	}
 }

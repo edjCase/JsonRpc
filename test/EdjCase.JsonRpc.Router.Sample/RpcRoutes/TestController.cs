@@ -13,29 +13,13 @@ namespace EdjCase.JsonRpc.Router.Sample.RpcRoutes
 	}
 
 	[Authorize]
-	[RpcRoute("Testz")]
-	public class TestController : ControllerBase
+	[RpcRoute("")]
+	public class PerformanceController : ControllerBase
 	{
-		public async Task<int> Add(int a, int b)
+		
+		public void Empty()
 		{
-			await Task.Delay(1);
-			throw new Exception("Test");
-		}
 
-		public IRpcMethodResult MethodResult()
-		{
-			return this.Ok("Test");
-		}
-
-
-		public IRpcMethodResult CustomError()
-		{
-			return this.Error(-32000, "Test", new List<string> {"Test1", "TEst2" });
-		}
-
-		public TestEnum Enum(TestEnum test)
-		{
-			return test;
 		}
 
 	}

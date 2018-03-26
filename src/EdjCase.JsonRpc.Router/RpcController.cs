@@ -27,9 +27,9 @@ namespace EdjCase.JsonRpc.Router
 		/// <param name="message">(Optional)Error message</param>
 		/// <param name="data">(Optional)Error data</param>
 		/// <returns></returns>
-		public virtual RpcMethodErrorResult Error(int errorCode, string message = null, object data = null)
+		public virtual RpcMethodErrorResult Error(int errorCode, string message = null, Exception ex = null, object data = null)
 		{
-			return new RpcMethodErrorResult(errorCode, message, data);
+			return new RpcMethodErrorResult(errorCode, message, ex, data);
 		}
 	}
 	

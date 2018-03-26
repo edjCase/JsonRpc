@@ -59,7 +59,7 @@ namespace EdjCase.JsonRpc.Core
 
 		public static RpcParameters Empty => new RpcParameters(new object[0]);
 
-		public static RpcParameters FromList(IList<object> parameters)
+		public static RpcParameters FromList(IEnumerable<object> parameters)
 		{
 			return new RpcParameters(parameters?.ToArray());
 		}

@@ -20,10 +20,13 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		private readonly string[] componentsValue;
 
+		private int? hashCodeCache;
+
 		/// <param name="components">Uri components for the path</param>
 		private RpcPath(string[] components = null)
 		{
 			this.componentsValue = components ?? new string[0];
+			this.hashCodeCache = null;
 		}
 
 		public static bool operator ==(RpcPath path1, RpcPath path2)
@@ -50,27 +53,6 @@ namespace EdjCase.JsonRpc.Router
 			{
 				return false;
 			}
-			return this.StartsWithInternal(other);
-		}
-
-		public bool Equals(RpcPath other)
-		{
-			int thisLength = (this.componentsValue?.Length ?? 0);
-			int otherLength = (other.componentsValue?.Length ?? 0);
-			if (thisLength != otherLength)
-			{
-				return false;
-			}
-			if(thisLength < 1)
-			{
-				//Are equal and both have 0 entries
-				return true;
-			}
-			return this.StartsWithInternal(other);
-		}
-
-		private bool StartsWithInternal(RpcPath other)
-		{
 			for (int i = 0; i < other.componentsValue.Length; i++)
 			{
 				string component = this.componentsValue[i];
@@ -83,6 +65,11 @@ namespace EdjCase.JsonRpc.Router
 			return true;
 		}
 
+		public bool Equals(RpcPath other)
+		{
+			return this.GetHashCode() == other.GetHashCode();
+		}
+		
 
 		public override bool Equals(object obj)
 		{
@@ -93,18 +80,28 @@ namespace EdjCase.JsonRpc.Router
 			return false;
 		}
 
+
 		public override int GetHashCode()
 		{
-			int hash = 1337;
-			if (this.componentsValue == null)
+			//TODO best way to optimize gethashcode? multithread?
+			if (this.hashCodeCache == null)
 			{
-				return 0;
+				int hash;
+				if (this.componentsValue == null || this.componentsValue.Length == 0)
+				{
+					hash = 0;
+				}
+				else
+				{
+					hash = 1337;
+					foreach (string component in this.componentsValue)
+					{
+						hash = (hash * 7) + component.GetHashCode();
+					}
+				}
+				this.hashCodeCache = hash;
 			}
-			foreach (string component in this.componentsValue)
-			{
-				hash = (hash * 7) + component.GetHashCode();
-			}
-			return hash;
+			return this.hashCodeCache.Value;
 		}
 
 		/// <summary>
@@ -116,7 +113,7 @@ namespace EdjCase.JsonRpc.Router
 		{
 			if (!RpcPath.TryParse(path, out RpcPath rpcPath))
 			{
-				throw new RpcParseException($"Rpc path could not be parsed from '{path}'.");
+				throw new RpcException(RpcErrorCode.ParseError, $"Rpc path could not be parsed from '{path}'.");
 			}
 			return rpcPath;
 		}
@@ -137,7 +134,7 @@ namespace EdjCase.JsonRpc.Router
 				try
 				{
 					string[] pathComponents = path
-						.ToLower()
+						.ToLowerInvariant()
 						.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
 					rpcPath = new RpcPath(pathComponents);
 					return true;
@@ -159,7 +156,7 @@ namespace EdjCase.JsonRpc.Router
 		{
 			if (!this.TryRemoveBasePath(basePath, out RpcPath path))
 			{
-				throw new RpcParseException($"Count not remove path '{basePath}' from path '{this}'.");
+				throw new RpcException(RpcErrorCode.ParseError, $"Count not remove path '{basePath}' from path '{this}'.");
 			}
 			return path;
 		}

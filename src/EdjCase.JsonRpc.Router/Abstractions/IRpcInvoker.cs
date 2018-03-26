@@ -26,6 +26,6 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 		/// <param name="path">Rpc route that applies to the current request</param>
 		/// <param name="routeContext">The context of the current rpc request</param>
 		/// <returns>List of Rpc responses for the requests</returns>
-		Task<List<RpcResponse>> InvokeBatchRequestAsync(List<RpcRequest> requests, RpcPath path, IRouteContext routeContext);
+		Task<List<RpcResponse>> InvokeBatchRequestAsync(IList<RpcRequest> requests, RpcPath path, IRouteContext routeContext);
 	}
 }

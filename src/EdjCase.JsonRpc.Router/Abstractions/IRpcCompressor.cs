@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using EdjCase.JsonRpc.Core;
+using System.IO;
 using System.Text;
 
 namespace EdjCase.JsonRpc.Router.Abstractions
@@ -13,14 +14,5 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 		/// <param name="encoding">Encoding to be used when compressing</param>
 		/// <param name="compressionType">Type of compression to be used when compressing</param>
 		void CompressText(Stream outputStream, string text, Encoding encoding, CompressionType compressionType);
-	}
-
-	/// <summary>
-	/// Types of compressions
-	/// </summary>
-	public enum CompressionType
-	{
-		Gzip,
-		Deflate
 	}
 }
