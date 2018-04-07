@@ -9,32 +9,66 @@ using System.Text;
 
 namespace EdjCase.JsonRpc.Client
 {
-	public interface IJsonSerializer
+	public interface IRequestSerializer
 	{
 		string SerializeBulk(IList<RpcRequest> requests);
 		string Serialize(RpcRequest request);
-		List<RpcResponse> DeserializeBulk(string json);
-		RpcResponse Deserialize(string json);
+		RpcResponse Deserialize(string json, Type resultType = null);
+		List<RpcResponse> DeserializeBulk(string json, Func<RpcId, Type> resultTypeResolver = null);
 	}
-	public class DefaultJsonSerializer : IJsonSerializer
+
+
+
+	public static class JsonSerializerExtensions
 	{
-		private JsonSerializerSettings jsonSerializerSettings { get; }
-		public DefaultJsonSerializer(JsonSerializerSettings jsonSerializerSettings = null)
+		public static RpcResponse<T> Deserialize<T>(this IRequestSerializer jsonSerializer, string json)
 		{
-			this.jsonSerializerSettings = jsonSerializerSettings;
+			return (RpcResponse<T>)jsonSerializer.Deserialize(json, typeof(T));
 		}
 
-		public RpcResponse Deserialize(string json)
+		public static List<RpcResponse<T>> DeserializeBulk<T>(this IRequestSerializer jsonSerializer, string json)
 		{
-			return (RpcResponse)this.DeserializeInternal(json, isBulk: false);
+			return jsonSerializer.DeserializeBulk(json, id => typeof(T))
+				.Cast<RpcResponse<T>>()
+				.ToList();
 		}
 
-		public List<RpcResponse> DeserializeBulk(string json)
+		public static List<RpcResponse> DeserializeBulk(this IRequestSerializer jsonSerializer, string json, IDictionary<RpcId, Type> resultTypeMap)
 		{
-			return (List<RpcResponse>)this.DeserializeInternal(json, isBulk: true);
+			return jsonSerializer.DeserializeBulk(json, GetType);
+
+			Type GetType(RpcId id)
+			{
+				resultTypeMap.TryGetValue(id, out Type value);
+				return value;
+			}
+		}
+	}
+
+
+	public class DefaultRequestJsonSerializer : IRequestSerializer
+	{
+		private IErrorDataSerializer errorDataSerializer { get; }
+		private IResultSerializer resultSerializer { get; }
+		public DefaultRequestJsonSerializer(
+			IErrorDataSerializer errorDataSerializer = null,
+			IResultSerializer resultSerializer = null)
+		{
+			this.errorDataSerializer = errorDataSerializer ?? new DefaultErrorDataSerializer();
+			this.resultSerializer = this.resultSerializer ?? new DefaultResultSerializer();
 		}
 
-		private object DeserializeInternal(string json, bool isBulk)
+		public RpcResponse Deserialize(string json, Type resultType = null)
+		{
+			return (RpcResponse)this.DeserializeInternal(json, isBulk: false, resultTypeResolver: id => resultType);
+		}
+
+		public List<RpcResponse> DeserializeBulk(string json, Func<RpcId, Type> resultTypeResolver = null)
+		{
+			return (List<RpcResponse>)this.DeserializeInternal(json, isBulk: true, resultTypeResolver: resultTypeResolver);
+		}
+
+		private object DeserializeInternal(string json, bool isBulk, Func<RpcId, Type> resultTypeResolver = null)
 		{
 			using (TextReader textReader = new StringReader(json))
 			{
@@ -46,18 +80,18 @@ namespace EdjCase.JsonRpc.Client
 					if (isBulk)
 					{
 						JArray array = JArray.Load(reader);
-						return array.Select(this.DeserializeResponse).ToList();
+						return array.Select(a => this.DeserializeResponse(a, resultTypeResolver)).ToList();
 					}
 					else
 					{
 						JObject jToken = JObject.Load(reader);
-						return this.DeserializeResponse(jToken);
+						return this.DeserializeResponse(jToken, resultTypeResolver);
 					}
 				}
 			}
 		}
 
-		public RpcResponse DeserializeResponse(JToken token)
+		public RpcResponse DeserializeResponse(JToken token, Func<RpcId, Type> resultTypeResolver = null)
 		{
 			RpcId id = null;
 			JToken idToken = token[JsonRpcContants.IdPropertyName];
@@ -85,14 +119,17 @@ namespace EdjCase.JsonRpc.Client
 			{
 				int code = token.Value<int>(JsonRpcContants.ErrorCodePropertyName);
 				string message = token.Value<string>(JsonRpcContants.ErrorMessagePropertyName);
-				JToken data = token[JsonRpcContants.ErrorDataPropertyName];
+				JToken dataToken = token[JsonRpcContants.ErrorDataPropertyName];
+
+				object data = this.errorDataSerializer.Deserialize(code, dataToken.ToString());
 				var error = new RpcError(code, message, data: data);
 				return new RpcResponse(id, error);
 			}
 			else
 			{
-				JToken result = token[JsonRpcContants.ResultPropertyName];
-				return new RpcResponse(id, result);
+				Type resultType = resultTypeResolver?.Invoke(id);
+				object result = this.resultSerializer.Deserialize(token[JsonRpcContants.ResultPropertyName].ToString(), resultType);
+				return new RpcResponse(id, result, resultType);
 			}
 		}
 
@@ -178,16 +215,7 @@ namespace EdjCase.JsonRpc.Client
 		{
 			if (value != null)
 			{
-				string valueJson;
-				if (this.jsonSerializerSettings == null)
-				{
-					valueJson = JsonConvert.SerializeObject(value);
-				}
-				else
-				{
-					valueJson = JsonConvert.SerializeObject(value, this.jsonSerializerSettings);
-
-				}
+				string valueJson = this.resultSerializer.Serialize(value);
 				jsonWriter.WriteRawValue(valueJson);
 			}
 			else

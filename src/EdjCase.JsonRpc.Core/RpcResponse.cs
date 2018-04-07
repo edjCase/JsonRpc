@@ -5,6 +5,33 @@
 
 namespace EdjCase.JsonRpc.Core
 {
+	public class RpcResponse<T> : RpcResponse
+	{
+		public RpcResponse(RpcId id, T result)
+			:base(id, result, typeof(T))
+		{
+
+		}
+
+		public RpcResponse(RpcId id, RpcError error)
+			:base(id, error)
+		{
+			
+		}
+
+		public new T Result => (T)base.Result;
+		
+
+		public static RpcResponse<T> FromResponse(RpcResponse response)
+		{
+			if (response.HasError)
+			{
+				return new RpcResponse<T>(response.Id, response.Error);
+			}
+			return new RpcResponse<T>(response.Id, (T)response.Result);
+		}
+	}
+
 	public class RpcResponse
 	{
 		protected RpcResponse()
@@ -14,7 +41,7 @@ namespace EdjCase.JsonRpc.Core
 		/// <param name="id">Request id</param>
 		protected RpcResponse(RpcId id)
 		{
-			if(id == default)
+			if (id == default)
 			{
 				throw new ArgumentNullException(nameof(id));
 			}
@@ -30,9 +57,10 @@ namespace EdjCase.JsonRpc.Core
 
 		/// <param name="id">Request id</param>
 		/// <param name="result">Response result object</param>
-		public RpcResponse(RpcId id, object result) : this(id)
+		public RpcResponse(RpcId id, object result, Type resultType) : this(id)
 		{
 			this.Result = result;
+			this.ResultType = resultType;
 		}
 
 		/// <summary>
@@ -51,6 +79,8 @@ namespace EdjCase.JsonRpc.Core
 		public RpcError Error { get; private set; }
 
 		public bool HasError => this.Error != null;
+
+		public Type ResultType { get; }
 
 		public void ThrowErrorIfExists()
 		{
@@ -105,7 +135,7 @@ namespace EdjCase.JsonRpc.Core
 		{
 			if (showServerExceptions && this.exception != null)
 			{
-				if(this.message == null)
+				if (this.message == null)
 				{
 					return this.exception.ToString();
 				}

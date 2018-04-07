@@ -34,16 +34,17 @@ namespace EdjCase.JsonRpc.Client.Sample
 		public static async Task Run()
 		{
 			AuthenticationHeaderValue authHeaderValue = AuthenticationHeaderValue.Parse("Basic R2VrY3RlazpXZWxjMG1lIQ==");
-			RpcClient client = new RpcClient(new Uri("http://localhost:62390/RpcApi/"), authHeaderValue);
+			IRpcTransportClient transportClient = new HttpRpcTransportClient(() => Task.FromResult(authHeaderValue));
+			RpcClient client = new RpcClient(new Uri("http://localhost:62390/RpcApi/"), transportClient: transportClient);
 			RpcRequest request = RpcRequest.WithParameterList("CharacterCount", new[] { "Test" }, "Id1");
 			RpcResponse response = await client.SendRequestAsync(request, "Strings");
 
 			List<RpcRequest> requests = new List<RpcRequest>
-				{
-					request,
-					RpcRequest.WithParameterList("CharacterCount", new[] { "Test2" }, "Id2"),
-					RpcRequest.WithParameterList("CharacterCount", new[] { "Test23" }, "Id3")
-		};
+			{
+				request,
+				RpcRequest.WithParameterList("CharacterCount", new[] { "Test2" }, "Id2"),
+				RpcRequest.WithParameterList("CharacterCount", new[] { "Test23" }, "Id3")
+			};
 			List<RpcResponse> bulkResponse = await client.SendBulkRequestAsync(requests, "Strings");
 
 			IntegerFromSpace responseValue = response.GetResult<IntegerFromSpace>();
@@ -56,11 +57,12 @@ namespace EdjCase.JsonRpc.Client.Sample
 				Console.WriteLine(responseValue.Test);
 			}
 
-			var additionalHeaders = new List<KeyValuePair<string, string>>
+			var additionalHeaders = new List<(string, string)>
 			{
-				new KeyValuePair<string, string>("Accept-Encoding", "gzip")
+				("Accept-Encoding", "gzip")
 			};
-			var compressedClient = new RpcClient(new Uri("http://localhost:62390/RpcApi/"), authHeaderValue, headers: additionalHeaders);
+			transportClient = new HttpRpcTransportClient(() => Task.FromResult(authHeaderValue), headers: additionalHeaders);
+			var compressedClient = new RpcClient(new Uri("http://localhost:62390/RpcApi/"), transportClient: transportClient);
 			var compressedRequest = RpcRequest.WithParameterList("CharacterCount", new[] { "Test" }, "Id1");
 			var compressedResponse = await compressedClient.SendRequestAsync(request, "Strings");
 		}

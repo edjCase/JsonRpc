@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using EdjCase.JsonRpc.Router.RouteProviders;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using EdjCase.JsonRpc.Core.Tools;
 
 // ReSharper disable once CheckNamespace
 namespace Microsoft.AspNetCore.Builder
@@ -109,7 +110,7 @@ namespace Microsoft.AspNetCore.Builder
 			serviceCollection
 				.TryAddSingleton<IRpcRequestHandler, RpcRequestHandler>();
 			serviceCollection
-				.TryAddSingleton<IRpcCompressor, DefaultRpcCompressor>();
+				.TryAddSingleton<IStreamCompressor, DefaultStreamCompressor>();
 			serviceCollection
 				.TryAddSingleton<IRpcResponseSerializer, DefaultRpcResponseSerializer>();
 

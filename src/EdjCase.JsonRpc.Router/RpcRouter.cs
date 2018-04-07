@@ -13,6 +13,7 @@ using EdjCase.JsonRpc.Router.Utilities;
 using Microsoft.Extensions.Options;
 using EdjCase.JsonRpc.Router.Defaults;
 using Microsoft.AspNetCore.Http;
+using EdjCase.JsonRpc.Core.Tools;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EdjCase.JsonRpc.Router

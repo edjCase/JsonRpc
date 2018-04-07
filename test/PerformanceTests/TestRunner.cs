@@ -1,4 +1,5 @@
 ﻿using EdjCase.JsonRpc.Core;
+using EdjCase.JsonRpc.Core.Tools;
 using EdjCase.JsonRpc.Router;
 using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Defaults;
@@ -21,13 +22,21 @@ namespace PerformanceTests
 
 		public static void RunCompression()
 		{
-			var compressor = new DefaultRpcCompressor(null);
+			var compressor = new DefaultStreamCompressor();
 			const string text = "df;lkajsd;flkja;lksdjf;lkajsd;lkfjl;aksjdfl;kjas;kldjfkl;ajsd;lkfjalk;sdjflk;ajsd;klfjal;ksdjfl;kajsdklf;j";
-			for (int i = 0; i < 1_000_000; i++)
+			using (Stream inputStream = new MemoryStream(Encoding.UTF8.GetBytes(text)))
 			{
-				using (MemoryStream stream = new MemoryStream())
+				for (int i = 0; i < 1_000_000; i++)
 				{
-					compressor.CompressText(stream, text, Encoding.UTF8, CompressionType.Gzip);
+					using (MemoryStream compressedStream = new MemoryStream((int)inputStream.Length))
+					{
+						compressor.Compress(inputStream, compressedStream, CompressionType.Gzip);
+						compressedStream.Position = 0;
+						using (MemoryStream uncompressedStream = new MemoryStream((int)inputStream.Length))
+						{
+							compressor.Decompress(compressedStream, uncompressedStream, CompressionType.Gzip);
+						}
+					}
 				}
 			}
 		}

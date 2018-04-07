@@ -81,7 +81,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <returns>Rpc response for request</returns>
 		public RpcResponse ToRpcResponse(RpcId id)
 		{
-			return new RpcResponse(id, this.ReturnObject);
+			return new RpcResponse(id, this.ReturnObject, this.ReturnObject?.GetType());
 		}
 	}
 }
