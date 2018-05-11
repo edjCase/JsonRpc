@@ -8,7 +8,7 @@
             "name": "Router Tester",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "build",
+            "preLaunchTask": "Build Router Sample",
             // If you have changed target frameworks, make sure to update the program path.
             "program": "${workspaceFolder}/test/EdjCase.JsonRpc.Router.Sample/bin/Debug/netcoreapp2.0/EdjCase.JsonRpc.Router.Sample.dll",
             "args": [],
@@ -17,6 +17,17 @@
             "console": "internalConsole",
             "stopAtEntry": false,
             "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name": "Client Tester",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "Build Client Sample",
+            "program": "${workspaceRoot}/test/Edjcase.JsonRpc.Client.Sample/bin/Debug/netcoreapp2.0/EdjCase.JsonRpc.Client.Sample.dll",
+            "args": [],
+            "cwd": "${workspaceRoot}",
+            "stopAtEntry": false,
+            "console": "internalConsole"
         },
         {
             "name": ".NET Core Attach",

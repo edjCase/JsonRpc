@@ -63,7 +63,7 @@ namespace EdjCase.JsonRpc.Router
 				ParsingResult result = this.parser.ParseRequests(requestBody);
 				this.logger?.LogInformation($"Processing {result.RequestCount} Rpc requests");
 
-				int batchLimit = this.serverConfig.Value.BatchRequestLimit;
+				int? batchLimit = this.serverConfig.Value.BatchRequestLimit;
 				List<RpcResponse> responses = new List<RpcResponse>();
 				if (batchLimit > 0 && result.RequestCount > batchLimit)
 				{

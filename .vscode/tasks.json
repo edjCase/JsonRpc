@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build",
+            "label": "Build Client Sample",
             "command": "dotnet",
             "type": "process",
             "args": [
@@ -10,6 +10,30 @@
                 "${workspaceFolder}/test/EdjCase.JsonRpc.Router.Sample/EdjCase.JsonRpc.Router.Sample.csproj"
             ],
             "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "Build Router Sample",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/test/EdjCase.JsonRpc.Router.Sample/EdjCase.JsonRpc.Router.Sample.csproj"
+            ],
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "Build All",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/Edjcase.JsonRpc.sln"
+            ],
+            "problemMatcher": "$msCompile",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
         }
     ]
 }

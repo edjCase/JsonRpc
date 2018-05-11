@@ -62,7 +62,7 @@ namespace EdjCase.JsonRpc.Router.Sample
 				.AddJsonRpc(config =>
 				{
 					config.ShowServerExceptions = true;
-					config.BatchRequestLimit = 1;
+					config.BatchRequestLimit = null;
 				});
 		}
 
@@ -94,7 +94,14 @@ namespace EdjCase.JsonRpc.Router.Sample
 			//	builder.BaseControllerType = typeof(ControllerBase);
 			//	builder.BaseRequestPath = "Auto";
 			//});
-			app.UseWebSockets()
+			app
+			.UseExceptionHandler(new ExceptionHandlerOptions{
+				ExceptionHandler = context => {
+					
+					return Task.CompletedTask;
+				}
+			})
+			.UseWebSockets()
 				.Use(async (context, next) =>
 				{
 					if (!context.WebSockets.IsWebSocketRequest)
@@ -107,7 +114,7 @@ namespace EdjCase.JsonRpc.Router.Sample
 					{
 						while (socket.State == WebSocketState.Open)
 						{
-							var buffer = new ArraySegment<byte>(new byte[1024]);
+							var buffer = new ArraySegment<byte>(new byte[1_000_000]);
 
 							WebSocketReceiveResult result = await socket.ReceiveAsync(buffer, CancellationToken.None);
 							while (!result.EndOfMessage)
@@ -124,11 +131,13 @@ namespace EdjCase.JsonRpc.Router.Sample
 									{
 										string jsonString = Encoding.UTF8.GetString(buffer.ToArray());
 
+										//TODO
 										//var routeProvider = scope.ServiceProvider.GetRequiredService<IRpcRouteProvider>();
 										var routeProvider = new RpcAutoRouteProvider(new RpcAutoRoutingOptions { BaseControllerType = typeof(ControllerBase) });
 										var requestHandler = scope.ServiceProvider.GetRequiredService<IRpcRequestHandler>();
 										var routeContext = new DefaultRouteContext(scope.ServiceProvider, context.User, routeProvider);
-										string responseJson = await requestHandler.HandleRequestAsync(RpcPath.Default, jsonString, routeContext);
+										RpcPath path = RpcPath.Parse(context.Request.Path);
+										string responseJson = await requestHandler.HandleRequestAsync(path, jsonString, routeContext);
 										byte[] responseBytes = Encoding.UTF8.GetBytes(responseJson);
 										await socket.SendAsync(new ArraySegment<byte>(responseBytes), WebSocketMessageType.Text, true, CancellationToken.None);
 									}

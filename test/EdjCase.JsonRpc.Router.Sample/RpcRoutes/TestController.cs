@@ -12,7 +12,7 @@ namespace EdjCase.JsonRpc.Router.Sample.RpcRoutes
 
 	}
 
-	[Authorize]
+	//[Authorize]
 	[RpcRoute("")]
 	public class PerformanceController : ControllerBase
 	{
@@ -20,6 +20,20 @@ namespace EdjCase.JsonRpc.Router.Sample.RpcRoutes
 		public void Empty()
 		{
 
+		}
+		public IntegerFromSpace CharacterCount(string text)
+		{
+			if (text == null)
+			{
+				return new IntegerFromSpace()
+				{
+					Test = -1
+				};
+			}
+			return new IntegerFromSpace()
+			{
+				Test = text.Count()
+			};
 		}
 
 	}

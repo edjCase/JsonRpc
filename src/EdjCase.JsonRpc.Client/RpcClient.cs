@@ -221,11 +221,11 @@ namespace EdjCase.JsonRpc.Client
 				string requestJson;
 				if (requests.Count == 1)
 				{
-					requestJson = this.JsonSerializer.SerializeBulk(requests);
+					requestJson = this.JsonSerializer.Serialize(requests.Single());
 				}
 				else
 				{
-					requestJson = this.JsonSerializer.Serialize(requests.Single());
+					requestJson = this.JsonSerializer.SerializeBulk(requests);
 				}
 				Uri uri = new Uri(this.BaseUrl, route);
 				string responseJson = await this.TransportClient.SendRequestAsync(uri, requestJson);

@@ -8,22 +8,28 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
+
+#if !NETSTANDARD1_1
+using System.Net.WebSockets;
+using Microsoft.Extensions.Options;
+#endif
 
 namespace EdjCase.JsonRpc.Client
 {
 	public interface IRpcTransportClient
 	{
-		Task<Stream> SendRequestAsync(Uri uri, Stream requestStream);
+		Task<Stream> SendRequestAsync(Uri uri, Stream requestStream, CancellationToken cancellationToken = default);
 	}
 
 	public static class RpcTransportExtensions
 	{
-		public static async Task<string> SendRequestAsync(this IRpcTransportClient client, Uri uri, string requestJson)
+		public static async Task<string> SendRequestAsync(this IRpcTransportClient client, Uri uri, string requestJson, CancellationToken cancellationToken = default)
 		{
 			using (var requestStream = new MemoryStream(Encoding.UTF8.GetBytes(requestJson)))
 			{
-				using (Stream responseStream = await client.SendRequestAsync(uri, requestStream))
+				using (Stream responseStream = await client.SendRequestAsync(uri, requestStream, cancellationToken))
 				{
 					using (StreamReader streamReader = new StreamReader(responseStream))
 					{
@@ -69,7 +75,7 @@ namespace EdjCase.JsonRpc.Client
 			this.streamCompressor = streamCompressor ?? new DefaultStreamCompressor();
 		}
 
-		public async Task<Stream> SendRequestAsync(Uri uri, Stream requestStream)
+		public async Task<Stream> SendRequestAsync(Uri uri, Stream requestStream, CancellationToken cancellationToken = default)
 		{
 			HttpClient httpClient = await this.GetHttpClientAsync(uri);
 
@@ -79,7 +85,7 @@ namespace EdjCase.JsonRpc.Client
 				string json = await streamReader.ReadToEndAsync();
 				httpContent = new StringContent(json, this.Encoding, this.ContentType);
 			}
-			HttpResponseMessage httpResponseMessage = await httpClient.PostAsync(string.Empty, httpContent).ConfigureAwait(false);
+			HttpResponseMessage httpResponseMessage = await httpClient.PostAsync(string.Empty, httpContent, cancellationToken).ConfigureAwait(false);
 			httpResponseMessage.EnsureSuccessStatusCode();
 
 			Stream responseStream = await httpResponseMessage.Content.ReadAsStreamAsync();
@@ -148,4 +154,107 @@ namespace EdjCase.JsonRpc.Client
 			return new HttpRpcTransportClient(() => Task.FromResult(authHeaderValue), encoding: encoding, contentType: contentType, headers: headers);
 		}
 	}
+
+#if !NETSTANDARD1_1
+	public class WebSocketRpcTransportClientOptions
+	{
+		public int MaxBufferSize { get; set; } = 1_000_000;
+	}
+
+	public class WebSocketRpcTransportClient : IRpcTransportClient
+	{
+		private WebSocketRpcTransportClientOptions options { get; }
+		public WebSocketRpcTransportClient(IOptions<WebSocketRpcTransportClientOptions> options)
+		{
+			this.options = options.Value ?? new WebSocketRpcTransportClientOptions();
+		}
+
+		public async Task<Stream> SendRequestAsync(Uri uri, Stream requestStream, CancellationToken cancellationToken = default)
+		{
+			var webSocketClient = new ClientWebSocket();
+			await webSocketClient.ConnectAsync(uri, cancellationToken);
+
+			StreamReader streamReader = new StreamReader(requestStream);
+			var buffer = new byte[this.options.MaxBufferSize];
+			int offset = 0;
+			while (true)
+			{
+				int nextSize = await requestStream.ReadAsync(buffer, offset, this.options.MaxBufferSize, cancellationToken);
+				bool endOfMessage = nextSize != this.options.MaxBufferSize;
+				await webSocketClient.SendAsync(new ArraySegment<byte>(buffer, 0, nextSize), WebSocketMessageType.Text, endOfMessage, cancellationToken);
+				if (endOfMessage)
+				{
+					break;
+				}
+				offset += this.options.MaxBufferSize;
+			}
+			await webSocketClient.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Request finished", cancellationToken);
+			return new WebSocketStream(webSocketClient);
+		}
+	}
+
+	public class WebSocketStream : Stream
+	{
+		private ClientWebSocket client { get; }
+		private bool complete { get; set; }
+
+		public WebSocketStream(ClientWebSocket client)
+		{
+			this.client = client;
+		}
+
+		public override bool CanRead => true;
+
+		public override bool CanSeek => false;
+
+		public override bool CanWrite => false;
+
+		public override long Length => throw new NotImplementedException();
+
+		public override long Position { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+		public override void Flush()
+		{
+			throw new NotImplementedException();
+		}
+
+		public override int Read(byte[] buffer, int offset, int count)
+		{
+			throw new NotImplementedException();
+		}
+
+		public override long Seek(long offset, SeekOrigin origin)
+		{
+			throw new NotImplementedException();
+		}
+
+		public override void SetLength(long value)
+		{
+			throw new NotImplementedException();
+		}
+
+		public override void Write(byte[] buffer, int offset, int count)
+		{
+			throw new NotImplementedException();
+		}
+
+		public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+		{
+			if (this.complete)
+			{
+				return 0;
+			}
+			WebSocketReceiveResult result = await this.client.ReceiveAsync(new ArraySegment<byte>(buffer, offset, count), cancellationToken);
+			if (result.MessageType == WebSocketMessageType.Close)
+			{
+				throw new RpcClientUnknownException("Websocket connection to the server ended prematurely.");
+			}
+			if (result.EndOfMessage)
+			{
+				this.complete = true;
+			}
+			return result.Count;
+		}
+	}
+#endif
 }

@@ -77,16 +77,25 @@ namespace EdjCase.JsonRpc.Client
 					//Prevent auto date parsing
 					reader.DateParseHandling = DateParseHandling.None;
 
+					List<RpcResponse> responses;
+					JToken token = JToken.Load(reader);
+					switch(token.Type)
+					{
+						case JTokenType.Array:
+							responses = token.Select(a => this.DeserializeResponse(a, resultTypeResolver)).ToList();
+							break;
+						case JTokenType.Object:
+							RpcResponse response = this.DeserializeResponse(token, resultTypeResolver);
+							responses = new List<RpcResponse>{response};
+							break;
+						default:
+							throw new ArgumentOutOfRangeException(nameof(token.Type));
+					}
 					if (isBulk)
 					{
-						JArray array = JArray.Load(reader);
-						return array.Select(a => this.DeserializeResponse(a, resultTypeResolver)).ToList();
+						return responses;
 					}
-					else
-					{
-						JObject jToken = JObject.Load(reader);
-						return this.DeserializeResponse(jToken, resultTypeResolver);
-					}
+					return responses.Single();
 				}
 			}
 		}
@@ -117,11 +126,15 @@ namespace EdjCase.JsonRpc.Client
 			JToken errorToken = token[JsonRpcContants.ErrorPropertyName];
 			if (errorToken != null)
 			{
-				int code = token.Value<int>(JsonRpcContants.ErrorCodePropertyName);
-				string message = token.Value<string>(JsonRpcContants.ErrorMessagePropertyName);
-				JToken dataToken = token[JsonRpcContants.ErrorDataPropertyName];
+				int code = errorToken.Value<int>(JsonRpcContants.ErrorCodePropertyName);
+				string message = errorToken.Value<string>(JsonRpcContants.ErrorMessagePropertyName);
+				JToken dataToken = errorToken[JsonRpcContants.ErrorDataPropertyName];
 
-				object data = this.errorDataSerializer.Deserialize(code, dataToken.ToString());
+				object data = null;
+				if(dataToken != null)
+				{
+					data = this.errorDataSerializer.Deserialize(code, dataToken.ToString());
+				}
 				var error = new RpcError(code, message, data: data);
 				return new RpcResponse(id, error);
 			}

@@ -41,10 +41,6 @@ namespace EdjCase.JsonRpc.Core
 		/// <param name="id">Request id</param>
 		protected RpcResponse(RpcId id)
 		{
-			if (id == default)
-			{
-				throw new ArgumentNullException(nameof(id));
-			}
 			this.Id = id;
 		}
 
