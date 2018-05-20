@@ -149,8 +149,8 @@ namespace EdjCase.JsonRpc.Client
 		public static HttpRpcTransportClient CreateWithBasicAuth(Uri baseUrl, string username, string password, Encoding encoding = null, string contentType = null, IEnumerable<(string, string)> headers = null)
 		{
 			byte[] headerBytes = Encoding.UTF8.GetBytes(username + ":" + password);
-			string a = Convert.ToBase64String(headerBytes);
-			var authHeaderValue = AuthenticationHeaderValue.Parse("Basic ");
+			string value = Convert.ToBase64String(headerBytes);
+			var authHeaderValue = AuthenticationHeaderValue.Parse("Basic " + value);
 			return new HttpRpcTransportClient(() => Task.FromResult(authHeaderValue), encoding: encoding, contentType: contentType, headers: headers);
 		}
 	}
