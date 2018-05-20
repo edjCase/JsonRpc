@@ -26,5 +26,10 @@ namespace EdjCase.JsonRpc.Router
 		/// greater than the limit
 		/// </summary>
 		public int BatchRequestLimit { get; set; }
+
+		/// <summary>
+		/// Convert method name and parameters in request from snake case to camel case
+		/// </summary>
+		public bool ConvertSnakeCaseToCamelCaseInRequest { get; set; }
 	}
 }

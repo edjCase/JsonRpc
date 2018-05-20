@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -22,6 +23,11 @@ namespace EdjCase.JsonRpc.Router.Defaults
 	/// </summary>
 	public class DefaultRpcInvoker : IRpcInvoker
 	{
+		/// <summary>
+		/// Convert method name and parameters in request from snake case to camel case
+		/// </summary>
+		private bool convertSnakeCaseToCamelCase;
+
 		/// <summary>
 		/// Logger for logging Rpc invocation
 		/// </summary>
@@ -66,6 +72,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			this.policyProvider = policyProvider;
 			this.logger = logger;
 			this.serverConfig = serverConfig;
+			this.convertSnakeCaseToCamelCase = this.serverConfig.Value?.ConvertSnakeCaseToCamelCaseInRequest == true;
 		}
 
 
@@ -273,8 +280,9 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			List<MethodInfo> allMethods = this.GetRpcMethods(path, routeProvider);
 
 			//Case insenstive check for hybrid approach. Will check for case sensitive if there is ambiguity
+			var requestMethodName = this.convertSnakeCaseToCamelCase ? this.ConvertSnakeCaseToCamelCase(request.Method) : request.Method;
 			List<MethodInfo> methodsWithSameName = allMethods
-				.Where(m => string.Equals(m.Name, request.Method, StringComparison.OrdinalIgnoreCase))
+				.Where(m => string.Equals(m.Name, requestMethodName, StringComparison.OrdinalIgnoreCase))
 				.ToList();
 
 			var potentialMatches = new List<RpcMethodInfo>();
@@ -301,7 +309,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				{
 					//Try to remove ambiguity with case sensitive check
 					potentialMatches = potentialMatches
-						.Where(m => string.Equals(m.Method.Name, request.Method, StringComparison.Ordinal))
+						.Where(m => string.Equals(m.Method.Name, requestMethodName, StringComparison.Ordinal))
 						.ToList();
 					if (potentialMatches.Count != 1)
 					{
@@ -643,6 +651,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <returns>True if the parameters can convert to an ordered list based on the method signature, otherwise Fasle</returns>
 		private bool TryParseParameterList(MethodInfo method, Dictionary<string, object> parametersMap, out object[] parameterList)
 		{
+			if (this.convertSnakeCaseToCamelCase)
+			{
+				parametersMap = parametersMap.ToDictionary(x => this.ConvertSnakeCaseToCamelCase(x.Key, false), v => v.Value);
+			}
 			ParameterInfo[] parameterInfoList = method.GetParameters();
 			parameterList = new object[parameterInfoList.Count()];
 			foreach (ParameterInfo parameterInfo in parameterInfoList)
@@ -657,5 +669,14 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			return true;
 		}
 
+		private string ConvertSnakeCaseToCamelCase(string snakeCaseString, bool upFirstSymbolInFirstWord = true)
+		{
+			return snakeCaseString
+				.Split(new[] { "_" }, StringSplitOptions.RemoveEmptyEntries)
+				.Select((s, index) => upFirstSymbolInFirstWord 
+					? CultureInfo.CurrentCulture.TextInfo.ToTitleCase(s)
+					: (index == 0 ? s : CultureInfo.CurrentCulture.TextInfo.ToTitleCase(s)))
+				.Aggregate(string.Empty, (s1, s2) => s1 + s2);
+		}
 	}
 }
