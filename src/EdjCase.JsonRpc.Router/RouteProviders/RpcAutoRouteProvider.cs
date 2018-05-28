@@ -4,7 +4,8 @@ using System.Linq;
 using EdjCase.JsonRpc.Router.Abstractions;
 using System;
 using System.Reflection;
-using EdjCase.JsonRpc.Router.Criteria;
+using EdjCase.JsonRpc.Router.MethodProviders;
+using Microsoft.Extensions.Options;
 
 namespace EdjCase.JsonRpc.Router.RouteProviders
 {
@@ -13,18 +14,18 @@ namespace EdjCase.JsonRpc.Router.RouteProviders
 	/// </summary>
 	public class RpcAutoRouteProvider : IRpcRouteProvider
 	{
-		public RpcAutoRoutingOptions Options { get; }
+		public IOptions<RpcAutoRoutingOptions> Options { get; }
 
-		public RpcAutoRouteProvider(RpcAutoRoutingOptions options)
+		public RpcAutoRouteProvider(IOptions<RpcAutoRoutingOptions> options)
 		{
 			this.Options = options ?? throw new ArgumentNullException(nameof(options));
 		}
 
-		public RpcPath BaseRequestPath => this.Options.BaseRequestPath;
+		public RpcPath BaseRequestPath => this.Options.Value.BaseRequestPath;
 
 
 		private Dictionary<RpcPath, List<IRpcMethodProvider>> routeCache { get; set; }
-		
+
 
 		private Dictionary<RpcPath, List<IRpcMethodProvider>> GetAllRoutes()
 		{
@@ -32,7 +33,7 @@ namespace EdjCase.JsonRpc.Router.RouteProviders
 			{
 				//TODO will entry assembly be good enough
 				List<TypeInfo> controllerTypes = Assembly.GetEntryAssembly().DefinedTypes
-					.Where(t => !t.IsAbstract && t.IsSubclassOf(this.Options.BaseControllerType))
+					.Where(t => !t.IsAbstract && t.IsSubclassOf(this.Options.Value.BaseControllerType))
 					.ToList();
 
 				var controllerRoutes = new Dictionary<RpcPath, List<IRpcMethodProvider>>();

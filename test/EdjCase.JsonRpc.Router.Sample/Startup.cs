@@ -59,7 +59,8 @@ namespace EdjCase.JsonRpc.Router.Sample
 
 				});
 			services
-				.AddJsonRpc(config =>
+				.AddJsonRpc()
+				.WithOptions(config =>
 				{
 					config.ShowServerExceptions = true;
 					config.BatchRequestLimit = null;
@@ -75,80 +76,74 @@ namespace EdjCase.JsonRpc.Router.Sample
 
 			//app.UseAuthentication();
 
-			//app.Map("/RpcApi", rpcApp =>
-			//{
-			//	rpcApp
-			//	//.Use(this.LogBody)
-			//	.UseManualJsonRpc(builder =>
-			//	{
-			//		builder.RegisterController<RpcMath>();
-			//		builder.RegisterController<RpcString>("Strings");
-			//		builder.RegisterController<RpcCommands>("Commands");
-			//		builder.RegisterController<RpcMath>("Math");
-			//	});
-			//})
-			//.Use(this.LogBody)
-			//app
-			//.UseJsonRpc(builder =>
-			//{
-			//	builder.BaseControllerType = typeof(ControllerBase);
-			//	builder.BaseRequestPath = "Auto";
-			//});
-			app
-			.UseExceptionHandler(new ExceptionHandlerOptions{
-				ExceptionHandler = context => {
-					
-					return Task.CompletedTask;
-				}
-			})
-			.UseWebSockets()
-				.Use(async (context, next) =>
+			app.Map("/RpcApi", rpcApp =>
+			{
+				rpcApp
+				//.Use(this.LogBody)
+				.UseManualJsonRpc(options =>
 				{
-					if (!context.WebSockets.IsWebSocketRequest)
-					{
-						await next();
-						return;
-					}
-					var scopeFactory = context.RequestServices.GetRequiredService<IServiceScopeFactory>();
-					using (WebSocket socket = await context.WebSockets.AcceptWebSocketAsync())
-					{
-						while (socket.State == WebSocketState.Open)
-						{
-							var buffer = new ArraySegment<byte>(new byte[1_000_000]);
-
-							WebSocketReceiveResult result = await socket.ReceiveAsync(buffer, CancellationToken.None);
-							while (!result.EndOfMessage)
-							{
-								result = await socket.ReceiveAsync(buffer, CancellationToken.None);
-							}
-
-							switch (result.MessageType)
-							{
-								case WebSocketMessageType.Binary:
-									throw new NotImplementedException();
-								case WebSocketMessageType.Text:
-									using (IServiceScope scope = scopeFactory.CreateScope())
-									{
-										string jsonString = Encoding.UTF8.GetString(buffer.ToArray());
-
-										//TODO
-										//var routeProvider = scope.ServiceProvider.GetRequiredService<IRpcRouteProvider>();
-										var routeProvider = new RpcAutoRouteProvider(new RpcAutoRoutingOptions { BaseControllerType = typeof(ControllerBase) });
-										var requestHandler = scope.ServiceProvider.GetRequiredService<IRpcRequestHandler>();
-										var routeContext = new DefaultRouteContext(scope.ServiceProvider, context.User, routeProvider);
-										RpcPath path = RpcPath.Parse(context.Request.Path);
-										string responseJson = await requestHandler.HandleRequestAsync(path, jsonString, routeContext);
-										byte[] responseBytes = Encoding.UTF8.GetBytes(responseJson);
-										await socket.SendAsync(new ArraySegment<byte>(responseBytes), WebSocketMessageType.Text, true, CancellationToken.None);
-									}
-									break;
-								case WebSocketMessageType.Close:
-									return;
-							}
-						}
-					}
-
+					options.RegisterController<RpcMath>();
 				});
+			})
+			.Use(this.LogBody)
+			.UseJsonRpc(builder =>
+			{
+				builder.BaseControllerType = typeof(ControllerBase);
+				builder.BaseRequestPath = "Auto";
+			});
+			// app
+			// .UseExceptionHandler(new ExceptionHandlerOptions{
+			// 	ExceptionHandler = context => {
+
+			// 		return Task.CompletedTask;
+			// 	}
+			// })
+			// .UseWebSockets()
+			// 	.Use(async (context, next) =>
+			// 	{
+			// 		if (!context.WebSockets.IsWebSocketRequest)
+			// 		{
+			// 			await next();
+			// 			return;
+			// 		}
+			// 		var scopeFactory = context.RequestServices.GetRequiredService<IServiceScopeFactory>();
+			// 		using (WebSocket socket = await context.WebSockets.AcceptWebSocketAsync())
+			// 		{
+			// 			while (socket.State == WebSocketState.Open)
+			// 			{
+			// 				var buffer = new ArraySegment<byte>(new byte[1_000_000]);
+
+			// 				WebSocketReceiveResult result = await socket.ReceiveAsync(buffer, CancellationToken.None);
+			// 				while (!result.EndOfMessage)
+			// 				{
+			// 					result = await socket.ReceiveAsync(buffer, CancellationToken.None);
+			// 				}
+
+			// 				switch (result.MessageType)
+			// 				{
+			// 					case WebSocketMessageType.Binary:
+			// 						throw new NotImplementedException();
+			// 					case WebSocketMessageType.Text:
+			// 						using (IServiceScope scope = scopeFactory.CreateScope())
+			// 						{
+			// 							string jsonString = Encoding.UTF8.GetString(buffer.ToArray());
+
+			// 							var routeProvider = scope.ServiceProvider.GetRequiredService<IRpcRouteProvider>();
+			// 							var requestHandler = scope.ServiceProvider.GetRequiredService<IRpcRequestHandler>();
+			// 							var routeContext = new DefaultRouteContext(scope.ServiceProvider, context.User, routeProvider);
+			// 							RpcPath path = RpcPath.Parse(context.Request.Path);
+			// 							string responseJson = await requestHandler.HandleRequestAsync(path, jsonString, routeContext);
+			// 							byte[] responseBytes = Encoding.UTF8.GetBytes(responseJson);
+			// 							await socket.SendAsync(new ArraySegment<byte>(responseBytes), WebSocketMessageType.Text, true, CancellationToken.None);
+			// 						}
+			// 						break;
+			// 					case WebSocketMessageType.Close:
+			// 						return;
+			// 				}
+			// 			}
+			// 		}
+
+			// 	});
 
 		}
 

@@ -34,6 +34,20 @@
                 "kind": "build",
                 "isDefault": true
             }
+        },
+        {
+            "label": "Test All",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "test",
+                "${workspaceFolder}/test/EdjCase.JsonRpc.Router.Tests"
+            ],
+            "problemMatcher": "$msCompile",
+            "group": {
+                "kind": "test",
+                "isDefault": true
+            }
         }
     ]
 }

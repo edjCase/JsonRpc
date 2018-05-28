@@ -1,4 +1,4 @@
-﻿using EdjCase.JsonRpc.Router.Criteria;
+﻿using EdjCase.JsonRpc.Router.MethodProviders;
 using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Collections.Generic;

@@ -77,7 +77,7 @@ namespace EdjCase.JsonRpc.Router
 					return;
 				}
 				HashSet<RpcPath> availableRoutes = this.routeProvider.GetRoutes();
-				if (!availableRoutes.Any())
+				if (!availableRoutes.Any(r => r == requestPath))
 				{
 					logger?.LogDebug($"Request matched base request path but no routes.");
 					return;
@@ -109,7 +109,7 @@ namespace EdjCase.JsonRpc.Router
 
 				}
 
-				var requestHandler = context.HttpContext.RequestServices.GetRequiredService<IRpcRequestHandler>();
+				IRpcRequestHandler requestHandler = context.HttpContext.RequestServices.GetRequiredService<IRpcRequestHandler>();
 				var routeContext = DefaultRouteContext.FromHttpContext(context.HttpContext, this.routeProvider);
 				string responseJson = await requestHandler.HandleRequestAsync(requestPath, jsonString, routeContext);
 
@@ -125,7 +125,7 @@ namespace EdjCase.JsonRpc.Router
 				string acceptEncoding = context.HttpContext.Request.Headers["Accept-Encoding"];
 				if (!string.IsNullOrWhiteSpace(acceptEncoding))
 				{
-					IRpcCompressor compressor = context.HttpContext.RequestServices.GetService<IRpcCompressor>();
+					IStreamCompressor compressor = context.HttpContext.RequestServices.GetService<IStreamCompressor>();
 					if (compressor != null)
 					{
 						string[] encodings = acceptEncoding.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
@@ -137,7 +137,10 @@ namespace EdjCase.JsonRpc.Router
 								continue;
 							}
 							context.HttpContext.Response.Headers.Add("Content-Encoding", new[] { encoding });
-							compressor.CompressText(context.HttpContext.Response.Body, responseJson, Encoding.UTF8, compressionType);
+							using (Stream responseStream = new MemoryStream(Encoding.UTF8.GetBytes(responseJson)))
+							{
+								compressor.Compress(responseStream, context.HttpContext.Response.Body, compressionType);
+							}
 							responseSet = true;
 							break;
 						}

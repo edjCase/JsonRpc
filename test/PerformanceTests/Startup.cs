@@ -36,9 +36,7 @@ namespace PerformanceTests
 						return TestRunner.RunInvokerAsync();
 					});
 				})
-				.UseJsonRpc(options =>
-				{
-				});
+				.UseJsonRpc();
 		}
 	}
 

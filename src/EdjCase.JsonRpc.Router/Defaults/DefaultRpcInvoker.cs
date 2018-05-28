@@ -14,7 +14,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
-using EdjCase.JsonRpc.Router.Criteria;
+using EdjCase.JsonRpc.Router.MethodProviders;
 using System.Collections.Concurrent;
 
 namespace EdjCase.JsonRpc.Router.Defaults
@@ -24,11 +24,6 @@ namespace EdjCase.JsonRpc.Router.Defaults
 	/// </summary>
 	public class DefaultRpcInvoker : IRpcInvoker
 	{
-		/// <summary>
-		/// Convert method name and parameters in request from snake case to camel case
-		/// </summary>
-		private bool convertSnakeCaseToCamelCase;
-
 		/// <summary>
 		/// Logger for logging Rpc invocation
 		/// </summary>
@@ -48,18 +43,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// </summary>
 		private IOptions<RpcServerConfiguration> serverConfig { get; }
 
-		private JsonSerializer jsonSerializerCache { get; set; }
-
-		private JsonSerializer GetJsonSerializer()
-		{
-			if (this.jsonSerializerCache == null)
-			{
-				this.jsonSerializerCache = this.serverConfig.Value?.JsonSerializerSettings == null
-					? JsonSerializer.CreateDefault()
-					: JsonSerializer.Create(this.serverConfig.Value.JsonSerializerSettings);
-			}
-			return this.jsonSerializerCache;
-		}
+		/// <summary>
+		/// Matches the route method name and parameters to the correct method to execute
+		/// </summary>
+		private IRpcRequestMatcher rpcRequestMatcher { get; }
 
 		private ConcurrentDictionary<Type, ObjectFactory> objectFactoryCache { get; } = new ConcurrentDictionary<Type, ObjectFactory>();
 		private ConcurrentDictionary<Type, (List<IAuthorizeData>, bool)> classAttributeCache { get; } = new ConcurrentDictionary<Type, (List<IAuthorizeData>, bool)>();
@@ -70,14 +57,16 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <param name="policyProvider">Provides authorization policies for the authroziation service</param>
 		/// <param name="logger">Optional logger for logging Rpc invocation</param>
 		/// <param name="serverConfig">Configuration data for the server</param>
+		/// <param name="rpcRequestMatcher">Matches the route method name and parameters to the correct method to execute</param>
 		public DefaultRpcInvoker(IAuthorizationService authorizationService, IAuthorizationPolicyProvider policyProvider,
-			ILogger<DefaultRpcInvoker> logger, IOptions<RpcServerConfiguration> serverConfig)
+			ILogger<DefaultRpcInvoker> logger, IOptions<RpcServerConfiguration> serverConfig,
+			IRpcRequestMatcher rpcRequestMatcher)
 		{
 			this.authorizationService = authorizationService;
 			this.policyProvider = policyProvider;
 			this.logger = logger;
 			this.serverConfig = serverConfig;
-			this.convertSnakeCaseToCamelCase = this.serverConfig.Value?.ConvertSnakeCaseToCamelCaseInRequest == true;
+			this.rpcRequestMatcher = rpcRequestMatcher;
 		}
 
 
@@ -280,64 +269,17 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			this.logger?.LogDebug($"Attempting to match Rpc request to a method '{request.Method}'");
 			List<MethodInfo> allMethods = this.GetRpcMethods(path, routeProvider);
 
-			//Case insenstive check for hybrid approach. Will check for case sensitive if there is ambiguity
-			var requestMethodName = this.convertSnakeCaseToCamelCase ? this.ConvertSnakeCaseToCamelCase(request.Method) : request.Method;
-			List<MethodInfo> methodsWithSameName = allMethods
-				.Where(m => string.Equals(m.Name, requestMethodName, StringComparison.OrdinalIgnoreCase))
-				.ToList();
+			List<RpcMethodInfo> matches = this.rpcRequestMatcher.FilterAndBuildMethodInfoByRequest(allMethods, request);
 
-			var potentialMatches = new List<RpcMethodInfo>();
-			foreach (MethodInfo method in methodsWithSameName)
+
+			RpcMethodInfo rpcMethod;
+			if (matches.Count > 1)
 			{
-				(bool isMatch, RpcMethodInfo methodInfo) = this.HasParameterSignature(method, request);
-				if (isMatch)
-				{
-					potentialMatches.Add(methodInfo);
-				}
-			}
-
-			if (potentialMatches.Count > 1)
-			{
-				//Try to remove ambiguity with 'perfect matching' (usually optional params and types)
-				List<RpcMethodInfo> exactMatches = potentialMatches
-					.Where(p => p.HasExactParameterMatch())
-					.ToList();
-				if (exactMatches.Any())
-				{
-					potentialMatches = exactMatches;
-				}
-				if (potentialMatches.Count > 1)
-				{
-					//Try to remove ambiguity with case sensitive check
-					potentialMatches = potentialMatches
-						.Where(m => string.Equals(m.Method.Name, requestMethodName, StringComparison.Ordinal))
-						.ToList();
-					if (potentialMatches.Count != 1)
-					{
-						const string errorMessage = "More than one method matched the rpc request. Unable to invoke due to ambiguity.";
-						this.logger?.LogError(errorMessage);
-						throw new RpcException(RpcErrorCode.MethodNotFound, errorMessage);
-					}
-				}
-			}
-
-			RpcMethodInfo rpcMethod = null;
-			if (potentialMatches.Count == 1)
-			{
-				rpcMethod = potentialMatches.First();
-			}
-
-			if (rpcMethod == null)
-			{
-				//Log diagnostics 
-				string methodsString = string.Join(", ", allMethods.Select(m => m.Name));
-				this.logger?.LogTrace("Methods in route: " + methodsString);
-
 				var methodInfoList = new List<string>();
-				foreach (MethodInfo matchedMethod in methodsWithSameName)
+				foreach (RpcMethodInfo matchedMethod in matches)
 				{
 					var parameterTypeList = new List<string>();
-					foreach (ParameterInfo parameterInfo in matchedMethod.GetParameters())
+					foreach (ParameterInfo parameterInfo in matchedMethod.Method.GetParameters())
 					{
 						string parameterType = parameterInfo.Name + ": " + parameterInfo.ParameterType.Name;
 						if (parameterInfo.IsOptional)
@@ -347,12 +289,25 @@ namespace EdjCase.JsonRpc.Router.Defaults
 						parameterTypeList.Add(parameterType);
 					}
 					string parameterString = string.Join(", ", parameterTypeList);
-					methodInfoList.Add($"{{Name: '{matchedMethod.Name}', Parameters: [{parameterString}]}}");
+					methodInfoList.Add($"{{Name: '{matchedMethod.Method.Name}', Parameters: [{parameterString}]}}");
 				}
-				this.logger?.LogTrace("Methods that matched the same name: " + string.Join(", ", methodInfoList));
+				string errorMessage = "More than one method matched the rpc request. Unable to invoke due to ambiguity. Methods that matched the same name: " + string.Join(", ", methodInfoList);
+				this.logger?.LogError(errorMessage);
+				throw new RpcException(RpcErrorCode.MethodNotFound, errorMessage);
+			}
+			else if (matches.Count == 0)
+			{
+				//Log diagnostics 
+				string methodsString = string.Join(", ", allMethods.Select(m => m.Name));
+				this.logger?.LogTrace("Methods in route: " + methodsString);
+				
 				const string errorMessage = "No methods matched request.";
 				this.logger?.LogError(errorMessage);
 				throw new RpcException(RpcErrorCode.MethodNotFound, errorMessage);
+			}
+			else
+			{
+				rpcMethod = matches.First();
 			}
 			this.logger?.LogDebug("Request was matched to a method");
 			return rpcMethod;
@@ -460,221 +415,6 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 			//Just of type Task with no return result			
 			return null;
-		}
-
-		/// <summary>
-		/// Converts the object array into the exact types the method needs (e.g. long -> int)
-		/// </summary>
-		/// <param name="parameters">Array of parameters for the method</param>
-		/// <returns>Array of objects with the exact types required by the method</returns>
-		private object[] ConvertParameters(MethodInfo method, object[] parameters)
-		{
-			if (parameters == null || !parameters.Any())
-			{
-				return new object[0];
-			}
-			ParameterInfo[] parameterInfoList = method.GetParameters();
-			for (int index = 0; index < parameters.Length; index++)
-			{
-				ParameterInfo parameterInfo = parameterInfoList[index];
-				parameters[index] = this.ConvertParameter(parameterInfo.ParameterType, parameters[index]);
-			}
-
-			return parameters;
-		}
-
-		private object ConvertParameter(Type parameterType, object parameterValue)
-		{
-			if (parameterValue == null)
-			{
-				return null;
-			}
-			//Missing type is for optional parameters
-			if (parameterValue is Missing)
-			{
-				return parameterValue;
-			}
-			Type nullableType = Nullable.GetUnderlyingType(parameterType);
-			if (nullableType != null)
-			{
-				return this.ConvertParameter(nullableType, parameterValue);
-			}
-			if (parameterValue is string && parameterType == typeof(Guid))
-			{
-				Guid.TryParse((string)parameterValue, out Guid guid);
-				return guid;
-			}
-			if (parameterType.GetTypeInfo().IsEnum)
-			{
-				if (parameterValue is string)
-				{
-					return Enum.Parse(parameterType, (string)parameterValue);
-				}
-				else if (parameterValue is long)
-				{
-					return Enum.ToObject(parameterType, parameterValue);
-				}
-			}
-			if (parameterValue is JToken jToken)
-			{
-				JsonSerializer jsonSerializer = this.GetJsonSerializer();
-				return jToken.ToObject(parameterType, jsonSerializer);
-			}
-			return Convert.ChangeType(parameterValue, parameterType);
-		}
-
-		/// <summary>
-		/// Detects if list of parameters matches the method signature
-		/// </summary>
-		/// <param name="parameterList">Array of parameters for the method</param>
-		/// <returns>True if the method signature matches the parameterList, otherwise False</returns>
-		private (bool Matches, RpcMethodInfo MethodInfo) HasParameterSignature(MethodInfo method, RpcRequest rpcRequest)
-		{
-			object[] orignialParameterList;
-			if (!rpcRequest.Parameters.HasValue)
-			{
-				orignialParameterList = new object[0];
-			}
-			else
-			{
-				switch (rpcRequest.Parameters.Type)
-				{
-					case RpcParametersType.Dictionary:
-						Dictionary<string, object> parameterMap = rpcRequest.Parameters.DictionaryValue;
-						bool canParse = this.TryParseParameterList(method, parameterMap, out orignialParameterList);
-						if (!canParse)
-						{
-							return (false, null);
-						}
-						break;
-					case RpcParametersType.Array:
-						orignialParameterList = rpcRequest.Parameters.ArrayValue;
-						break;
-					default:
-						orignialParameterList = new JToken[0];
-						break;
-				}
-			}
-			ParameterInfo[] parameterInfoList = method.GetParameters();
-			if (orignialParameterList.Length > parameterInfoList.Length)
-			{
-				return (false, null);
-			}
-			object[] correctedParameterList = new object[parameterInfoList.Length];
-
-			for (int i = 0; i < orignialParameterList.Length; i++)
-			{
-				ParameterInfo parameterInfo = parameterInfoList[i];
-				object parameter = orignialParameterList[i];
-				bool isMatch = this.ParameterMatches(parameterInfo, parameter, out object convertedParameter);
-				if (!isMatch)
-				{
-					return (false, null);
-				}
-				correctedParameterList[i] = convertedParameter;
-			}
-
-			if (orignialParameterList.Length < parameterInfoList.Length)
-			{
-				//make a new array at the same length with padded 'missing' parameters (if optional)
-				for (int i = orignialParameterList.Length; i < parameterInfoList.Length; i++)
-				{
-					if (!parameterInfoList[i].IsOptional)
-					{
-						return (false, null);
-					}
-					correctedParameterList[i] = Type.Missing;
-				}
-			}
-
-			var rpcMethodInfo = new RpcMethodInfo(method, correctedParameterList, orignialParameterList);
-			return (true, rpcMethodInfo);
-		}
-
-		/// <summary>
-		/// Detects if the request parameter matches the method parameter
-		/// </summary>
-		/// <param name="parameterInfo">Reflection info about a method parameter</param>
-		/// <param name="value">The request's value for the parameter</param>
-		/// <returns>True if the request parameter matches the type of the method parameter</returns>
-		private bool ParameterMatches(ParameterInfo parameterInfo, object value, out object convertedValue)
-		{
-			Type parameterType = parameterInfo.ParameterType;
-
-			try
-			{
-				if (value is JToken tokenValue)
-				{
-					switch (tokenValue.Type)
-					{
-						case JTokenType.Array:
-							{
-								JsonSerializer serializer = this.GetJsonSerializer();
-								JArray jArray = (JArray)tokenValue;
-								convertedValue = jArray.ToObject(parameterType, serializer);
-								return true;
-							}
-						case JTokenType.Object:
-							{
-								JsonSerializer serializer = this.GetJsonSerializer();
-								JObject jObject = (JObject)tokenValue;
-								convertedValue = jObject.ToObject(parameterType, serializer);
-								return true;
-							}
-						default:
-							convertedValue = tokenValue.ToObject(parameterType);
-							return true;
-					}
-				}
-				else
-				{
-					convertedValue = value;
-					return true;
-				}
-			}
-			catch (Exception ex)
-			{
-				this.logger?.LogWarning($"Parameter '{parameterInfo.Name}' failed to deserialize: " + ex);
-				convertedValue = null;
-				return false;
-			}
-		}
-
-
-		/// <summary>
-		/// Tries to parse the parameter map into an ordered parameter list
-		/// </summary>
-		/// <param name="parametersMap">Map of parameter name to parameter value</param>
-		/// <param name="parameterList">Result of converting the map to an ordered list, null if result is False</param>
-		/// <returns>True if the parameters can convert to an ordered list based on the method signature, otherwise Fasle</returns>
-		private bool TryParseParameterList(MethodInfo method, Dictionary<string, object> parametersMap, out object[] parameterList)
-		{
-			if (this.convertSnakeCaseToCamelCase)
-			{
-				parametersMap = parametersMap.ToDictionary(x => this.ConvertSnakeCaseToCamelCase(x.Key, false), v => v.Value);
-			}
-			ParameterInfo[] parameterInfoList = method.GetParameters();
-			parameterList = new object[parameterInfoList.Count()];
-			foreach (ParameterInfo parameterInfo in parameterInfoList)
-			{
-				if (!parametersMap.ContainsKey(parameterInfo.Name) && !parameterInfo.IsOptional)
-				{
-					parameterList = null;
-					return false;
-				}
-				parameterList[parameterInfo.Position] = parametersMap[parameterInfo.Name];
-			}
-			return true;
-		}
-
-		private string ConvertSnakeCaseToCamelCase(string snakeCaseString, bool upFirstSymbolInFirstWord = true)
-		{
-			return snakeCaseString
-				.Split(new[] { "_" }, StringSplitOptions.RemoveEmptyEntries)
-				.Select((s, index) => upFirstSymbolInFirstWord 
-					? CultureInfo.CurrentCulture.TextInfo.ToTitleCase(s)
-					: (index == 0 ? s : CultureInfo.CurrentCulture.TextInfo.ToTitleCase(s)))
-				.Aggregate(string.Empty, (s1, s2) => s1 + s2);
 		}
 	}
 }

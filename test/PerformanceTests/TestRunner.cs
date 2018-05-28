@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
@@ -46,12 +47,13 @@ namespace PerformanceTests
 			var policyProvider = new FakePolicyProvider();
 			var logger = new FakeLogger();
 			var options = Options.Create(new RpcServerConfiguration());
-			var invoker = new DefaultRpcInvoker(authorizationService, policyProvider, logger, options);
+			var rpcRequestMatcher = new FakeRequestMatcher();
+			var invoker = new DefaultRpcInvoker(authorizationService, policyProvider, logger, options, rpcRequestMatcher);
 
 			var request = new RpcRequest("Ping");
 			const string path = "Test";
 			var routingOptions = new RpcAutoRoutingOptions();
-			var routeProvider = new RpcAutoRouteProvider(routingOptions);
+			var routeProvider = new RpcAutoRouteProvider(Options.Create(routingOptions));
 			var user = new ClaimsPrincipal();
 			IServiceProvider serviceProvider = null;
 			var routeContext = new DefaultRouteContext(serviceProvider, user, routeProvider);
@@ -111,6 +113,16 @@ namespace PerformanceTests
 			public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
 			{
 
+			}
+		}
+
+		private class FakeRequestMatcher : IRpcRequestMatcher
+		{
+			public List<RpcMethodInfo> FilterAndBuildMethodInfoByRequest(List<MethodInfo> methods, RpcRequest request)
+			{
+				return methods
+				.Select(m => new RpcMethodInfo(m, request.Parameters.ArrayValue, request.Parameters.ArrayValue))
+				.ToList();
 			}
 		}
 
