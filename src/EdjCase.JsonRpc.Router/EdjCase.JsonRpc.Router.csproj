@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<Description>A AspNet Core IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing.</Description>
-		<Version>3.0.0-pre-002</Version>
+		<Version>3.0.0-pre-004</Version>
 		<Authors>Gekctek</Authors>
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<AssemblyName>EdjCase.JsonRpc.Router</AssemblyName>

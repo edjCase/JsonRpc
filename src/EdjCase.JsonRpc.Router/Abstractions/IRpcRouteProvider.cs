@@ -14,7 +14,6 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 	public interface IRpcRouteProvider
 	{
 		RpcPath BaseRequestPath { get; }
-		HashSet<RpcPath> GetRoutes();
 		List<IRpcMethodProvider> GetMethodsByPath(RpcPath path);
 	}
 

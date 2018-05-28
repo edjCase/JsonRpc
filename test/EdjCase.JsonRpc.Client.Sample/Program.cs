@@ -38,13 +38,13 @@ namespace EdjCase.JsonRpc.Client.Sample
 			//IRpcTransportClient transportClient = new HttpRpcTransportClient(() => Task.FromResult(authHeaderValue));
 			//string url = "http://localhost:62390/RpcApi/"
 			var options = new WebSocketRpcTransportClientOptions();
-			string url = "ws://192.168.86.123:5000/";
+			string url = "ws://localhost:5000/WebSocket";
 			IRpcTransportClient transportClient = new WebSocketRpcTransportClient(Options.Create(options));
 			RpcClient client = new RpcClient(new Uri(url), transportClient: transportClient);
 			RpcRequest request = RpcRequest.WithParameterList("CharacterCount", new[] { "Test" }, "Id1");
 			RpcResponse<IntegerFromSpace> response = await client.SendRequestAsync<IntegerFromSpace>(request);
 
-			if(response.Result.Test != 4)
+			if (response.Result.Test != 4)
 			{
 				throw new Exception("Test 1 failed.");
 			}
@@ -56,24 +56,24 @@ namespace EdjCase.JsonRpc.Client.Sample
 			};
 			List<RpcResponse<IntegerFromSpace>> bulkResponse = await client.SendBulkRequestAsync<IntegerFromSpace>(requests);
 
-			foreach(RpcResponse<IntegerFromSpace> r in bulkResponse)
+			foreach (RpcResponse<IntegerFromSpace> r in bulkResponse)
 			{
-				switch(r.Id.StringValue)
+				switch (r.Id.StringValue)
 				{
 					case "Id1":
-						if(r.Result.Test != 4)
+						if (r.Result.Test != 4)
 						{
 							throw new Exception("Test 2.1 failed.");
 						}
 						break;
 					case "Id2":
-						if(r.Result.Test != 5)
+						if (r.Result.Test != 5)
 						{
 							throw new Exception("Test 2.2 failed.");
 						}
 						break;
 					case "Id3":
-						if(r.Result.Test != 6)
+						if (r.Result.Test != 6)
 						{
 							throw new Exception("Test 2.3 failed.");
 						}

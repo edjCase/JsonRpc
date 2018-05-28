@@ -10,6 +10,9 @@ using Microsoft.Extensions.Options;
 using EdjCase.JsonRpc.Router.RouteProviders;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using EdjCase.JsonRpc.Core.Tools;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Builder;
+using System.Net.WebSockets;
 
 // ReSharper disable once CheckNamespace
 namespace Microsoft.AspNetCore.Builder
@@ -118,7 +121,7 @@ namespace Microsoft.AspNetCore.Builder
 			{
 				throw new InvalidOperationException("AddJsonRpc() needs to be called in the ConfigureServices method.");
 			}
-			var router = new RpcRouter(routeProvider);
+			var router = new RpcHttpRouter(routeProvider);
 			return app.UseRouter(router);
 		}
 
@@ -174,7 +177,7 @@ namespace Microsoft.AspNetCore.Builder
 		}
 	}
 
-	internal class RpcServicesMarker
+	public class RpcServicesMarker
 	{
 
 	}
