@@ -13,6 +13,7 @@ using EdjCase.JsonRpc.Router.Utilities;
 using Microsoft.Extensions.Options;
 using EdjCase.JsonRpc.Router.Defaults;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EdjCase.JsonRpc.Router
 {
@@ -22,30 +23,16 @@ namespace EdjCase.JsonRpc.Router
 	public class RpcRouter : IRouter
 	{
 		/// <summary>
-		/// Component that logs actions from the router
-		/// </summary>
-		private ILogger<RpcRouter> logger { get; }
-		/// <summary>
-		/// Component that compresses Rpc responses
-		/// </summary>
-		private IRpcCompressor compressor { get; }
-
-		/// <summary>
 		/// Provider that allows the retrieval of all configured routes
 		/// </summary>
 		private IRpcRouteProvider routeProvider { get; }
 
-		private IRpcRequestHandler routeHandler { get; }
-
 		/// <param name="compressor">Component that compresses Rpc responses</param>
 		/// <param name="logger">Component that logs actions from the router</param>
 		/// <param name="routeProvider">Provider that allows the retrieval of all configured routes</param>
-		public RpcRouter(ILogger<RpcRouter> logger, IRpcCompressor compressor, IRpcRouteProvider routeProvider, IRpcRequestHandler routeHandler)
+		public RpcRouter(IRpcRouteProvider routeProvider)
 		{
-			this.logger = logger;
-			this.compressor = compressor ?? throw new ArgumentNullException(nameof(compressor));
 			this.routeProvider = routeProvider ?? throw new ArgumentNullException(nameof(routeProvider));
-			this.routeHandler = routeHandler ?? throw new ArgumentNullException(nameof(routeHandler));
 		}
 
 		/// <summary>
@@ -66,6 +53,7 @@ namespace EdjCase.JsonRpc.Router
 		/// <returns>Task for async routing</returns>
 		public async Task RouteAsync(RouteContext context)
 		{
+			ILogger<RpcRouter> logger = context.HttpContext.RequestServices.GetService<ILogger<RpcRouter>>();
 			try
 			{
 				RpcPath requestPath;
@@ -75,25 +63,25 @@ namespace EdjCase.JsonRpc.Router
 				}
 				else
 				{
-					if(!RpcPath.TryParse(context.HttpContext.Request.Path.Value, out requestPath))
+					if (!RpcPath.TryParse(context.HttpContext.Request.Path.Value, out requestPath))
 					{
-						this.logger?.LogInformation($"Could not parse the path '{context.HttpContext.Request.Path.Value}' for the " +
+						logger?.LogInformation($"Could not parse the path '{context.HttpContext.Request.Path.Value}' for the " +
 							$"request into an rpc path. Skipping rpc router middleware.");
 						return;
 					}
 				}
 				if (!requestPath.TryRemoveBasePath(this.routeProvider.BaseRequestPath, out requestPath))
 				{
-					this.logger?.LogTrace("Request did not match the base request path. Skipping rpc router.");
+					logger?.LogTrace("Request did not match the base request path. Skipping rpc router.");
 					return;
 				}
 				HashSet<RpcPath> availableRoutes = this.routeProvider.GetRoutes();
 				if (!availableRoutes.Any())
 				{
-					this.logger?.LogDebug($"Request matched base request path but no routes.");
+					logger?.LogDebug($"Request matched base request path but no routes.");
 					return;
 				}
-				this.logger?.LogInformation($"Rpc request route '{requestPath}' matched.");
+				logger?.LogInformation($"Rpc request route '{requestPath}' matched.");
 
 				Stream contentStream = context.HttpContext.Request.Body;
 
@@ -106,13 +94,14 @@ namespace EdjCase.JsonRpc.Router
 				{
 					StreamReader streamReader = new StreamReader(contentStream);
 					jsonString = streamReader.ReadToEnd().Trim();
-					
+
 				}
 
+				var requestHandler = context.HttpContext.RequestServices.GetRequiredService<IRpcRequestHandler>();
 				var routeContext = DefaultRouteContext.FromHttpContext(context.HttpContext, this.routeProvider);
-				string responseJson = await this.routeHandler.HandleRequestAsync(requestPath, jsonString, routeContext);
+				string responseJson = await requestHandler.HandleRequestAsync(requestPath, jsonString, routeContext);
 
-				if(responseJson == null)
+				if (responseJson == null)
 				{
 					//No response required
 					return;
@@ -124,18 +113,22 @@ namespace EdjCase.JsonRpc.Router
 				string acceptEncoding = context.HttpContext.Request.Headers["Accept-Encoding"];
 				if (!string.IsNullOrWhiteSpace(acceptEncoding))
 				{
-					string[] encodings = acceptEncoding.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-					foreach (string encoding in encodings)
+					IRpcCompressor compressor = context.HttpContext.RequestServices.GetService<IRpcCompressor>();
+					if (compressor != null)
 					{
-						bool haveType = Enum.TryParse(encoding, true, out CompressionType compressionType);
-						if (!haveType)
+						string[] encodings = acceptEncoding.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+						foreach (string encoding in encodings)
 						{
-							continue;
+							bool haveType = Enum.TryParse(encoding, true, out CompressionType compressionType);
+							if (!haveType)
+							{
+								continue;
+							}
+							context.HttpContext.Response.Headers.Add("Content-Encoding", new[] { encoding });
+							compressor.CompressText(context.HttpContext.Response.Body, responseJson, Encoding.UTF8, compressionType);
+							responseSet = true;
+							break;
 						}
-						context.HttpContext.Response.Headers.Add("Content-Encoding", new[] { encoding });
-						this.compressor.CompressText(context.HttpContext.Response.Body, responseJson, Encoding.UTF8, compressionType);
-						responseSet = true;
-						break;
 					}
 				}
 				if (!responseSet)
@@ -145,12 +138,12 @@ namespace EdjCase.JsonRpc.Router
 
 				context.MarkAsHandled();
 
-				this.logger?.LogInformation("Rpc request complete");
+				logger?.LogInformation("Rpc request complete");
 			}
 			catch (Exception ex)
 			{
 				string errorMessage = "Unknown exception occurred when trying to process Rpc request. Marking route unhandled";
-				this.logger?.LogException(ex, errorMessage);
+				logger?.LogException(ex, errorMessage);
 				context.MarkAsHandled();
 			}
 		}

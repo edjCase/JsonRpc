@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/test/EdjCase.JsonRpc.Client.Sample/EdjCase.JsonRpc.Client.Sample.csproj"
+                "${workspaceFolder}/test/EdjCase.JsonRpc.Router.Sample/EdjCase.JsonRpc.Router.Sample.csproj"
             ],
             "problemMatcher": "$msCompile"
         }

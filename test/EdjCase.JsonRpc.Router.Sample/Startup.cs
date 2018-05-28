@@ -15,6 +15,8 @@ using System.Threading.Tasks;
 using EdjCase.JsonRpc.Router.Abstractions;
 using Microsoft.AspNetCore.Http;
 using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore;
 
 namespace EdjCase.JsonRpc.Router.Sample
 {
@@ -127,10 +129,7 @@ namespace EdjCase.JsonRpc.Router.Sample
 	{
 		public static void Main(string[] args)
 		{
-			var host = new WebHostBuilder()
-				.UseKestrel()
-				.UseContentRoot(Directory.GetCurrentDirectory())
-				.UseIISIntegration()
+			var host = WebHost.CreateDefaultBuilder(args)
 				.UseStartup<Startup>()
 				.Build();
 
