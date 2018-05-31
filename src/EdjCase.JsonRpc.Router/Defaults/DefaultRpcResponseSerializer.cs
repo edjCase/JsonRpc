@@ -73,7 +73,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				jsonWriter.WritePropertyName(JsonRpcContants.ErrorCodePropertyName);
 				jsonWriter.WriteValue(response.Error.Code);
 				jsonWriter.WritePropertyName(JsonRpcContants.ErrorMessagePropertyName);
-				jsonWriter.WriteValue(response.Error.GetMessage(this.serverConfig?.Value?.ShowServerExceptions ?? false));
+				jsonWriter.WriteValue(response.Error.Message);
 				jsonWriter.WritePropertyName(JsonRpcContants.ErrorDataPropertyName);
 				this.SerializeValue(response.Error.Data, jsonWriter);
 			}

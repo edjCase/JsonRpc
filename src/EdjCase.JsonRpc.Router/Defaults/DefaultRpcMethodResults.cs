@@ -27,15 +27,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// </summary>
 		public object Data { get; }
 
-		/// <summary>
-		/// Server exception that will only be shown in the response if configured
-		/// </summary>
-		public Exception Exception { get; }
-
 		/// <param name="errorCode">JSON-RPC error code</param>
 		/// <param name="message">(Optional)Error message</param>
 		/// <param name="data">(Optional)Data for error response</param>
-		public RpcMethodErrorResult(int errorCode, string message = null, Exception serverException = null, object data = null)
+		public RpcMethodErrorResult(int errorCode, string message = null, object data = null)
 		{
 			this.ErrorCode = errorCode;
 			this.Message = message;
@@ -50,7 +45,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <returns>Rpc response for request</returns>
 		public RpcResponse ToRpcResponse(RpcId id)
 		{
-			RpcError error = new RpcError(this.ErrorCode, this.Message, this.Exception, this.Data);
+			RpcError error = new RpcError(this.ErrorCode, this.Message, this.Data);
 			return new RpcResponse(id, error);
 		}
 	}

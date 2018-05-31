@@ -61,6 +61,10 @@ namespace EdjCase.JsonRpc.Client
 			{
 				throw new ArgumentNullException(nameof(request));
 			}
+			if(!request.Id.HasValue)
+			{
+				throw new InvalidOperationException("Cannot call a method expecting a response and not rpc id specified in the request.");
+			}
 			return (await this.SendAsync(new[] { request }, route, ResolveType).ConfigureAwait(false)).SingleOrDefault();
 			//functions
 			Type ResolveType(RpcId id)
@@ -82,10 +86,22 @@ namespace EdjCase.JsonRpc.Client
 			{
 				throw new ArgumentNullException(nameof(request));
 			}
-			return RpcResponse<T>.FromResponse(await this.SendRequestAsync(request, route, typeof(T)));
+			return RpcResponse<T>.FromResponse(await this.SendRequestAsync(request, route, typeof(T)).ConfigureAwait(false));
 		}
 
 
+
+		/// <summary>
+		/// Sends the specified rpc request to the server (Wrapper for other SendRequestAsync)
+		/// </summary>
+		/// <param name="method">Rpc method that is to be called</param>
+		/// <param name="route">(Optional) Route that will append to the base url if the request method call is not located at the base route</param>
+		/// <param name="paramList">List of parameters (in order) for the rpc method</param>
+		/// <returns>The rpc response for the sent request</returns>
+		public Task<RpcResponse<T>> SendRequestAsync<T>(string method, string route, params object[] paramList)
+		{
+			return this.SendRequestWithListAsync<T>(method, route, paramList);
+		}
 
 		/// <summary>
 		/// Sends the specified rpc request to the server (Wrapper for other SendRequestAsync)

@@ -20,7 +20,8 @@ namespace EdjCase.JsonRpc.Core
 		/// <param name="message">Error message</param>
 		/// <param name="data">Custom data if needed for error response</param>
 		/// <param name="innerException">Inner exception (optional)</param>
-		public RpcException(int errorCode, string message, Exception innerException = null, object data = null) : base(message, innerException)
+		public RpcException(int errorCode, string message, Exception innerException = null, object data = null)
+			: base(message, innerException)
 		{
 			this.ErrorCode = errorCode;
 			this.RpcData = data;
@@ -29,13 +30,19 @@ namespace EdjCase.JsonRpc.Core
 		/// <param name="message">Error message</param>
 		/// <param name="data">Custom data if needed for error response</param>
 		/// <param name="innerException">Inner exception (optional)</param>
-		public RpcException(RpcErrorCode errorCode, string message, Exception innerException = null, object data = null) : this((int)errorCode, message, innerException, data)
+		public RpcException(RpcErrorCode errorCode, string message, Exception innerException = null, object data = null)
+			: this((int)errorCode, message, innerException, data)
 		{
 		}
 
-		public RpcError ToRpcError()
+		public RpcError ToRpcError(bool includeServerErrors)
 		{
-			return new RpcError(this.ErrorCode, this.Message, this.InnerException, this.RpcData);
+			string message = this.Message;
+			if (includeServerErrors)
+			{
+				message += Environment.NewLine + "Exception: " + this.InnerException;
+			}
+			return new RpcError(this.ErrorCode, this.Message, this.RpcData);
 		}
 	}
 	

@@ -88,7 +88,7 @@ namespace EdjCase.JsonRpc.Router
 					{
 						if(id == default)
 						{
-							this.logger.LogError($"Request with no id failed and no response will be sent. Error - Code: {error.Code}, Message: {error.GetMessage(true)}");
+							this.logger.LogError($"Request with no id failed and no response will be sent. Error - Code: {error.Code}, Message: {error.Message}");
 							continue;
 						}
 						responses.Add(new RpcResponse(id, error));
@@ -113,7 +113,7 @@ namespace EdjCase.JsonRpc.Router
 			catch (RpcException ex)
 			{
 				this.logger?.LogException(ex, "Error occurred when proccessing Rpc request. Sending Rpc error response");
-				var response = new RpcResponse(null, ex.ToRpcError());
+				var response = new RpcResponse(null, ex.ToRpcError(this.serverConfig.Value.ShowServerExceptions));
 				return this.responseSerializer.Serialize(response);
 			}
 		}

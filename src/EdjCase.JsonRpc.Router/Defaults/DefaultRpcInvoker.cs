@@ -156,7 +156,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				RpcError error;
 				if (ex is RpcException rpcException)
 				{
-					error = rpcException.ToRpcError();
+					error = rpcException.ToRpcError(this.serverConfig.Value.ShowServerExceptions);
 				}
 				else
 				{

@@ -22,14 +22,17 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// Logger for logging Rpc parsing
 		/// </summary>
 		private ILogger<DefaultRpcParser> logger { get; }
+		private IOptions<RpcServerConfiguration> serverConfig { get; }
 
 		/// <summary>
 		/// 
 		/// </summary>
 		/// <param name="logger">Optional logger for logging Rpc parsing</param>
-		public DefaultRpcParser(ILogger<DefaultRpcParser> logger)
+		public DefaultRpcParser(ILogger<DefaultRpcParser> logger,
+			IOptions<RpcServerConfiguration> serverConfig)
 		{
 			this.logger = logger;
+			this.serverConfig = serverConfig;
 		}
 
 		/// <summary>
@@ -170,7 +173,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				RpcError error;
 				if (ex is RpcException rpcException)
 				{
-					error = rpcException.ToRpcError();
+					error = rpcException.ToRpcError(this.serverConfig.Value.ShowServerExceptions);
 				}
 				else
 				{

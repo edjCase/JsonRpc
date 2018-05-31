@@ -38,6 +38,7 @@ namespace EdjCase.JsonRpc.Core.Tools
 						throw new ArgumentOutOfRangeException(nameof(compressionType), compressionType, null);
 				}
 				compressionStream.CopyTo(outputStream);
+				outputStream.Position = 0;
 			}
 			finally
 			{

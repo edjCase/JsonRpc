@@ -55,7 +55,7 @@ namespace EdjCase.JsonRpc.Client
 			IResultSerializer resultSerializer = null)
 		{
 			this.errorDataSerializer = errorDataSerializer ?? new DefaultErrorDataSerializer();
-			this.resultSerializer = this.resultSerializer ?? new DefaultResultSerializer();
+			this.resultSerializer = resultSerializer ?? new DefaultResultSerializer();
 		}
 
 		public RpcResponse Deserialize(string json, Type resultType = null)
