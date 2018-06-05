@@ -49,13 +49,13 @@ namespace EdjCase.JsonRpc.Client
 	public class DefaultRequestJsonSerializer : IRequestSerializer
 	{
 		private IErrorDataSerializer errorDataSerializer { get; }
-		private IResultSerializer resultSerializer { get; }
+		private JsonSerializerSettings jsonSerializerSettings { get; }
 		public DefaultRequestJsonSerializer(
 			IErrorDataSerializer errorDataSerializer = null,
-			IResultSerializer resultSerializer = null)
+			JsonSerializerSettings jsonSerializerSettings = null)
 		{
 			this.errorDataSerializer = errorDataSerializer ?? new DefaultErrorDataSerializer();
-			this.resultSerializer = resultSerializer ?? new DefaultResultSerializer();
+			this.jsonSerializerSettings = jsonSerializerSettings;
 		}
 
 		public RpcResponse Deserialize(string json, Type resultType = null)
@@ -141,7 +141,23 @@ namespace EdjCase.JsonRpc.Client
 			else
 			{
 				Type resultType = resultTypeResolver?.Invoke(id);
-				object result = this.resultSerializer.Deserialize(token[JsonRpcContants.ResultPropertyName].ToString(), resultType);
+				object result;
+				if (resultType == null)
+				{
+					//dont deserialize
+					//TODO tostring?
+					result = token[JsonRpcContants.ResultPropertyName].ToString();
+				}
+				else if (this.jsonSerializerSettings == null)
+				{
+					result = token[JsonRpcContants.ResultPropertyName].ToObject(resultType);
+				}
+				else
+				{
+					//TODo cache serializer?
+					JsonSerializer serializer = JsonSerializer.Create(this.jsonSerializerSettings);
+					result = token[JsonRpcContants.ResultPropertyName].ToObject(resultType, serializer);
+				}
 				return new RpcResponse(id, result, resultType);
 			}
 		}
@@ -228,7 +244,15 @@ namespace EdjCase.JsonRpc.Client
 		{
 			if (value != null)
 			{
-				string valueJson = this.resultSerializer.Serialize(value);
+				string valueJson;
+				if (this.jsonSerializerSettings == null)
+				{
+					valueJson = JsonConvert.SerializeObject(value);
+				}
+				else
+				{
+					valueJson = JsonConvert.SerializeObject(value, this.jsonSerializerSettings);
+				}
 				jsonWriter.WriteRawValue(valueJson);
 			}
 			else

@@ -295,8 +295,7 @@ namespace EdjCase.JsonRpc.Client
 			IErrorDataSerializer errorDataSerializer = null)
 		{
 			var transportClient = new HttpRpcTransportClient(authHeaderValueFactory, encoding, contentType, headers, streamCompressor);
-			var resultSerializer = new DefaultResultSerializer(jsonSerializerSettings);
-			var jsonSerializer = new DefaultRequestJsonSerializer(errorDataSerializer, resultSerializer);
+			var jsonSerializer = new DefaultRequestJsonSerializer(errorDataSerializer, jsonSerializerSettings);
 			return new RpcClient(baseUrl, jsonSerializer, transportClient);
 		}
 	}
