@@ -124,7 +124,7 @@ namespace EdjCase.JsonRpc.Client
 					throw new RpcClientParseException("Unable to parse rpc id as string or number.");
 			}
 			JToken errorToken = token[JsonRpcContants.ErrorPropertyName];
-			if (errorToken != null)
+			if (errorToken != null && errorToken.HasValues)
 			{
 				int code = errorToken.Value<int>(JsonRpcContants.ErrorCodePropertyName);
 				string message = errorToken.Value<string>(JsonRpcContants.ErrorMessagePropertyName);
