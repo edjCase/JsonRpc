@@ -2,7 +2,7 @@
 
 	<PropertyGroup>
 		<Description>A AspNet Core IRouter extension for Json Rpc v2 websocket based requests for Microsoft.AspNetCore.Routing.</Description>
-		<Version>3.0.0-pre-006</Version>
+		<Version>3.0.0-pre-007</Version>
 		<Authors>Gekctek</Authors>
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<AssemblyName>EdjCase.JsonRpc.Router.WebSockets</AssemblyName>
@@ -13,11 +13,6 @@
 		<PackageLicenseUrl>https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE</PackageLicenseUrl>
 		<RepositoryType>git</RepositoryType>
 		<RepositoryUrl>https://github.com/edjCase/JsonRpc</RepositoryUrl>
-		<PublishRepositoryUrl>true</PublishRepositoryUrl>
-		<!-- Optional: Embed source files that are not tracked by the source control manager to the PDB -->
-		<EmbedUntrackedSources>true</EmbedUntrackedSources>
-		<!-- Optional: Include PDB in the built .nupkg -->
-		<AllowedOutputExtensionsInPackageBuildOutputFolder>$(AllowedOutputExtensionsInPackageBuildOutputFolder);.pdb</AllowedOutputExtensionsInPackageBuildOutputFolder>
 		<LangVersion>latest</LangVersion>
 	</PropertyGroup>
 
@@ -27,7 +22,6 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.WebSockets" Version="2.0.0" />
-		<PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0-beta-62925-02" />
 	</ItemGroup>
 
 </Project>
