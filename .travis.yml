@@ -1,0 +1,7 @@
+language: csharp
+solution: EdjCase.JsonRpc.sln
+mono: none
+dotnet: 2.1.300
+script:
+  - chmod a+x ./publish.sh
+  - ./publish.sh
