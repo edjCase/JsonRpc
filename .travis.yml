@@ -1,0 +1,7 @@
+language: csharp
+solution: solution-name.sln
+mono: none
+dotnet: 2.1.300
+script:
+  - ./build.sh
+  - ./test.sh
