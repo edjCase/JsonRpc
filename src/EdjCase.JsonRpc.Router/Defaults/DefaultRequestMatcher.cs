@@ -303,12 +303,18 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			parameterList = new object[parameterInfoList.Count()];
 			foreach (ParameterInfo parameterInfo in parameterInfoList)
 			{
-				if (!parametersMap.ContainsKey(parameterInfo.Name) && !parameterInfo.IsOptional)
+				if (!parametersMap.ContainsKey(parameterInfo.Name))
 				{
-					parameterList = null;
-					return false;
+					if (!parameterInfo.IsOptional)
+					{
+						parameterList = null;
+						return false;
+					}
 				}
-				parameterList[parameterInfo.Position] = parametersMap[parameterInfo.Name];
+				else
+				{
+					parameterList[parameterInfo.Position] = parametersMap[parameterInfo.Name];
+				}
 			}
 			return true;
 		}

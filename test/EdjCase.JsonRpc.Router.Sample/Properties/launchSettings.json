@@ -1,20 +1,5 @@
 {
-	"iisSettings": {
-		"windowsAuthentication": false,
-		"anonymousAuthentication": true,
-		"iisExpress": {
-			"applicationUrl": "http://localhost:5000/",
-			"sslPort": 0
-		}
-	},
 	"profiles": {
-		"IIS Express": {
-			"commandName": "IISExpress",
-			"environmentVariables": {
-				"ASPNETCORE_URLS": "http://*:5000",
-				"ASPNETCORE_ENVIRONMENT": "Development"
-			}
-		},
 		"Web": {
 			"commandName": "Project",
 			"launchBrowser": false,

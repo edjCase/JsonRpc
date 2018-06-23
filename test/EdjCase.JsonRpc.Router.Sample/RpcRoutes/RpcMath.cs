@@ -11,9 +11,9 @@ namespace EdjCase.JsonRpc.Router.Sample.RpcRoutes
 			return a + b;
 		}
 
-		public async Task<int> AddAsync(int a, int b)
+		public async Task<int> AddAsync(int? a = null, int? b = null)
 		{
-			return await Task.Run(() => a + b);
+			return await Task.Run(() => a ?? 0 + b ?? 0);
 		}
 
 
