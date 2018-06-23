@@ -226,7 +226,7 @@ namespace EdjCase.JsonRpc.Client
 						jsonWriter.WriteEndArray();
 						break;
 					case RpcParametersType.Dictionary:
-						jsonWriter.WriteEndObject();
+						jsonWriter.WriteStartObject();
 						foreach (KeyValuePair<string, object> value in request.Parameters.DictionaryValue)
 						{
 							jsonWriter.WritePropertyName(value.Key);
