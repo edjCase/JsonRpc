@@ -103,7 +103,9 @@ namespace EdjCase.JsonRpc.Router
 
 				if (responseJson == null)
 				{
-					//No response required
+					//No response required, but status code must be 204
+					context.HttpContext.Response.StatusCode = 204;
+					context.MarkAsHandled();
 					return;
 				}
 
