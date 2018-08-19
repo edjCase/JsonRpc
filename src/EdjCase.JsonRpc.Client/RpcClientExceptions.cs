@@ -70,8 +70,8 @@ namespace EdjCase.JsonRpc.Client
 		public RpcClientInvalidStatusCodeException(System.Net.HttpStatusCode statusCode, string content)
 		: base($"The server returned an invalid status code of '{statusCode}'. Response content: {content}.")
 		{
-			StatusCode = statusCode;
-			Content = content;
+			this.StatusCode = statusCode;
+			this.Content = content;
 		}
 	}
 }
