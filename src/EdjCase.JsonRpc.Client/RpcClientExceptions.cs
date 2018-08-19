@@ -62,12 +62,16 @@ namespace EdjCase.JsonRpc.Client
 	/// </summary>
 	public class RpcClientInvalidStatusCodeException : RpcClientException
 	{
+		public System.Net.HttpStatusCode StatusCode { get; }
+		public string Content { get; }
+
 		/// <param name="statusCode">Http Status Code</param>
 		/// <param name="innerException">Inner exception</param>
 		public RpcClientInvalidStatusCodeException(System.Net.HttpStatusCode statusCode, string content)
 		: base($"The server returned an invalid status code of '{statusCode}'. Response content: {content}.")
 		{
-
+			this.StatusCode = statusCode;
+			this.Content = content;
 		}
 	}
 }
