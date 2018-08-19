@@ -13,6 +13,7 @@ using EdjCase.JsonRpc.Router.Utilities;
 using Microsoft.Extensions.Options;
 using EdjCase.JsonRpc.Router.Defaults;
 using Microsoft.AspNetCore.Http;
+using EdjCase.JsonRpc.Core.Tools;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace EdjCase.JsonRpc.Router
@@ -20,17 +21,15 @@ namespace EdjCase.JsonRpc.Router
 	/// <summary>
 	/// Router for Asp.Net to direct Http Rpc requests to the correct method, invoke it and return the proper response
 	/// </summary>
-	public class RpcRouter : IRouter
+	public class RpcHttpRouter : IRouter
 	{
 		/// <summary>
 		/// Provider that allows the retrieval of all configured routes
 		/// </summary>
 		private IRpcRouteProvider routeProvider { get; }
 
-		/// <param name="compressor">Component that compresses Rpc responses</param>
-		/// <param name="logger">Component that logs actions from the router</param>
 		/// <param name="routeProvider">Provider that allows the retrieval of all configured routes</param>
-		public RpcRouter(IRpcRouteProvider routeProvider)
+		public RpcHttpRouter(IRpcRouteProvider routeProvider)
 		{
 			this.routeProvider = routeProvider ?? throw new ArgumentNullException(nameof(routeProvider));
 		}
@@ -53,7 +52,7 @@ namespace EdjCase.JsonRpc.Router
 		/// <returns>Task for async routing</returns>
 		public async Task RouteAsync(RouteContext context)
 		{
-			ILogger<RpcRouter> logger = context.HttpContext.RequestServices.GetService<ILogger<RpcRouter>>();
+			ILogger<RpcHttpRouter> logger = context.HttpContext.RequestServices.GetService<ILogger<RpcHttpRouter>>();
 			try
 			{
 				RpcPath requestPath;
@@ -75,29 +74,34 @@ namespace EdjCase.JsonRpc.Router
 					logger?.LogTrace("Request did not match the base request path. Skipping rpc router.");
 					return;
 				}
-				HashSet<RpcPath> availableRoutes = this.routeProvider.GetRoutes();
-				if (!availableRoutes.Any())
-				{
-					logger?.LogDebug($"Request matched base request path but no routes.");
-					return;
-				}
-				logger?.LogInformation($"Rpc request route '{requestPath}' matched.");
-
-				Stream contentStream = context.HttpContext.Request.Body;
+				logger?.LogInformation($"Rpc request with route '{requestPath}' started.");
 
 				string jsonString;
-				if (contentStream == null)
+				if (context.HttpContext.Request.Body == null)
 				{
 					jsonString = null;
 				}
 				else
 				{
-					StreamReader streamReader = new StreamReader(contentStream);
-					jsonString = streamReader.ReadToEnd().Trim();
+					using (StreamReader streamReader = new StreamReader(context.HttpContext.Request.Body, Encoding.UTF8,
+						detectEncodingFromByteOrderMarks: true,
+						bufferSize: 1024,
+						leaveOpen: true))
+					{
+						try
+						{
+							jsonString = await streamReader.ReadToEndAsync();
+						}
+						catch (TaskCanceledException ex)
+						{
+							throw new RpcCanceledRequestException("Cancelled while reading the request.", ex);
+						}
+						jsonString = jsonString.Trim();
+					}
 
 				}
 
-				var requestHandler = context.HttpContext.RequestServices.GetRequiredService<IRpcRequestHandler>();
+				IRpcRequestHandler requestHandler = context.HttpContext.RequestServices.GetRequiredService<IRpcRequestHandler>();
 				var routeContext = DefaultRouteContext.FromHttpContext(context.HttpContext, this.routeProvider);
 				string responseJson = await requestHandler.HandleRequestAsync(requestPath, jsonString, routeContext);
 
@@ -115,7 +119,7 @@ namespace EdjCase.JsonRpc.Router
 				string acceptEncoding = context.HttpContext.Request.Headers["Accept-Encoding"];
 				if (!string.IsNullOrWhiteSpace(acceptEncoding))
 				{
-					IRpcCompressor compressor = context.HttpContext.RequestServices.GetService<IRpcCompressor>();
+					IStreamCompressor compressor = context.HttpContext.RequestServices.GetService<IStreamCompressor>();
 					if (compressor != null)
 					{
 						string[] encodings = acceptEncoding.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
@@ -127,7 +131,10 @@ namespace EdjCase.JsonRpc.Router
 								continue;
 							}
 							context.HttpContext.Response.Headers.Add("Content-Encoding", new[] { encoding });
-							compressor.CompressText(context.HttpContext.Response.Body, responseJson, Encoding.UTF8, compressionType);
+							using (Stream responseStream = new MemoryStream(Encoding.UTF8.GetBytes(responseJson)))
+							{
+								compressor.Compress(responseStream, context.HttpContext.Response.Body, compressionType);
+							}
 							responseSet = true;
 							break;
 						}

@@ -41,7 +41,7 @@ namespace EdjCase.JsonRpc.Client
 	}
 
 	/// <summary>
-	/// Exception for all parsing exceptions that were thro
+	/// Exception for all parsing exceptions that were thrown by the client
 	/// </summary>
 	public class RpcClientParseException : RpcClientException
 	{
@@ -54,6 +54,20 @@ namespace EdjCase.JsonRpc.Client
 		/// <param name="innerException">Inner exception</param>
 		public RpcClientParseException(string message, Exception innerException) : base(message, innerException)
 		{
+		}
+	}
+
+	/// <summary>
+	/// Exception for all bad http status codes that were thrown by the client
+	/// </summary>
+	public class RpcClientInvalidStatusCodeException : RpcClientException
+	{
+		/// <param name="statusCode">Http Status Code</param>
+		/// <param name="innerException">Inner exception</param>
+		public RpcClientInvalidStatusCodeException(System.Net.HttpStatusCode statusCode, string content)
+		: base($"The server returned an invalid status code of '{statusCode}'. Response content: {content}.")
+		{
+
 		}
 	}
 }

@@ -11,7 +11,7 @@ using Moq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using EdjCase.JsonRpc.Router.Criteria;
+using EdjCase.JsonRpc.Router.MethodProviders;
 using System.Reflection;
 
 namespace EdjCase.JsonRpc.Router.Tests
@@ -24,13 +24,16 @@ namespace EdjCase.JsonRpc.Router.Tests
 			var policyProvider = new Mock<IAuthorizationPolicyProvider>();
 			var logger = new Mock<ILogger<DefaultRpcInvoker>>();
 			var options = new Mock<IOptions<RpcServerConfiguration>>();
+			var logger2 = new Mock<ILogger<DefaultRequestMatcher>>();
+			//TODO mock and make other tests for this
+			var rpcRequestMatcher = new DefaultRequestMatcher(logger2.Object, options.Object);
 			var config = new RpcServerConfiguration();
 			config.ShowServerExceptions = true;
 			options
 				.SetupGet(o => o.Value)
 				.Returns(config);
 
-			return new DefaultRpcInvoker(authorizationService.Object, policyProvider.Object, logger.Object, options.Object);
+			return new DefaultRpcInvoker(authorizationService.Object, policyProvider.Object, logger.Object, options.Object, rpcRequestMatcher);
 		}
 
 		private IServiceProvider GetServiceProvider()
@@ -76,7 +79,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			RpcResponse stringResponse = await invoker.InvokeRequestAsync(stringRequest, RpcPath.Default, routeContext);
 
 
-			Assert.Equal(stringResponse.Result, randomGuid);
+			Assert.Equal(randomGuid, stringResponse.Result);
 		}
 
 		[Fact]
@@ -119,8 +122,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.NotNull(resultResponse.Result);
-			Assert.Equal(JTokenType.Integer, resultResponse.Result.Type);
-			Assert.Equal(1, resultResponse.Result.Value<int>());
+			Assert.Equal(1, resultResponse.Result);
 		}
 
 		[Fact]
@@ -135,8 +137,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.NotNull(resultResponse.Result);
-			Assert.Equal(JTokenType.Integer, resultResponse.Result.Type);
-			Assert.Equal(1, resultResponse.Result.Value<int>());
+			Assert.Equal(1, resultResponse.Result);
 		}
 
 		[Fact]
@@ -170,8 +171,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.NotNull(resultResponse.Result);
-			Assert.Equal(JTokenType.String, resultResponse.Result.Type);
-			Assert.Equal("Test", resultResponse.Result.Value<string>());
+			Assert.Equal("Test", resultResponse.Result);
 		}
 	}
 	

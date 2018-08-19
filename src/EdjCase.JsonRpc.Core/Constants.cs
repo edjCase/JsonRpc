@@ -13,10 +13,22 @@
 	}
 
 	public static class JsonRpcContants
+	{		
+		public const string VersionPropertyName = "jsonrpc";
+		public const string MethodPropertyName = "method";
+		public const string ParamsPropertyName = "params";
+		public const string IdPropertyName = "id";
+		public const string ResultPropertyName = "result";
+		public const string ErrorPropertyName = "error";
+		public const string ErrorCodePropertyName = "code";
+		public const string ErrorMessagePropertyName = "message";
+		public const string ErrorDataPropertyName = "data";
+	}
+
+
+	public enum CompressionType
 	{
-		/// <summary>
-		/// Version of Json Rpc protocol being used
-		/// </summary>
-		public const string JsonRpcVersion = "2.0";
+		Gzip,
+		Deflate
 	}
 }

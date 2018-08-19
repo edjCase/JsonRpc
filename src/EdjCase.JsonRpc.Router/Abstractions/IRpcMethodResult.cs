@@ -18,6 +18,6 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 		/// <param name="id">Rpc request id</param>
 		/// <param name="serializer">Json serializer function to use for objects for the response</param>
 		/// <returns>Rpc response for request</returns>
-		RpcResponse ToRpcResponse(object id, Func<object, JToken> serializer);
+		RpcResponse ToRpcResponse(RpcId id);
 	}
 }

@@ -22,14 +22,9 @@ namespace EdjCase.JsonRpc.Router
 		public bool ShowServerExceptions { get; set; }
 
 		/// <summary>
-		/// If greater than 0 the router will throw an error if there is a batch request count
+		/// If specified the router will throw an error if there is a batch request count
 		/// greater than the limit
 		/// </summary>
-		public int BatchRequestLimit { get; set; }
-
-		/// <summary>
-		/// Convert method name and parameters in request from snake case to camel case
-		/// </summary>
-		public bool ConvertSnakeCaseToCamelCaseInRequest { get; set; }
+		public int? BatchRequestLimit { get; set; }
 	}
 }

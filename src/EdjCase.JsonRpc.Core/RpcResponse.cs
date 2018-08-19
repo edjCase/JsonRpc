@@ -1,69 +1,82 @@
 ﻿using System;
-using System.Collections.Generic;
-using EdjCase.JsonRpc.Core.JsonConverters;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Local
 // ReSharper disable UnusedMember.Local
 
 namespace EdjCase.JsonRpc.Core
 {
-	[JsonObject]
+	public class RpcResponse<T> : RpcResponse
+	{
+		public RpcResponse(RpcId id, T result)
+			:base(id, result, typeof(T))
+		{
+
+		}
+
+		public RpcResponse(RpcId id, RpcError error)
+			:base(id, error)
+		{
+			
+		}
+
+		public new T Result => (T)base.Result;
+		
+
+		public static RpcResponse<T> FromResponse(RpcResponse response)
+		{
+			if (response.HasError)
+			{
+				return new RpcResponse<T>(response.Id, response.Error);
+			}
+			return new RpcResponse<T>(response.Id, (T)response.Result);
+		}
+	}
+
 	public class RpcResponse
 	{
-		[JsonConstructor]
 		protected RpcResponse()
 		{
 		}
 
 		/// <param name="id">Request id</param>
-		protected RpcResponse(object id)
+		protected RpcResponse(RpcId id)
 		{
 			this.Id = id;
 		}
 
 		/// <param name="id">Request id</param>
 		/// <param name="error">Request error</param>
-		public RpcResponse(object id, RpcError error) : this(id)
+		public RpcResponse(RpcId id, RpcError error) : this(id)
 		{
 			this.Error = error;
 		}
 
 		/// <param name="id">Request id</param>
 		/// <param name="result">Response result object</param>
-		public RpcResponse(object id, JToken result) : this(id)
+		public RpcResponse(RpcId id, object result, Type resultType) : this(id)
 		{
 			this.Result = result;
+			this.ResultType = resultType;
 		}
 
 		/// <summary>
-		/// Request id (Required but nullable)
+		/// Request id
 		/// </summary>
-		[JsonProperty("id", Required = Required.AllowNull)]
-		[JsonConverter(typeof(RpcIdJsonConverter))]
-		public object Id { get; private set; }
-
-		/// <summary>
-		/// Rpc request version (Required)
-		/// </summary>
-		[JsonProperty("jsonrpc", Required = Required.Always)]
-		public string JsonRpcVersion { get; private set; } = JsonRpcContants.JsonRpcVersion;
+		public RpcId Id { get; private set; }
 
 		/// <summary>
 		/// Reponse result object (Required)
 		/// </summary>
-		[JsonProperty("result", Required = Required.Default)] //TODO somehow enforce this or an error, not both
-		public JToken Result { get; private set; }
+		public object Result { get; private set; }
 
 		/// <summary>
 		/// Error from processing Rpc request (Required)
 		/// </summary>
-		[JsonProperty("error", Required = Required.Default)]
 		public RpcError Error { get; private set; }
 
-		[JsonIgnore]
 		public bool HasError => this.Error != null;
+
+		public Type ResultType { get; }
 
 		public void ThrowErrorIfExists()
 		{
@@ -74,43 +87,39 @@ namespace EdjCase.JsonRpc.Core
 		}
 	}
 
+	public class RpcError<T> : RpcError
+	{
+		public RpcError(RpcErrorCode code, string message, T data)
+			: base(code, message, data)
+		{
+		}
+
+		public RpcError(int code, string message, T data)
+			: base(code, message, data)
+		{
+		}
+
+		public new T Data => (T)base.Data;
+	}
+
 	/// <summary>
 	/// Model to represent an Rpc response error
 	/// </summary>
-	[JsonObject]
 	public class RpcError
 	{
-		[JsonConstructor]
-		private RpcError()
-		{
-		}
-
-		/// <param name="exception">Exception from Rpc request</param>
-		/// <param name="showServerExceptions">
-		/// Optional. If true the inner exceptions to errors (possibly from server code) will be shown. Defaults to false.
-		/// </param>
-		public RpcError(RpcException exception, bool showServerExceptions)
-		{
-			if (exception == null)
-			{
-				throw new ArgumentNullException(nameof(exception));
-			}
-			this.Code = (int)exception.ErrorCode;
-			this.Message = RpcError.GetErrorMessage(exception, showServerExceptions);
-			this.Data = exception.RpcData;
-		}
 
 		/// <param name="code">Rpc error code</param>
 		/// <param name="message">Error message</param>
 		/// <param name="data">Optional error data</param>
-		public RpcError(RpcErrorCode code, string message, JToken data = null) : this((int)code, message, data)
+		public RpcError(RpcErrorCode code, string message, object data = null)
+			: this((int)code, message, data)
 		{
 		}
 
 		/// <param name="code">Rpc error code</param>
 		/// <param name="message">Error message</param>
 		/// <param name="data">Optional error data</param>
-		public RpcError(int code, string message, JToken data = null)
+		public RpcError(int code, string message, object data = null)
 		{
 			if (string.IsNullOrWhiteSpace(message))
 			{
@@ -119,61 +128,30 @@ namespace EdjCase.JsonRpc.Core
 			this.Code = code;
 			this.Message = message;
 			this.Data = data;
+			this.DataType = data?.GetType();
 		}
 
 		/// <summary>
 		/// Rpc error code (Required)
 		/// </summary>
-		[JsonProperty("code", Required = Required.Always)]
-		public int Code { get; private set; }
+		public int Code { get; }
 
-		/// <summary>
-		/// Error message (Required)
-		/// </summary>
-		[JsonProperty("message", Required = Required.Always)]
-		public string Message { get; private set; }
+		public string Message { get; }
 
 		/// <summary>
 		/// Error data (Optional)
 		/// </summary>
-		[JsonProperty("data")]
-		public JToken Data { get; private set; }
+		public object Data { get; }
+
+		/// <summary>
+		/// Type of the data object
+		/// </summary>
+		public Type DataType { get; }
 
 		public RpcException CreateException()
 		{
-			RpcException exception;
-			switch ((RpcErrorCode)this.Code)
-			{
-				case RpcErrorCode.ParseError:
-					exception = new RpcParseException(this);
-					break;
-				case RpcErrorCode.InvalidRequest:
-					exception = new RpcInvalidRequestException(this);
-					break;
-				case RpcErrorCode.MethodNotFound:
-					exception = new RpcMethodNotFoundException(this);
-					break;
-				case RpcErrorCode.InvalidParams:
-					exception = new RpcInvalidParametersException(this);
-					break;
-				case RpcErrorCode.InternalError:
-					exception = new RpcInvalidParametersException(this);
-					break;
-				default:
-					exception = new RpcCustomException(this);
-					break;
-			}
-			return exception;
+			return new RpcException(this.Code, this.Message, data: this.Data);
 		}
 
-		private static string GetErrorMessage(Exception exception, bool showServerExceptions)
-		{
-			string message = exception.Message;
-			if (showServerExceptions && exception.InnerException != null)
-			{
-				message += "\tInner Exception: " + RpcError.GetErrorMessage(exception.InnerException, showServerExceptions);
-			}
-			return message;
-		}
 	}
 }

@@ -6,10 +6,10 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Reflection;
 
-namespace EdjCase.JsonRpc.Router.Criteria
+namespace EdjCase.JsonRpc.Router.MethodProviders
 {
 	/// <summary>
-	/// Criteria that has to be met for the specified route to match
+	/// Method provider finding all public methods through reflection
 	/// </summary>
 	public class ControllerPublicMethodProvider : IRpcMethodProvider
 	{

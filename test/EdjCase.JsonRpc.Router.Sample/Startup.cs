@@ -15,8 +15,15 @@ using System.Threading.Tasks;
 using EdjCase.JsonRpc.Router.Abstractions;
 using Microsoft.AspNetCore.Http;
 using System.Diagnostics;
+using Microsoft.ApplicationInsights.Extensibility.Implementation;
+using Microsoft.Extensions.Configuration;
+using System.Net.WebSockets;
+using System.Threading;
+using EdjCase.JsonRpc.Router.Defaults;
+using EdjCase.JsonRpc.Router.RouteProviders;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore;
+using EdjCase.JsonRpc.Router.WebSockets;
 
 namespace EdjCase.JsonRpc.Router.Sample
 {
@@ -53,39 +60,46 @@ namespace EdjCase.JsonRpc.Router.Sample
 
 				});
 			services
-				.AddJsonRpc(config =>
+				.AddJsonRpc()
+				.WithOptions(config =>
 				{
 					config.ShowServerExceptions = true;
-					config.BatchRequestLimit = 1;
+					config.BatchRequestLimit = null;
 				});
 		}
 
 		// Configure is called after ConfigureServices is called.
 		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
 		{
-			loggerFactory
-				.AddDebug(LogLevel.Debug)
-				.AddConsole(LogLevel.Debug);
+			//loggerFactory
+			//	.AddDebug(LogLevel.Debug)
+			//	.AddConsole(LogLevel.Debug);
 
-			app.UseAuthentication();
+			//app.UseAuthentication();
 
-			app.Map("/RpcApi", rpcApp =>
+			app.Map("/Api", rpcApp =>
 			{
 				rpcApp
 				.Use(this.LogBody)
-				.UseManualJsonRpc(builder =>
+				.UseManualJsonRpc(options =>
 				{
-					builder.RegisterController<RpcMath>();
-					builder.RegisterController<RpcString>("Strings");
-					builder.RegisterController<RpcCommands>("Commands");
-					builder.RegisterController<RpcMath>("Math");
+					options.BaseRequestPath = "Manual";
+					options.RegisterController<RpcMath>();
+				})
+				.UseJsonRpc(builder =>
+				{
+					builder.BaseControllerType = typeof(ControllerBase);
+					builder.BaseRequestPath = "Auto";
 				});
 			})
-			.Use(this.LogBody)
-			.UseJsonRpc(builder =>
+			.Map("/WebSocket", builder =>
 			{
-				builder.BaseControllerType = typeof(ControllerBase);
-				builder.BaseRequestPath = "Auto";
+				builder
+				.UseJsonRpcWithWebSockets(options =>
+				{
+					options.AddClass<RpcMath>();
+					options.AddClass<RpcString>();
+				});
 			});
 
 		}

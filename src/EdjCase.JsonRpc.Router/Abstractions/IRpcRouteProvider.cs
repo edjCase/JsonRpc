@@ -1,4 +1,4 @@
-﻿using EdjCase.JsonRpc.Router.Criteria;
+﻿using EdjCase.JsonRpc.Router.MethodProviders;
 using Microsoft.AspNetCore.Authorization;
 using System;
 using System.Collections.Generic;
@@ -14,7 +14,6 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 	public interface IRpcRouteProvider
 	{
 		RpcPath BaseRequestPath { get; }
-		HashSet<RpcPath> GetRoutes();
 		List<IRpcMethodProvider> GetMethodsByPath(RpcPath path);
 	}
 
