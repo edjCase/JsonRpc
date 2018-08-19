@@ -16,7 +16,7 @@ namespace EdjCase.JsonRpc.Client.Sample
 		{
 			try
 			{
-				Program.Run().Wait();
+				IntegrationTestRunner.RunAsync().Wait();
 			}
 			catch (AggregateException aEx)
 			{
@@ -32,31 +32,52 @@ namespace EdjCase.JsonRpc.Client.Sample
 			Console.ReadLine();
 		}
 
-		public static async Task Run()
+	}
+
+	public static class IntegrationTestRunner
+	{
+		private const string url = "http://localhost:62390/RpcApi/";
+		private static AuthenticationHeaderValue authHeaderValue { get; } = AuthenticationHeaderValue.Parse("Basic R2VrY3RlazpXZWxjMG1lIQ==");
+
+		public static async Task RunAsync()
 		{
-			AuthenticationHeaderValue authHeaderValue = AuthenticationHeaderValue.Parse("Basic R2VrY3RlazpXZWxjMG1lIQ==");
-			//IRpcTransportClient transportClient = new HttpRpcTransportClient(() => Task.FromResult(authHeaderValue));
-			//string url = "http://localhost:62390/RpcApi/"
-			var options = new WebSocketRpcTransportClientOptions();
-			string url = "ws://localhost:5000/WebSocket";
-			IRpcTransportClient transportClient = new WebSocketRpcTransportClient(Options.Create(options));
+			await IntegrationTestRunner.Test1();
+			await IntegrationTestRunner.Test2();
+			await IntegrationTestRunner.Test3();
+			await IntegrationTestRunner.Test4();
+		}
+
+		private static async Task Test1()
+		{
+			// var options = new WebSocketRpcTransportClientOptions();
+			// string url = "ws://localhost:5000/WebSocket";
+			//IRpcTransportClient transportClient = new WebSocketRpcTransportClient(Options.Create(options));
+
+
+			IRpcTransportClient transportClient = new HttpRpcTransportClient(() => Task.FromResult(IntegrationTestRunner.authHeaderValue));
 			RpcClient client = new RpcClient(new Uri(url), transportClient: transportClient);
 			RpcRequest request = RpcRequest.WithParameterList("CharacterCount", new[] { "Test" }, "Id1");
-			RpcResponse<IntegerFromSpace> response = await client.SendRequestAsync<IntegerFromSpace>(request);
+			RpcResponse<TestObject> response = await client.SendRequestAsync<TestObject>(request);
 
 			if (response.Result.Test != 4)
 			{
 				throw new Exception("Test 1 failed.");
 			}
+		}
+
+		private static async Task Test2()
+		{
+			IRpcTransportClient transportClient = new HttpRpcTransportClient(() => Task.FromResult(IntegrationTestRunner.authHeaderValue));
+			RpcClient client = new RpcClient(new Uri(url), transportClient: transportClient);
 			List<RpcRequest> requests = new List<RpcRequest>
 			{
-				request,
+				RpcRequest.WithParameterList("CharacterCount", new[] { "Test" }, "Id1"),
 				RpcRequest.WithParameterList("CharacterCount", new[] { "Test2" }, "Id2"),
 				RpcRequest.WithParameterList("CharacterCount", new[] { "Test23" }, "Id3")
 			};
-			List<RpcResponse<IntegerFromSpace>> bulkResponse = await client.SendBulkRequestAsync<IntegerFromSpace>(requests);
+			List<RpcResponse<TestObject>> bulkResponse = await client.SendBulkRequestAsync<TestObject>(requests);
 
-			foreach (RpcResponse<IntegerFromSpace> r in bulkResponse)
+			foreach (RpcResponse<TestObject> r in bulkResponse)
 			{
 				switch (r.Id.StringValue)
 				{
@@ -82,19 +103,40 @@ namespace EdjCase.JsonRpc.Client.Sample
 						throw new ArgumentOutOfRangeException(nameof(r.Id));
 				}
 			}
+		}
+
+		private static async Task Test3()
+		{
+			//TODO
 			// var additionalHeaders = new List<(string, string)>
 			// {
 			// 	("Accept-Encoding", "gzip")
 			// };
-			// transportClient = new HttpRpcTransportClient(() => Task.FromResult(authHeaderValue), headers: additionalHeaders);
-			// var compressedClient = new RpcClient(new Uri("http://localhost:62390/RpcApi/"), transportClient: transportClient);
+			// RpcRequest request = RpcRequest.WithParameterList("CharacterCount", new[] { "Test" }, "Id1");
+			// var transportClient = new HttpRpcTransportClient(() => Task.FromResult(authHeaderValue), headers: additionalHeaders);
+			// var compressedClient = new RpcClient(new Uri(TestRunner.url), transportClient: transportClient);
 			// var compressedRequest = RpcRequest.WithParameterList("CharacterCount", new[] { "Test" }, "Id1");
 			// var compressedResponse = await compressedClient.SendRequestAsync(request, "Strings");
+		}
+
+
+		private static async Task Test4()
+		{
+
+			IRpcTransportClient transportClient = new HttpRpcTransportClient(() => Task.FromResult(IntegrationTestRunner.authHeaderValue));
+			RpcClient client = new RpcClient(new Uri(url), transportClient: transportClient);
+			RpcRequest request = RpcRequest.WithParameterList("CharacterCount", new[] { "Test" }, "Id1");
+			RpcResponse<TestObject> response = await client.SendRequestAsync<TestObject>(request);
+
+			if (response.Result.Test != 4)
+			{
+				throw new Exception("Test 1 failed.");
+			}
 		}
 	}
 
 
-	public class IntegerFromSpace
+	public class TestObject
 	{
 		public int Test { get; set; }
 	}

@@ -62,17 +62,46 @@ namespace EdjCase.JsonRpc.Client
 
 		private IStreamCompressor streamCompressor { get; }
 
+		private Func<HttpClient> httpClientFactory { get; }
+
+#if !NETSTANDARD1_1
+
+		public HttpRpcTransportClient(Func<Task<AuthenticationHeaderValue>> authHeaderValueFactory = null,
+			Encoding encoding = null,
+			string contentType = null,
+			IEnumerable<(string, string)> headers = null,
+			IStreamCompressor streamCompressor = null,
+			IHttpClientFactory httpClientFactory = null)
+			: this(authHeaderValueFactory, encoding, contentType, headers, streamCompressor, httpClientFactory == null ? (Func<HttpClient>)null : httpClientFactory.CreateClient)
+		{
+
+		}
+#else
 		public HttpRpcTransportClient(Func<Task<AuthenticationHeaderValue>> authHeaderValueFactory = null,
 			Encoding encoding = null,
 			string contentType = null,
 			IEnumerable<(string, string)> headers = null,
 			IStreamCompressor streamCompressor = null)
+			: this(authHeaderValueFactory, encoding, contentType, headers, streamCompressor, httpClientFactory: null)
+		{
+		}
+
+#endif
+
+
+		private HttpRpcTransportClient(Func<Task<AuthenticationHeaderValue>> authHeaderValueFactory,
+			Encoding encoding,
+			string contentType,
+			IEnumerable<(string, string)> headers,
+			IStreamCompressor streamCompressor,
+			Func<HttpClient> httpClientFactory)
 		{
 			this.AuthHeaderValueFactory = authHeaderValueFactory;
 			this.Encoding = encoding ?? Encoding.UTF8;
 			this.ContentType = contentType ?? "application/json";
 			this.Headers = headers?.ToList() ?? new List<(string, string)> { ("Accept-Encoding", "gzip, deflate") };
 			this.streamCompressor = streamCompressor ?? new DefaultStreamCompressor();
+			this.httpClientFactory = httpClientFactory ?? (() => new HttpClient());
 		}
 
 		public async Task<Stream> SendRequestAsync(Uri uri, Stream requestStream, CancellationToken cancellationToken = default)
@@ -86,7 +115,6 @@ namespace EdjCase.JsonRpc.Client
 				httpContent = new StringContent(json, this.Encoding, this.ContentType);
 			}
 			HttpResponseMessage httpResponseMessage = await httpClient.PostAsync(string.Empty, httpContent, cancellationToken).ConfigureAwait(false);
-			httpResponseMessage.EnsureSuccessStatusCode();
 
 			Stream responseStream = await httpResponseMessage.Content.ReadAsStreamAsync();
 			httpResponseMessage.Content.Headers.TryGetValues("Content-Encoding", out var encodings);
@@ -104,7 +132,16 @@ namespace EdjCase.JsonRpc.Client
 
 					var decompressedResponseStream = new MemoryStream();
 					this.streamCompressor.Decompress(responseStream, decompressedResponseStream, compressionType);
-					return decompressedResponseStream;
+					responseStream = decompressedResponseStream;
+					break;
+				}
+			}
+			if (!httpResponseMessage.IsSuccessStatusCode)
+			{
+				using (StreamReader streamReader = new StreamReader(responseStream))
+				{
+					string content = await streamReader.ReadToEndAsync();
+					throw new RpcClientInvalidStatusCodeException(httpResponseMessage.StatusCode, content);
 				}
 			}
 
@@ -114,7 +151,7 @@ namespace EdjCase.JsonRpc.Client
 
 		private async Task<HttpClient> GetHttpClientAsync(Uri uri)
 		{
-			var httpClient = new HttpClient();
+			HttpClient httpClient = this.httpClientFactory();
 			httpClient.BaseAddress = uri;
 			if (this.AuthHeaderValueFactory != null)
 			{
