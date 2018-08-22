@@ -113,15 +113,14 @@ namespace EdjCase.JsonRpc.Client
 				case JTokenType.Null:
 					break;
 				case JTokenType.Integer:
-				case JTokenType.Float:
-					id = new RpcId(idToken.Value<double>());
+					id = new RpcId(idToken.Value<long>());
 					break;
 				case JTokenType.String:
 				case JTokenType.Guid:
 					id = new RpcId(idToken.Value<string>());
 					break;
 				default:
-					throw new RpcClientParseException("Unable to parse rpc id as string or number.");
+					throw new RpcClientParseException("Unable to parse rpc id as string or integer.");
 			}
 			JToken errorToken = token[JsonRpcContants.ErrorPropertyName];
 			if (errorToken != null && errorToken.HasValues)
@@ -158,7 +157,7 @@ namespace EdjCase.JsonRpc.Client
 					JsonSerializer serializer = JsonSerializer.Create(this.jsonSerializerSettings);
 					result = token[JsonRpcContants.ResultPropertyName].ToObject(resultType, serializer);
 				}
-				return new RpcResponse(id, result, resultType);
+				return new RpcResponse(id, result);
 			}
 		}
 

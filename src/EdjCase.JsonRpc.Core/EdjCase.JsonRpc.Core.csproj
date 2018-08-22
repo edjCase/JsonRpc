@@ -2,13 +2,13 @@
 
 	<PropertyGroup>
 		<Description>The core library used by JsonRpc client/router.</Description>
-		<Version>3.0.0</Version>
+		<Version>3.0.1</Version>
 		<Authors>Gekctek</Authors>
 		<TargetFrameworks>netstandard2.0;netstandard1.1</TargetFrameworks>
 		<AssemblyName>EdjCase.JsonRpc.Core</AssemblyName>
 		<PackageId>EdjCase.JsonRpc.Core</PackageId>
 		<PackageTags>JsonRpc Rpc Json-Rpc .Net Core</PackageTags>
-		<PackageReleaseNotes>Upgrading to .NetCoreApp 2.1</PackageReleaseNotes>
+		<PackageReleaseNotes>Fixing bulk serialization issue. Restricting ids to integers rather than any number.</PackageReleaseNotes>
 		<PackageProjectUrl>https://github.com/edjCase/JsonRpc</PackageProjectUrl>
 		<PackageLicenseUrl>https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE</PackageLicenseUrl>
 		<RepositoryType>git</RepositoryType>

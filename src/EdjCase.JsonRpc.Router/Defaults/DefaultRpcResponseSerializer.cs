@@ -76,6 +76,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				jsonWriter.WriteValue(response.Error.Message);
 				jsonWriter.WritePropertyName(JsonRpcContants.ErrorDataPropertyName);
 				this.SerializeValue(response.Error.Data, jsonWriter);
+				jsonWriter.WriteEndObject();
 			}
 			jsonWriter.WriteEndObject();
 		}

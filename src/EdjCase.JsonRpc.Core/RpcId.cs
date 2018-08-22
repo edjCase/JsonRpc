@@ -19,7 +19,7 @@ namespace EdjCase.JsonRpc.Core
 
 		public object Value { get; }
 
-		public double NumberValue
+		public long NumberValue
 		{
 			get
 			{
@@ -27,7 +27,7 @@ namespace EdjCase.JsonRpc.Core
 				{
 					throw new InvalidOperationException("Cannot cast id to number.");
 				}
-				return (double)this.Value;
+				return (long)this.Value;
 			}
 		}
 
@@ -50,7 +50,7 @@ namespace EdjCase.JsonRpc.Core
 			this.Type = RpcIdType.String;
 		}
 
-		public RpcId(double id)
+		public RpcId(long id)
 		{
 			this.HasValue = true;
 			this.Value = id;
@@ -128,7 +128,7 @@ namespace EdjCase.JsonRpc.Core
 			}
 		}
 
-		public static implicit operator RpcId(double id)
+		public static implicit operator RpcId(long id)
 		{
 			return new RpcId(id);
 		}
@@ -154,7 +154,7 @@ namespace EdjCase.JsonRpc.Core
 			}
 			if (value.GetType().IsNumericType())
 			{
-				return new RpcId(Convert.ToDouble(value));
+				return new RpcId(Convert.ToInt64(value));
 			}
 			throw new RpcException(RpcErrorCode.InvalidRequest, "Id must be a string, a number or null.");
 		}

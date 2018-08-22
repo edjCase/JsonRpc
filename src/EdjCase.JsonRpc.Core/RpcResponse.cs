@@ -8,7 +8,7 @@ namespace EdjCase.JsonRpc.Core
 	public class RpcResponse<T> : RpcResponse
 	{
 		public RpcResponse(RpcId id, T result)
-			:base(id, result, typeof(T))
+			:base(id, result)
 		{
 
 		}
@@ -53,10 +53,9 @@ namespace EdjCase.JsonRpc.Core
 
 		/// <param name="id">Request id</param>
 		/// <param name="result">Response result object</param>
-		public RpcResponse(RpcId id, object result, Type resultType) : this(id)
+		public RpcResponse(RpcId id, object result) : this(id)
 		{
 			this.Result = result;
-			this.ResultType = resultType;
 		}
 
 		/// <summary>
@@ -75,8 +74,6 @@ namespace EdjCase.JsonRpc.Core
 		public RpcError Error { get; private set; }
 
 		public bool HasError => this.Error != null;
-
-		public Type ResultType { get; }
 
 		public void ThrowErrorIfExists()
 		{

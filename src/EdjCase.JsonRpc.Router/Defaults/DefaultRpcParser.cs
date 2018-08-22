@@ -109,8 +109,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					case JTokenType.Null:
 						break;
 					case JTokenType.Integer:
-					case JTokenType.Float:
-						id = new RpcId(idToken.Value<double>());
+						id = new RpcId(idToken.Value<long>());
 						break;
 					case JTokenType.String:
 					case JTokenType.Guid:
@@ -118,7 +117,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 						break;
 					default:
 						//Throw exception here because we need an id for the response
-						throw new RpcException(RpcErrorCode.ParseError, "Unable to parse rpc id as string or number.");
+						throw new RpcException(RpcErrorCode.ParseError, "Unable to parse rpc id as string or integer.");
 				}
 			}
 			try

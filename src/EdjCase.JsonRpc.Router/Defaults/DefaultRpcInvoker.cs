@@ -140,7 +140,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					else
 					{
 						this.logger?.LogTrace($"Result is plain object.");
-						rpcResponse = new RpcResponse(request.Id, result, rpcMethod.Method.ReturnType);
+						rpcResponse = new RpcResponse(request.Id, result);
 					}
 				}
 				else
