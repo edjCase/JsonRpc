@@ -10,7 +10,7 @@
 		<PackageTags>JsonRpc Rpc AspNet Json-Rpc .Net Core</PackageTags>
 		<PackageReleaseNotes>Fixing bulk serialization issue. Restricting ids to integers rather than any number.</PackageReleaseNotes>
 		<PackageProjectUrl>https://github.com/edjCase/JsonRpc</PackageProjectUrl>
-		<PackageLicenseUrl>https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE</PackageLicenseUrl>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<RepositoryType>git</RepositoryType>
 		<RepositoryUrl>https://github.com/edjCase/JsonRpc</RepositoryUrl>
 		<LangVersion>latest</LangVersion>

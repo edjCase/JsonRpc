@@ -10,7 +10,7 @@
 		<PackageTags>JsonRpc Rpc Json-Rpc .Net Core</PackageTags>
 		<PackageReleaseNotes>Adding client builders and events</PackageReleaseNotes>
 		<PackageProjectUrl>https://github.com/edjCase/JsonRpc</PackageProjectUrl>
-		<PackageLicenseUrl>https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE</PackageLicenseUrl>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<RepositoryType>git</RepositoryType>
 		<LangVersion>latest</LangVersion>
 	</PropertyGroup>
