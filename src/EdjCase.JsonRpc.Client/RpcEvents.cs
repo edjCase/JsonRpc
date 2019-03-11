@@ -22,18 +22,29 @@ namespace EdjCase.JsonRpc.Client
 
 	public class RequestEventContext
 	{
+		public string Route { get; }
 		public List<RpcRequest> Requests { get; }
+		public string RequestJson { get; }
+
+		public RequestEventContext(string route, List<RpcRequest> requests, string requestJson)
+		{
+			this.Route = route;
+			this.Requests = requests;
+			this.RequestJson = requestJson;
+		}
 	}
 
 	public class ResponseEventContext
 	{
 		public TimeSpan Duration { get; }
+		public string ResponseJson { get; }
 		public List<RpcResponse> Responses { get; }
 		public Exception ClientError { get; }
 
-		public ResponseEventContext(TimeSpan duration, List<RpcResponse> responses, Exception clientError = null)
+		public ResponseEventContext(TimeSpan duration, string responseJson, List<RpcResponse> responses, Exception clientError = null)
 		{
 			this.Duration = duration;
+			this.ResponseJson = responseJson;
 			this.Responses = responses;
 			this.ClientError = clientError;
 		}

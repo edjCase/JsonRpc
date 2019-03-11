@@ -249,16 +249,22 @@ namespace EdjCase.JsonRpc.Client
 					requestJson = this.JsonSerializer.SerializeBulk(requests);
 				}
 				Uri uri = new Uri(this.BaseUrl, route);
-				var requestContext = new RequestEventContext();
+				var requestContext = new RequestEventContext(route, requests.ToList(), requestJson);
 				ResponseEventContext responseContext = null;
 				await this.Events.OnRequestStartAsync?.Invoke(requestContext);
 
 				Stopwatch stopwatch = Stopwatch.StartNew();
 				try
 				{
-					string responseJson = await this.TransportClient.SendRequestAsync(uri, requestJson);
-					stopwatch.Stop();
-
+					string responseJson;
+					try
+					{
+						responseJson = await this.TransportClient.SendRequestAsync(uri, requestJson);
+					}
+					finally
+					{
+						stopwatch.Stop();
+					}
 					if (string.IsNullOrWhiteSpace(responseJson))
 					{
 						throw new RpcClientParseException("Server did not return a rpc response, just an empty body.");
@@ -276,12 +282,12 @@ namespace EdjCase.JsonRpc.Client
 						{
 							responses = this.JsonSerializer.DeserializeBulk(responseJson, resultTypeResolver);
 						}
-						responseContext = new ResponseEventContext(stopwatch.Elapsed, responses);
+						responseContext = new ResponseEventContext(stopwatch.Elapsed, responseJson, responses);
 						return responses;
 					}
 					catch (Exception ex)
 					{
-						responseContext = new ResponseEventContext(stopwatch.Elapsed, responses, ex);
+						responseContext = new ResponseEventContext(stopwatch.Elapsed, responseJson, responses, ex);
 						throw new RpcClientParseException($"Unable to parse response from server: '{responseJson}'", ex);
 					}
 				}
