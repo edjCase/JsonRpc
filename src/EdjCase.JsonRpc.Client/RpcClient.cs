@@ -61,7 +61,7 @@ namespace EdjCase.JsonRpc.Client
 			{
 				throw new ArgumentNullException(nameof(request));
 			}
-			if(!request.Id.HasValue)
+			if (!request.Id.HasValue)
 			{
 				throw new InvalidOperationException("Cannot call a method expecting a response and not rpc id specified in the request.");
 			}
@@ -272,7 +272,7 @@ namespace EdjCase.JsonRpc.Client
 				throw new RpcClientUnknownException("Error occurred when trying to send rpc requests(s)", ex);
 			}
 		}
-		
+
 		public static RpcClient CreateWithHttpClient(Uri baseUrl,
 			Func<Task<AuthenticationHeaderValue>> authHeaderValueFactory = null,
 			Encoding encoding = null,
@@ -297,6 +297,18 @@ namespace EdjCase.JsonRpc.Client
 			var transportClient = new HttpRpcTransportClient(authHeaderValueFactory, encoding, contentType, headers, streamCompressor);
 			var jsonSerializer = new DefaultRequestJsonSerializer(errorDataSerializer, jsonSerializerSettings);
 			return new RpcClient(baseUrl, jsonSerializer, transportClient);
+		}
+
+		public static HttpRpcClientBuilder CreateHttpTransportClientBuilder(Uri baseUrl)
+		{
+			return new HttpRpcClientBuilder(baseUrl);
+		}
+
+
+		public class Events
+		{
+			public Func<Task> OnRequestStart { get; set; }
+			public Func<Task> OnRequestEnd { get; set; }
 		}
 	}
 }

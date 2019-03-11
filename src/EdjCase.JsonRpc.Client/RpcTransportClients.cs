@@ -43,11 +43,6 @@ namespace EdjCase.JsonRpc.Client
 	public class HttpRpcTransportClient : IRpcTransportClient
 	{
 		/// <summary>
-		/// Authentication header value factory for the rpc request being sent. If the server requires
-		/// authentication this requires a value. Otherwise it can be null
-		/// </summary>
-		public Func<Task<AuthenticationHeaderValue>> AuthHeaderValueFactory { get; }
-		/// <summary>
 		/// Request encoding type for json content. If null, will default to UTF-8 
 		/// </summary>
 		public Encoding Encoding { get; }
@@ -62,59 +57,68 @@ namespace EdjCase.JsonRpc.Client
 
 		private IStreamCompressor streamCompressor { get; }
 
-		private Func<HttpClient> httpClientFactory { get; }
+		/// <summary>
+		/// Factory to create authentication header for each request
+		/// </summary>
+		private IHttpAuthHeaderFactory httpAuthHeaderFactory { get; }
 
-#if !NETSTANDARD1_1
+		private IHttpClientFactory httpClientFactory { get; set; }
 
-		public HttpRpcTransportClient(Func<Task<AuthenticationHeaderValue>> authHeaderValueFactory = null,
-			Encoding encoding = null,
-			string contentType = null,
-			IEnumerable<(string, string)> headers = null,
-			IStreamCompressor streamCompressor = null,
-			IHttpClientFactory httpClientFactory = null)
-			: this(authHeaderValueFactory, encoding, contentType, headers, streamCompressor, httpClientFactory == null ? (Func<HttpClient>)null : httpClientFactory.CreateClient)
-		{
-
-		}
-#else
-		public HttpRpcTransportClient(Func<Task<AuthenticationHeaderValue>> authHeaderValueFactory = null,
+		public HttpRpcTransportClient(Func<Task<AuthenticationHeaderValue>> authHeaderValueFactory,
 			Encoding encoding = null,
 			string contentType = null,
 			IEnumerable<(string, string)> headers = null,
 			IStreamCompressor streamCompressor = null)
-			: this(authHeaderValueFactory, encoding, contentType, headers, streamCompressor, httpClientFactory: null)
+			: this(
+				encoding: encoding,
+				contentType: contentType,
+				headers: headers,
+				streamCompressor: streamCompressor,
+				httpAuthHeaderFactory: new DefaultHttpAuthHeaderFactory(authHeaderValueFactory))
 		{
+
 		}
 
-#endif
 
-
-		private HttpRpcTransportClient(Func<Task<AuthenticationHeaderValue>> authHeaderValueFactory,
-			Encoding encoding,
-			string contentType,
-			IEnumerable<(string, string)> headers,
-			IStreamCompressor streamCompressor,
-			Func<HttpClient> httpClientFactory)
+		public HttpRpcTransportClient(
+			Encoding encoding = null,
+			string contentType = null,
+			IEnumerable<(string, string)> headers = null,
+			IStreamCompressor streamCompressor = null,
+			IHttpAuthHeaderFactory httpAuthHeaderFactory = null,
+			IHttpClientFactory httpClientFactory = null)
 		{
-			this.AuthHeaderValueFactory = authHeaderValueFactory;
-			this.Encoding = encoding ?? Encoding.UTF8;
-			this.ContentType = contentType ?? "application/json";
-			this.Headers = headers?.ToList() ?? new List<(string, string)> { ("Accept-Encoding", "gzip, deflate") };
+			this.Encoding = encoding ?? Defaults.Encoding;
+			this.ContentType = contentType ?? Defaults.ContentType;
+			this.Headers = headers?.ToList() ?? Defaults.GetHeaders();
 			this.streamCompressor = streamCompressor ?? new DefaultStreamCompressor();
-			this.httpClientFactory = httpClientFactory ?? (() => new HttpClient());
+			this.httpAuthHeaderFactory = httpAuthHeaderFactory;
+			this.httpClientFactory = httpClientFactory ?? new DefaultHttpClientFactory();
 		}
 
 		public async Task<Stream> SendRequestAsync(Uri uri, Stream requestStream, CancellationToken cancellationToken = default)
 		{
-			HttpClient httpClient = await this.GetHttpClientAsync(uri);
+			HttpClient httpClient = this.httpClientFactory.CreateClient();
 
+			HttpRequestMessage requestMessage = new HttpRequestMessage(HttpMethod.Post, uri);
+			if (requestMessage.Headers.Any())
+			{
+				foreach ((string key, string value) in this.Headers)
+				{
+					requestMessage.Headers.Add(key, value);
+				}
+			}
+			if (this.httpAuthHeaderFactory != null)
+			{
+				requestMessage.Headers.Authorization = await this.httpAuthHeaderFactory.CreateAuthHeader();
+			}
 			HttpContent httpContent;
 			using (StreamReader streamReader = new StreamReader(requestStream))
 			{
 				string json = await streamReader.ReadToEndAsync();
 				httpContent = new StringContent(json, this.Encoding, this.ContentType);
 			}
-			HttpResponseMessage httpResponseMessage = await httpClient.PostAsync(string.Empty, httpContent, cancellationToken).ConfigureAwait(false);
+			HttpResponseMessage httpResponseMessage = await httpClient.SendAsync(requestMessage, cancellationToken).ConfigureAwait(false);
 
 			Stream responseStream = await httpResponseMessage.Content.ReadAsStreamAsync();
 			httpResponseMessage.Content.Headers.TryGetValues("Content-Encoding", out var encodings);
@@ -148,29 +152,6 @@ namespace EdjCase.JsonRpc.Client
 			// uncompressed, standard response
 			return responseStream;
 		}
-
-		private async Task<HttpClient> GetHttpClientAsync(Uri uri)
-		{
-			HttpClient httpClient = this.httpClientFactory();
-			httpClient.BaseAddress = uri;
-			if (this.AuthHeaderValueFactory != null)
-			{
-				httpClient.DefaultRequestHeaders.Authorization = await this.AuthHeaderValueFactory();
-			}
-
-			//attach any extra headers that have been passed
-			if (this.Headers != null && this.Headers.Any())
-			{
-				foreach ((string key, string value) in this.Headers)
-				{
-					httpClient.DefaultRequestHeaders.Add(key, value);
-				}
-			}
-
-			return httpClient;
-		}
-
-
 
 		public static HttpRpcTransportClient CreateUnauthenticated(Encoding encoding = null, string contentType = null, IEnumerable<(string, string)> headers = null)
 		{

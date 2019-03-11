@@ -43,7 +43,7 @@ namespace EdjCase.JsonRpc.Client.Sample
 		{
 			await IntegrationTestRunner.Test1();
 			await IntegrationTestRunner.Test2();
-			await IntegrationTestRunner.Test3();
+			//await IntegrationTestRunner.Test3();
 			await IntegrationTestRunner.Test4();
 		}
 
@@ -105,19 +105,19 @@ namespace EdjCase.JsonRpc.Client.Sample
 			}
 		}
 
-		private static async Task Test3()
-		{
-			//TODO
-			// var additionalHeaders = new List<(string, string)>
-			// {
-			// 	("Accept-Encoding", "gzip")
-			// };
-			// RpcRequest request = RpcRequest.WithParameterList("CharacterCount", new[] { "Test" }, "Id1");
-			// var transportClient = new HttpRpcTransportClient(() => Task.FromResult(authHeaderValue), headers: additionalHeaders);
-			// var compressedClient = new RpcClient(new Uri(TestRunner.url), transportClient: transportClient);
-			// var compressedRequest = RpcRequest.WithParameterList("CharacterCount", new[] { "Test" }, "Id1");
-			// var compressedResponse = await compressedClient.SendRequestAsync(request, "Strings");
-		}
+		//private static async Task Test3()
+		//{
+		//TODO
+		// var additionalHeaders = new List<(string, string)>
+		// {
+		// 	("Accept-Encoding", "gzip")
+		// };
+		// RpcRequest request = RpcRequest.WithParameterList("CharacterCount", new[] { "Test" }, "Id1");
+		// var transportClient = new HttpRpcTransportClient(() => Task.FromResult(authHeaderValue), headers: additionalHeaders);
+		// var compressedClient = new RpcClient(new Uri(TestRunner.url), transportClient: transportClient);
+		// var compressedRequest = RpcRequest.WithParameterList("CharacterCount", new[] { "Test" }, "Id1");
+		// var compressedResponse = await compressedClient.SendRequestAsync(request, "Strings");
+		//}
 
 
 		private static async Task Test4()

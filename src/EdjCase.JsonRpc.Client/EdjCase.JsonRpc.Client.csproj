@@ -1,14 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<Version>3.0.2</Version>
+		<Version>3.1.0-pre.1</Version>
 		<Description>A .Net Core Client implementation for Json Rpc v2 requests.</Description>
 		<Authors>Gekctek</Authors>
 		<TargetFrameworks>netstandard2.0;netstandard1.1</TargetFrameworks>
 		<AssemblyName>EdjCase.JsonRpc.Client</AssemblyName>
 		<PackageId>EdjCase.JsonRpc.Client</PackageId>
 		<PackageTags>JsonRpc Rpc Json-Rpc .Net Core</PackageTags>
-		<PackageReleaseNotes>Fixing bulk serialization issue. Restricting ids to integers rather than any number.</PackageReleaseNotes>
+		<PackageReleaseNotes>Adding client builders and events</PackageReleaseNotes>
 		<PackageProjectUrl>https://github.com/edjCase/JsonRpc</PackageProjectUrl>
 		<PackageLicenseUrl>https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE</PackageLicenseUrl>
 		<RepositoryType>git</RepositoryType>
