@@ -11,6 +11,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using EdjCase.JsonRpc.Core.Tools;
+using System.Diagnostics;
 
 namespace EdjCase.JsonRpc.Client
 {
@@ -32,6 +33,8 @@ namespace EdjCase.JsonRpc.Client
 		/// </summary>
 		public IRequestSerializer JsonSerializer { get; }
 
+		public RpcEvents Events { get; }
+
 		/// <param name="baseUrl">Base url for the rpc server</param>
 		/// <param name="authHeaderValue">Http authentication header for rpc request</param>
 		/// <param name="jsonSerializer">(Optional) Json serializer for serializing requests and deserializing responses. Defaults to built in serializer</param>
@@ -40,11 +43,13 @@ namespace EdjCase.JsonRpc.Client
 		/// <param name="headers">(Optional)Extra headers</param>
 		public RpcClient(Uri baseUrl,
 			IRequestSerializer jsonSerializer = null,
-			IRpcTransportClient transportClient = null)
+			IRpcTransportClient transportClient = null,
+			RpcEvents events = null)
 		{
 			this.BaseUrl = baseUrl;
 			this.JsonSerializer = jsonSerializer ?? new DefaultRequestJsonSerializer();
 			this.TransportClient = transportClient ?? new HttpRpcTransportClient();
+			this.Events = events ?? new RpcEvents();
 		}
 
 
@@ -244,26 +249,45 @@ namespace EdjCase.JsonRpc.Client
 					requestJson = this.JsonSerializer.SerializeBulk(requests);
 				}
 				Uri uri = new Uri(this.BaseUrl, route);
-				string responseJson = await this.TransportClient.SendRequestAsync(uri, requestJson);
+				var requestContext = new RequestEventContext();
+				ResponseEventContext responseContext = null;
+				await this.Events.OnRequestStartAsync?.Invoke(requestContext);
 
-
-				if (string.IsNullOrWhiteSpace(responseJson))
-				{
-					throw new RpcClientParseException("Server did not return a rpc response, just an empty body.");
-				}
+				Stopwatch stopwatch = Stopwatch.StartNew();
 				try
 				{
-					if (requests.Count == 1)
+					string responseJson = await this.TransportClient.SendRequestAsync(uri, requestJson);
+					stopwatch.Stop();
+
+					if (string.IsNullOrWhiteSpace(responseJson))
 					{
-						Type resultType = resultTypeResolver?.Invoke(requests.First().Id);
-						RpcResponse response = this.JsonSerializer.Deserialize(responseJson, resultType);
-						return new List<RpcResponse> { response };
+						throw new RpcClientParseException("Server did not return a rpc response, just an empty body.");
 					}
-					return this.JsonSerializer.DeserializeBulk(responseJson, resultTypeResolver);
+					List<RpcResponse> responses = null;
+					try
+					{
+						if (requests.Count == 1)
+						{
+							Type resultType = resultTypeResolver?.Invoke(requests.First().Id);
+							RpcResponse response = this.JsonSerializer.Deserialize(responseJson, resultType);
+							responses = new List<RpcResponse> { response };
+						}
+						else
+						{
+							responses = this.JsonSerializer.DeserializeBulk(responseJson, resultTypeResolver);
+						}
+						responseContext = new ResponseEventContext(stopwatch.Elapsed, responses);
+						return responses;
+					}
+					catch (Exception ex)
+					{
+						responseContext = new ResponseEventContext(stopwatch.Elapsed, responses, ex);
+						throw new RpcClientParseException($"Unable to parse response from server: '{responseJson}'", ex);
+					}
 				}
-				catch (Exception ex)
+				finally
 				{
-					throw new RpcClientParseException($"Unable to parse response from server: '{responseJson}'", ex);
+					await this.Events.OnRequestCompleteAsync?.Invoke(responseContext, requestContext);
 				}
 
 			}
@@ -279,10 +303,11 @@ namespace EdjCase.JsonRpc.Client
 			string contentType = null,
 			IEnumerable<(string, string)> headers = null,
 			IStreamCompressor streamCompressor = null,
-			IRequestSerializer jsonSerializer = null)
+			IRequestSerializer jsonSerializer = null,
+			RpcEvents events = null)
 		{
 			var transportClient = new HttpRpcTransportClient(authHeaderValueFactory, encoding, contentType, headers, streamCompressor);
-			return new RpcClient(baseUrl, jsonSerializer, transportClient);
+			return new RpcClient(baseUrl, jsonSerializer, transportClient, events);
 		}
 
 		public static RpcClient CreateWithHttpClientAndJsonSerializationSettings(Uri baseUrl,
@@ -292,11 +317,12 @@ namespace EdjCase.JsonRpc.Client
 			string contentType = null,
 			IEnumerable<(string, string)> headers = null,
 			IStreamCompressor streamCompressor = null,
-			IErrorDataSerializer errorDataSerializer = null)
+			IErrorDataSerializer errorDataSerializer = null,
+			RpcEvents events = null)
 		{
 			var transportClient = new HttpRpcTransportClient(authHeaderValueFactory, encoding, contentType, headers, streamCompressor);
 			var jsonSerializer = new DefaultRequestJsonSerializer(errorDataSerializer, jsonSerializerSettings);
-			return new RpcClient(baseUrl, jsonSerializer, transportClient);
+			return new RpcClient(baseUrl, jsonSerializer, transportClient, events);
 		}
 
 		public static HttpRpcClientBuilder CreateHttpTransportClientBuilder(Uri baseUrl)
@@ -305,10 +331,7 @@ namespace EdjCase.JsonRpc.Client
 		}
 
 
-		public class Events
-		{
-			public Func<Task> OnRequestStart { get; set; }
-			public Func<Task> OnRequestEnd { get; set; }
-		}
+
 	}
+
 }

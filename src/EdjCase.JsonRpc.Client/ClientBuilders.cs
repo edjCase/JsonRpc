@@ -5,6 +5,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 using EdjCase.JsonRpc.Core.Tools;
+using Newtonsoft.Json;
 
 namespace EdjCase.JsonRpc.Client
 {
@@ -77,7 +78,7 @@ namespace EdjCase.JsonRpc.Client
 			return this;
 		}
 
-		public new HttpRpcClientBuilder ConfigureEvents(Action<RpcClient.Events> configure)
+		public new HttpRpcClientBuilder ConfigureEvents(Action<RpcEvents> configure)
 		{
 			return (HttpRpcClientBuilder)base.ConfigureEvents(configure);
 		}
@@ -85,6 +86,11 @@ namespace EdjCase.JsonRpc.Client
 		public new HttpRpcClientBuilder UsingRequestSerializer(IRequestSerializer requestSerializer)
 		{
 			return (HttpRpcClientBuilder)base.UsingRequestSerializer(requestSerializer);
+		}
+
+		public HttpRpcClientBuilder UsingDefaultJsonSerializer(JsonSerializerSettings settings = null, IErrorDataSerializer errorDataSerializer = null)
+		{
+			return (HttpRpcClientBuilder)base.UsingRequestSerializer(new DefaultRequestJsonSerializer(jsonSerializerSettings: settings, errorDataSerializer: errorDataSerializer));
 		}
 
 		public override RpcClient Build()
@@ -96,7 +102,7 @@ namespace EdjCase.JsonRpc.Client
 				headers: this.options.Headers,
 				streamCompressor: this.streamCompressor,
 				httpAuthHeaderFactory: this.httpAuthHeaderFactory);
-			return new RpcClient(this.BaseUrl, requestSerializer, transportClient);
+			return new RpcClient(this.BaseUrl, requestSerializer, transportClient, this.Events);
 		}
 
 		public class HttpOptions
@@ -111,14 +117,14 @@ namespace EdjCase.JsonRpc.Client
 	{
 		protected Uri BaseUrl { get; }
 		protected IRequestSerializer RequestSerializer { get; set; }
-		protected RpcClient.Events Events { get; } = new RpcClient.Events();
+		protected RpcEvents Events { get; } = new RpcEvents();
 
 		public RpcClientBuilder(Uri baseUrl)
 		{
 			this.BaseUrl = baseUrl;
 		}
 
-		public RpcClientBuilder ConfigureEvents(Action<RpcClient.Events> configure)
+		public RpcClientBuilder ConfigureEvents(Action<RpcEvents> configure)
 		{
 			configure(this.Events);
 			return this;
