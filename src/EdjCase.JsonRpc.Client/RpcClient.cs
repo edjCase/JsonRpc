@@ -251,7 +251,10 @@ namespace EdjCase.JsonRpc.Client
 				Uri uri = new Uri(this.BaseUrl, route);
 				var requestContext = new RequestEventContext(route, requests.ToList(), requestJson);
 				ResponseEventContext responseContext = null;
-				await this.Events.OnRequestStartAsync?.Invoke(requestContext);
+				if (this.Events.OnRequestStartAsync != null)
+				{
+					await this.Events.OnRequestStartAsync(requestContext);
+				}
 
 				Stopwatch stopwatch = Stopwatch.StartNew();
 				try
@@ -293,7 +296,10 @@ namespace EdjCase.JsonRpc.Client
 				}
 				finally
 				{
-					await this.Events.OnRequestCompleteAsync?.Invoke(responseContext, requestContext);
+					if (this.Events.OnRequestCompleteAsync != null)
+					{
+						await this.Events.OnRequestCompleteAsync(responseContext, requestContext);
+					}
 				}
 
 			}

@@ -112,11 +112,10 @@ namespace EdjCase.JsonRpc.Client
 			{
 				requestMessage.Headers.Authorization = await this.httpAuthHeaderFactory.CreateAuthHeader();
 			}
-			HttpContent httpContent;
 			using (StreamReader streamReader = new StreamReader(requestStream))
 			{
 				string json = await streamReader.ReadToEndAsync();
-				httpContent = new StringContent(json, this.Encoding, this.ContentType);
+				requestMessage.Content = new StringContent(json, this.Encoding, this.ContentType);
 			}
 			HttpResponseMessage httpResponseMessage = await httpClient.SendAsync(requestMessage, cancellationToken).ConfigureAwait(false);
 

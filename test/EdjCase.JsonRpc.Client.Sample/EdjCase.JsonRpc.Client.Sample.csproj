@@ -4,7 +4,7 @@
     <Description>A Client sample for Json Rpc v2 requests for .Net Core.</Description>
     <AssemblyTitle>JsonRpc .Net Core Client Sample</AssemblyTitle>
     <Authors>Gekctek</Authors>
-    <TargetFrameworks>netcoreapp2.1</TargetFrameworks>
+    <TargetFrameworks>netcoreapp2.2</TargetFrameworks>
     <PreserveCompilationContext>true</PreserveCompilationContext>
     <AssemblyName>EdjCase.JsonRpc.Client.Sample</AssemblyName>
     <OutputType>Exe</OutputType>

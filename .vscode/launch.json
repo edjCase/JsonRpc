@@ -1,39 +1,39 @@
 {
-   // Use IntelliSense to find out which attributes exist for C# debugging
-   // Use hover for the description of the existing attributes
-   // For further information visit https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md
-   "version": "0.2.0",
-   "configurations": [
-        {
-            "name": "Router Tester",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "Build Router Sample",
-            // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/test/EdjCase.JsonRpc.Router.Sample/bin/Debug/netcoreapp2.0/EdjCase.JsonRpc.Router.Sample.dll",
-            "args": [],
-            "cwd": "${workspaceFolder}/test/EdjCase.JsonRpc.Router.Sample",
-            // For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
-            "console": "internalConsole",
-            "stopAtEntry": false,
-            "internalConsoleOptions": "openOnSessionStart"
-        },
-        {
-            "name": "Client Tester",
-            "type": "coreclr",
-            "request": "launch",
-            "preLaunchTask": "Build Client Sample",
-            "program": "${workspaceRoot}/test/Edjcase.JsonRpc.Client.Sample/bin/Debug/netcoreapp2.0/EdjCase.JsonRpc.Client.Sample.dll",
-            "args": [],
-            "cwd": "${workspaceRoot}",
-            "stopAtEntry": false,
-            "console": "internalConsole"
-        },
-        {
-            "name": ".NET Core Attach",
-            "type": "coreclr",
-            "request": "attach",
-            "processId": "${command:pickProcess}"
-        }
-    ]
+	// Use IntelliSense to find out which attributes exist for C# debugging
+	// Use hover for the description of the existing attributes
+	// For further information visit https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Router Tester",
+			"type": "coreclr",
+			"request": "launch",
+			"preLaunchTask": "Build Router Sample",
+			// If you have changed target frameworks, make sure to update the program path.
+			"program": "${workspaceFolder}/test/EdjCase.JsonRpc.Router.Sample/bin/Debug/netcoreapp2.2/EdjCase.JsonRpc.Router.Sample.dll",
+			"args": [],
+			"cwd": "${workspaceFolder}/test/EdjCase.JsonRpc.Router.Sample",
+			// For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
+			"console": "internalConsole",
+			"stopAtEntry": false,
+			"internalConsoleOptions": "openOnSessionStart"
+		},
+		{
+			"name": "Client Tester",
+			"type": "coreclr",
+			"request": "launch",
+			"preLaunchTask": "Build Client Sample",
+			"program": "${workspaceRoot}/test/Edjcase.JsonRpc.Client.Sample/bin/Debug/netcoreapp2.2/EdjCase.JsonRpc.Client.Sample.dll",
+			"args": [],
+			"cwd": "${workspaceRoot}",
+			"stopAtEntry": false,
+			"console": "internalConsole"
+		},
+		{
+			"name": ".NET Core Attach",
+			"type": "coreclr",
+			"request": "attach",
+			"processId": "${command:pickProcess}"
+		}
+	]
 }
