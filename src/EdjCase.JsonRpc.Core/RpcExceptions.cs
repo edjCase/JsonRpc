@@ -42,7 +42,7 @@ namespace EdjCase.JsonRpc.Core
 			{
 				message += Environment.NewLine + "Exception: " + this.InnerException;
 			}
-			return new RpcError(this.ErrorCode, this.Message, this.RpcData);
+			return new RpcError(this.ErrorCode, message, this.RpcData);
 		}
 	}
 	
