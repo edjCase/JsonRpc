@@ -79,14 +79,14 @@ namespace EdjCase.JsonRpc.Client
 
 					List<RpcResponse> responses;
 					JToken token = JToken.Load(reader);
-					switch(token.Type)
+					switch (token.Type)
 					{
 						case JTokenType.Array:
 							responses = token.Select(a => this.DeserializeResponse(a, resultTypeResolver)).ToList();
 							break;
 						case JTokenType.Object:
 							RpcResponse response = this.DeserializeResponse(token, resultTypeResolver);
-							responses = new List<RpcResponse>{response};
+							responses = new List<RpcResponse> { response };
 							break;
 						default:
 							throw new ArgumentOutOfRangeException(nameof(token.Type));
@@ -130,7 +130,7 @@ namespace EdjCase.JsonRpc.Client
 				JToken dataToken = errorToken[JsonRpcContants.ErrorDataPropertyName];
 
 				object data = null;
-				if(dataToken != null)
+				if (dataToken != null)
 				{
 					data = this.errorDataSerializer.Deserialize(code, dataToken.ToString());
 				}

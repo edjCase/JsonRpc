@@ -1,8 +1,10 @@
 ﻿using EdjCase.JsonRpc.Core;
 using EdjCase.JsonRpc.Router.Defaults;
 using Microsoft.Extensions.Options;
+using EdjCase.JsonRpc.Router.Abstractions;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using Xunit;
 

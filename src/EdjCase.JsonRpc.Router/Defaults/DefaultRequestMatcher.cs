@@ -2,12 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Edjcase.JsonRpc.Router;
 using EdjCase.JsonRpc.Core;
 using EdjCase.JsonRpc.Router.Abstractions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace EdjCase.JsonRpc.Router.Defaults
 {
@@ -22,21 +21,61 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			this.serverConfig = serverConfig;
 		}
 
-
-		private JsonSerializer jsonSerializerCache { get; set; }
-
-		private JsonSerializer GetJsonSerializer()
+		public RpcMethodInfo GetMatchingMethod(RpcRequest request, List<MethodInfo> methods)
 		{
-			if (this.jsonSerializerCache == null)
+			if (request == null)
 			{
-				this.jsonSerializerCache = this.serverConfig.Value?.JsonSerializerSettings == null
-					? JsonSerializer.CreateDefault()
-					: JsonSerializer.Create(this.serverConfig.Value.JsonSerializerSettings);
+				throw new ArgumentNullException(nameof(request));
 			}
-			return this.jsonSerializerCache;
+			this.logger?.LogDebug($"Attempting to match Rpc request to a method '{request.Method}'");
+
+
+			List<RpcMethodInfo> matches = this.FilterAndBuildMethodInfoByRequest(methods, request);
+
+
+			RpcMethodInfo rpcMethod;
+			if (matches.Count > 1)
+			{
+				var methodInfoList = new List<string>();
+				foreach (RpcMethodInfo matchedMethod in matches)
+				{
+					var parameterTypeList = new List<string>();
+					foreach (ParameterInfo parameterInfo in matchedMethod.Method.GetParameters())
+					{
+						string parameterType = parameterInfo.Name + ": " + parameterInfo.ParameterType.Name;
+						if (parameterInfo.IsOptional)
+						{
+							parameterType += "(Optional)";
+						}
+						parameterTypeList.Add(parameterType);
+					}
+					string parameterString = string.Join(", ", parameterTypeList);
+					methodInfoList.Add($"{{Name: '{matchedMethod.Method.Name}', Parameters: [{parameterString}]}}");
+				}
+				string errorMessage = "More than one method matched the rpc request. Unable to invoke due to ambiguity. Methods that matched the same name: " + string.Join(", ", methodInfoList);
+				this.logger?.LogError(errorMessage);
+				throw new RpcException(RpcErrorCode.MethodNotFound, errorMessage);
+			}
+			else if (matches.Count == 0)
+			{
+				//Log diagnostics 
+				string methodsString = string.Join(", ", methods.Select(m => m.Name));
+				this.logger?.LogTrace("Methods in route: " + methodsString);
+
+				const string errorMessage = "No methods matched request.";
+				this.logger?.LogError(errorMessage);
+				throw new RpcException(RpcErrorCode.MethodNotFound, errorMessage);
+			}
+			else
+			{
+				rpcMethod = matches.First();
+			}
+			this.logger?.LogDebug("Request was matched to a method");
+			return rpcMethod;
 		}
 
-		public List<RpcMethodInfo> FilterAndBuildMethodInfoByRequest(List<MethodInfo> methods, RpcRequest request)
+
+		private List<RpcMethodInfo> FilterAndBuildMethodInfoByRequest(List<MethodInfo> methods, RpcRequest request)
 		{
 			//Case insenstive check for hybrid approach. Will check for case sensitive if there is ambiguity
 			List<MethodInfo> methodsWithSameName = methods
@@ -111,181 +150,53 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		}
 
 		/// <summary>
-		/// Converts the object array into the exact types the method needs (e.g. long -> int)
-		/// </summary>
-		/// <param name="parameters">Array of parameters for the method</param>
-		/// <returns>Array of objects with the exact types required by the method</returns>
-		private object[] ConvertParameters(MethodInfo method, object[] parameters)
-		{
-			if (parameters == null || !parameters.Any())
-			{
-				return new object[0];
-			}
-			ParameterInfo[] parameterInfoList = method.GetParameters();
-			for (int index = 0; index < parameters.Length; index++)
-			{
-				ParameterInfo parameterInfo = parameterInfoList[index];
-				parameters[index] = this.ConvertParameter(parameterInfo.ParameterType, parameters[index]);
-			}
-
-			return parameters;
-		}
-
-		private object ConvertParameter(Type parameterType, object parameterValue)
-		{
-			if (parameterValue == null)
-			{
-				return null;
-			}
-			//Missing type is for optional parameters
-			if (parameterValue is Missing)
-			{
-				return parameterValue;
-			}
-			Type nullableType = Nullable.GetUnderlyingType(parameterType);
-			if (nullableType != null)
-			{
-				return this.ConvertParameter(nullableType, parameterValue);
-			}
-			if (parameterValue is string && parameterType == typeof(Guid))
-			{
-				Guid.TryParse((string)parameterValue, out Guid guid);
-				return guid;
-			}
-			if (parameterType.GetTypeInfo().IsEnum)
-			{
-				if (parameterValue is string)
-				{
-					return Enum.Parse(parameterType, (string)parameterValue);
-				}
-				else if (parameterValue is long)
-				{
-					return Enum.ToObject(parameterType, parameterValue);
-				}
-			}
-			if (parameterValue is JToken jToken)
-			{
-				JsonSerializer jsonSerializer = this.GetJsonSerializer();
-				return jToken.ToObject(parameterType, jsonSerializer);
-			}
-			return Convert.ChangeType(parameterValue, parameterType);
-		}
-
-		/// <summary>
 		/// Detects if list of parameters matches the method signature
 		/// </summary>
 		/// <param name="parameterList">Array of parameters for the method</param>
 		/// <returns>True if the method signature matches the parameterList, otherwise False</returns>
 		private (bool Matches, RpcMethodInfo MethodInfo) HasParameterSignature(MethodInfo method, RpcRequest rpcRequest)
 		{
-			object[] orignialParameterList;
-			if (!rpcRequest.Parameters.HasValue)
+			IRpcParameter[] parameters;
+			if (rpcRequest.Parameters == null)
 			{
-				orignialParameterList = new object[0];
+				parameters = new IRpcParameter[0];
 			}
 			else
 			{
-				switch (rpcRequest.Parameters.Type)
+				if (rpcRequest.Parameters.IsDictionary)
 				{
-					case RpcParametersType.Dictionary:
-						Dictionary<string, object> parameterMap = rpcRequest.Parameters.DictionaryValue;
-						bool canParse = this.TryParseParameterList(method, parameterMap, out orignialParameterList);
-						if (!canParse)
-						{
-							return (false, null);
-						}
-						break;
-					case RpcParametersType.Array:
-						orignialParameterList = rpcRequest.Parameters.ArrayValue;
-						break;
-					default:
-						orignialParameterList = new JToken[0];
-						break;
-				}
-			}
-			ParameterInfo[] parameterInfoList = method.GetParameters();
-			if (orignialParameterList.Length > parameterInfoList.Length)
-			{
-				return (false, null);
-			}
-			object[] correctedParameterList = new object[parameterInfoList.Length];
-
-			for (int i = 0; i < orignialParameterList.Length; i++)
-			{
-				ParameterInfo parameterInfo = parameterInfoList[i];
-				object parameter = orignialParameterList[i];
-				bool isMatch = this.ParameterMatches(parameterInfo, parameter, out object convertedParameter);
-				if (!isMatch)
-				{
-					return (false, null);
-				}
-				correctedParameterList[i] = convertedParameter;
-			}
-
-			if (orignialParameterList.Length < parameterInfoList.Length)
-			{
-				//make a new array at the same length with padded 'missing' parameters (if optional)
-				for (int i = orignialParameterList.Length; i < parameterInfoList.Length; i++)
-				{
-					if (!parameterInfoList[i].IsOptional)
+					Dictionary<string, IRpcParameter> parameterMap = rpcRequest.Parameters.AsDictionary;
+					bool canParse = this.TryParseParameterList(method, parameterMap, out parameters);
+					if (!canParse)
 					{
 						return (false, null);
-					}
-					correctedParameterList[i] = Type.Missing;
-				}
-			}
-
-			var rpcMethodInfo = new RpcMethodInfo(method, correctedParameterList, orignialParameterList);
-			return (true, rpcMethodInfo);
-		}
-
-		/// <summary>
-		/// Detects if the request parameter matches the method parameter
-		/// </summary>
-		/// <param name="parameterInfo">Reflection info about a method parameter</param>
-		/// <param name="value">The request's value for the parameter</param>
-		/// <returns>True if the request parameter matches the type of the method parameter</returns>
-		private bool ParameterMatches(ParameterInfo parameterInfo, object value, out object convertedValue)
-		{
-			Type parameterType = parameterInfo.ParameterType;
-
-			try
-			{
-				if (value is JToken tokenValue)
-				{
-					switch (tokenValue.Type)
-					{
-						case JTokenType.Array:
-							{
-								JsonSerializer serializer = this.GetJsonSerializer();
-								JArray jArray = (JArray)tokenValue;
-								convertedValue = jArray.ToObject(parameterType, serializer);
-								return true;
-							}
-						case JTokenType.Object:
-							{
-								JsonSerializer serializer = this.GetJsonSerializer();
-								JObject jObject = (JObject)tokenValue;
-								convertedValue = jObject.ToObject(parameterType, serializer);
-								return true;
-							}
-						default:
-							convertedValue = tokenValue.ToObject(parameterType);
-							return true;
 					}
 				}
 				else
 				{
-					convertedValue = value;
-					return true;
+					parameters = rpcRequest.Parameters.AsList.ToArray();
 				}
 			}
-			catch (Exception ex)
+			ParameterInfo[] parameterInfoList = method.GetParameters();
+			if (parameters.Length > parameterInfoList.Length)
 			{
-				this.logger?.LogWarning($"Parameter '{parameterInfo.Name}' failed to deserialize: " + ex);
-				convertedValue = null;
-				return false;
+				return (false, null);
 			}
+
+			object[] deserializedParameters = new object[parameterInfoList.Length];
+			for (int i = 0; i < parameters.Length; i++)
+			{
+				ParameterInfo parameterInfo = parameterInfoList[i];
+				IRpcParameter parameter = parameters[i];
+				if (!parameter.TryGetValue(parameterInfo.ParameterType, out object value))
+				{
+					return (false, null);
+				}
+				deserializedParameters[i] = value;
+			}
+
+			var rpcMethodInfo = new RpcMethodInfo(method, deserializedParameters);
+			return (true, rpcMethodInfo);
 		}
 
 
@@ -295,12 +206,12 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <param name="parametersMap">Map of parameter name to parameter value</param>
 		/// <param name="parameterList">Result of converting the map to an ordered list, null if result is False</param>
 		/// <returns>True if the parameters can convert to an ordered list based on the method signature, otherwise Fasle</returns>
-		private bool TryParseParameterList(MethodInfo method, Dictionary<string, object> parametersMap, out object[] parameterList)
+		private bool TryParseParameterList(MethodInfo method, Dictionary<string, IRpcParameter> parametersMap, out IRpcParameter[] parameterList)
 		{
 			parametersMap = parametersMap
 				.ToDictionary(x => DefaultRequestMatcher.FixCase(x.Key) ?? x.Key, v => v.Value, StringComparer.OrdinalIgnoreCase);
 			ParameterInfo[] parameterInfoList = method.GetParameters();
-			parameterList = new object[parameterInfoList.Count()];
+			parameterList = new IRpcParameter[parameterInfoList.Count()];
 			foreach (ParameterInfo parameterInfo in parameterInfoList)
 			{
 				if (!parametersMap.ContainsKey(parameterInfo.Name))

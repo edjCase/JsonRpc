@@ -1,12 +1,12 @@
 ﻿using EdjCase.JsonRpc.Core;
 using EdjCase.JsonRpc.Router.Abstractions;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 
 namespace EdjCase.JsonRpc.Router.Defaults
 {
@@ -18,48 +18,52 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			this.serverConfig = serverConfig;
 		}
 
-		public string SerializeBulk(IEnumerable<RpcResponse> responses)
+		public void SerializeBulk(IEnumerable<RpcResponse> responses, Stream stream)
 		{
-			return this.SerializeInternal(responses, isBulkRequest: true);
+			this.SerializeInternal(responses, isBulkRequest: true, stream);
 		}
 
-		public string Serialize(RpcResponse response)
+		public void Serialize(RpcResponse response, Stream stream)
 		{
-			return this.SerializeInternal(new[] { response }, isBulkRequest: false);
+			this.SerializeInternal(new[] { response }, isBulkRequest: false, stream);
 		}
 
-		private string SerializeInternal(IEnumerable<RpcResponse> responses, bool isBulkRequest)
+		private void SerializeInternal(IEnumerable<RpcResponse> responses, bool isBulkRequest, Stream stream)
 		{
-			using (StringWriter textWriter = new StringWriter())
+			using (var jsonWriter = new Utf8JsonWriter(stream))
 			{
-				using (JsonTextWriter jsonWriter = new JsonTextWriter(textWriter))
+				if (isBulkRequest)
 				{
-					if (isBulkRequest)
+					jsonWriter.WriteStartArray();
+					foreach (RpcResponse response in responses)
 					{
-						jsonWriter.WriteStartArray();
-						foreach (RpcResponse response in responses)
-						{
-							this.SerializeResponse(response, jsonWriter);
-						}
-						jsonWriter.WriteEndArray();
+						this.SerializeResponse(response, jsonWriter);
 					}
-					else
-					{
-						this.SerializeResponse(responses.Single(), jsonWriter);
-					}
+					jsonWriter.WriteEndArray();
 				}
-				return textWriter.ToString();
+				else
+				{
+					this.SerializeResponse(responses.Single(), jsonWriter);
+				}
 			}
-
 		}
 
-		private void SerializeResponse(RpcResponse response, JsonTextWriter jsonWriter)
+		private void SerializeResponse(RpcResponse response, Utf8JsonWriter jsonWriter)
 		{
 			jsonWriter.WriteStartObject();
 			jsonWriter.WritePropertyName(JsonRpcContants.IdPropertyName);
-			jsonWriter.WriteValue(response.Id.Value);
-			jsonWriter.WritePropertyName(JsonRpcContants.VersionPropertyName);
-			jsonWriter.WriteValue("2.0");
+			switch (response.Id.Type)
+			{
+				case RpcIdType.Number:
+					jsonWriter.WriteNumberValue(response.Id.NumberValue);
+					break;
+				case RpcIdType.String:
+					jsonWriter.WriteStringValue(response.Id.StringValue);
+					break;
+				default:
+					throw new NotImplementedException();
+			}
+			jsonWriter.WriteString(JsonRpcContants.VersionPropertyName, "2.0");
 			if (!response.HasError)
 			{
 				jsonWriter.WritePropertyName(JsonRpcContants.ResultPropertyName);
@@ -70,10 +74,8 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			{
 				jsonWriter.WritePropertyName(JsonRpcContants.ErrorPropertyName);
 				jsonWriter.WriteStartObject();
-				jsonWriter.WritePropertyName(JsonRpcContants.ErrorCodePropertyName);
-				jsonWriter.WriteValue(response.Error.Code);
-				jsonWriter.WritePropertyName(JsonRpcContants.ErrorMessagePropertyName);
-				jsonWriter.WriteValue(response.Error.Message);
+				jsonWriter.WriteNumber(JsonRpcContants.ErrorCodePropertyName, response.Error.Code);
+				jsonWriter.WriteString(JsonRpcContants.ErrorMessagePropertyName, response.Error.Message);
 				jsonWriter.WritePropertyName(JsonRpcContants.ErrorDataPropertyName);
 				this.SerializeValue(response.Error.Data, jsonWriter);
 				jsonWriter.WriteEndObject();
@@ -81,16 +83,16 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			jsonWriter.WriteEndObject();
 		}
 
-		private void SerializeValue(object value, JsonTextWriter jsonWriter)
+		private void SerializeValue(object value, Utf8JsonWriter jsonWriter)
 		{
 			if (value != null)
 			{
-				string valueJson = JsonConvert.SerializeObject(value, this.serverConfig.Value.JsonSerializerSettings);
-				jsonWriter.WriteRawValue(valueJson);
+				JsonSerializerOptions options = this.serverConfig.Value.JsonSerializerSettings;
+				JsonSerializer.Serialize(jsonWriter, value, value.GetType(), options);
 			}
 			else
 			{
-				jsonWriter.WriteNull();
+				jsonWriter.WriteNullValue();
 			}
 		}
 	}

@@ -1,4 +1,5 @@
-﻿using EdjCase.JsonRpc.Core;
+﻿using Edjcase.JsonRpc.Router;
+using EdjCase.JsonRpc.Core;
 using EdjCase.JsonRpc.Core.Tools;
 using EdjCase.JsonRpc.Router;
 using EdjCase.JsonRpc.Router.Abstractions;
@@ -47,10 +48,13 @@ namespace PerformanceTests
 			var policyProvider = new FakePolicyProvider();
 			var logger = new FakeLogger();
 			var options = Options.Create(new RpcServerConfiguration());
-			var rpcRequestMatcher = new FakeRequestMatcher();
+			const string methodName = "Ping";
+			MethodInfo methodInfo = typeof(Controllers.TestController).GetMethod(methodName);
+			var info = new RpcMethodInfo(methodInfo, parameters: new object[0]);
+			var rpcRequestMatcher = new FakeRequestMatcher(info);
 			var invoker = new DefaultRpcInvoker(authorizationService, policyProvider, logger, options, rpcRequestMatcher);
 
-			var request = new RpcRequest("Ping");
+			var request = new RpcRequest(id: null, methodName);
 			const string path = "Test";
 			var routingOptions = new RpcAutoRoutingOptions();
 			var routeProvider = new RpcAutoRouteProvider(Options.Create(routingOptions));
@@ -118,11 +122,15 @@ namespace PerformanceTests
 
 		private class FakeRequestMatcher : IRpcRequestMatcher
 		{
-			public List<RpcMethodInfo> FilterAndBuildMethodInfoByRequest(List<MethodInfo> methods, RpcRequest request)
+			private RpcMethodInfo method { get; }
+			public FakeRequestMatcher(RpcMethodInfo method)
 			{
-				return methods
-				.Select(m => new RpcMethodInfo(m, request.Parameters.ArrayValue, request.Parameters.ArrayValue))
-				.ToList();
+				this.method = method;
+			}
+
+			public RpcMethodInfo GetMatchingMethod(RpcRequest request, List<MethodInfo> methods)
+			{
+				return this.method;
 			}
 		}
 

@@ -15,17 +15,15 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		public static RpcPath Default => new RpcPath();
 
-		/// <summary>
-		/// Path components split on forward slashes
-		/// </summary>
-		private readonly string[] componentsValue;
+		private char[] path;
 
 		private int? hashCodeCache;
 
 		/// <param name="components">Uri components for the path</param>
-		private RpcPath(string[] components = null)
+		private RpcPath(ReadOnlyMemory<char> path, int[] breaks)
 		{
-			this.componentsValue = components ?? new string[0];
+			this.path = path;
+			this.breaks = breaks;
 			this.hashCodeCache = null;
 		}
 
@@ -41,15 +39,15 @@ namespace EdjCase.JsonRpc.Router
 
 		public bool StartsWith(RpcPath other)
 		{
-			if ((other.componentsValue?.Length ?? 0) == 0)
+			if (other.path.Length == 0)
 			{
 				return true;
 			}
-			if ((this.componentsValue?.Length ?? 0) == 0)
+			if (this.path.Length == 0)
 			{
 				return false;
 			}
-			if (other.componentsValue.Length > this.componentsValue.Length)
+			if (other.path.Length > this.path.Length)
 			{
 				return false;
 			}
@@ -122,21 +120,49 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		/// <param name="path">Uri/route path</param>
 		/// <returns>True if the path parses, otherwise false</returns>
-		public static bool TryParse(string path, out RpcPath rpcPath)
+		public static bool TryParse(Span<char> path, out RpcPath rpcPath)
 		{
-			if (string.IsNullOrWhiteSpace(path))
+			if (path.IsEmpty)
 			{
-				rpcPath = new RpcPath();
+				rpcPath = default;
 				return true;
 			}
 			else
 			{
 				try
 				{
+					var charArray = new char[];
+					path.CopyTo(charArray.AsSpan());
+					int start = 0;
+					for (int i = 0; i < path.Length; i++)
+					{
+						switch (path.Span[i])
+						{
+							case '/':
+							case '\\':
+								if (i == start)
+								{
+									//offset start if starts with slash
+									start++;
+								}
+								else
+								{
+									breaks.Add(i);
+								}
+								break;
+							default:
+								if (char.IsWhiteSpace(path.Span[i]))
+								{
+									rpcPath = default;
+									return false;
+								}
+								break;
+						}
+					}
 					string[] pathComponents = path
 						.ToLowerInvariant()
 						.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
-					rpcPath = new RpcPath(pathComponents);
+					rpcPath = new RpcPath(path.Slice(start, length));
 					return true;
 				}
 				catch

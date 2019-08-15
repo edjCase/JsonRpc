@@ -1,4 +1,5 @@
-﻿using EdjCase.JsonRpc.Core.Utilities;
+﻿using Edjcase.JsonRpc.Router;
+using EdjCase.JsonRpc.Core.Utilities;
 using EdjCase.JsonRpc.Router.Utilities;
 using Newtonsoft.Json.Linq;
 using System;
@@ -13,14 +14,12 @@ namespace EdjCase.JsonRpc.Router
 	public class RpcMethodInfo
 	{
 		public MethodInfo Method { get; }
-		public object[] ConvertedParameters { get; }
-		public object[] RawParameters { get; }
+		public object[] Parameters { get; }
 
-		public RpcMethodInfo(MethodInfo method, object[] convertedParameters, object[] rawParameters)
+		public RpcMethodInfo(MethodInfo method, object[] parameters)
 		{
 			this.Method = method;
-			this.ConvertedParameters = convertedParameters;
-			this.RawParameters = rawParameters;
+			this.Parameters = parameters;
 		}
 
 		public bool HasExactParameterMatch()
@@ -28,9 +27,9 @@ namespace EdjCase.JsonRpc.Router
 			try
 			{
 				ParameterInfo[] parameters = this.Method.GetParameters();
-				for (int i = 0; i < this.RawParameters.Length; i++)
+				for (int i = 0; i < this.Parameters.Length; i++)
 				{
-					object original = this.RawParameters[i];
+					object original = this.Parameters[i];
 					ParameterInfo parameter = parameters[i];
 					if (!RpcUtil.TypesMatch(original, parameter.ParameterType))
 					{

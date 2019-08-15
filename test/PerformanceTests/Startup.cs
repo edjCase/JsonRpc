@@ -45,19 +45,19 @@ namespace PerformanceTests
 	{
 		public static void Main(string[] args)
 		{
-			//TestRunner.RunInvokerAsync().GetAwaiter().GetResult();
+			TestRunner.RunInvokerAsync().GetAwaiter().GetResult();
 			//TestRunner.RunCompression();
 
-			IConfiguration config = new ConfigurationBuilder()
-				.AddCommandLine(args)
-				.Build();
+			//IConfiguration config = new ConfigurationBuilder()
+			//	.AddCommandLine(args)
+			//	.Build();
 
-			new WebHostBuilder()
-				.UseKestrel()
-				.UseConfiguration(config)
-				.UseStartup<Startup>()
-				.Build()
-				.Run();
+			//new WebHostBuilder()
+			//	.UseKestrel()
+			//	.UseConfiguration(config)
+			//	.UseStartup<Startup>()
+			//	.Build()
+			//	.Run();
 		}
 	}
 }

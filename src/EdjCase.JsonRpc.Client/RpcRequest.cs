@@ -1,11 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System;
+using EdjCase.JsonRpc.Core;
 
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Local
 // ReSharper disable UnusedMember.Local
 
-namespace EdjCase.JsonRpc.Core
+namespace EdjCase.JsonRpc.Client
 {
 	/// <summary>
 	/// Model representing a Rpc request
@@ -21,7 +22,7 @@ namespace EdjCase.JsonRpc.Core
 			this.Method = method;
 			this.Parameters = parameters;
 		}
-		
+
 		/// <param name="method">Target method name</param>
 		/// <param name="parameterList">Json parameters for the target method</param>
 		public RpcRequest(string method, RpcParameters parameters = default)
@@ -65,7 +66,7 @@ namespace EdjCase.JsonRpc.Core
 
 		public static RpcRequest WithParameters(string method, RpcParameters parameters, RpcId id = default)
 		{
-			if(method == null)
+			if (method == null)
 			{
 				throw new ArgumentNullException(nameof(method));
 			}

@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\EdjCase.JsonRpc.Router.WebSockets\EdjCase.JsonRpc.Router.WebSockets.csproj" />
+    <ProjectReference Include="..\..\src\EdjCase.JsonRpc.Router\EdjCase.JsonRpc.Router.csproj" />
   </ItemGroup>
 
   <ItemGroup>

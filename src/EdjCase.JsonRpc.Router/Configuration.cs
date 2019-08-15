@@ -1,5 +1,5 @@
 ﻿using System;
-using Newtonsoft.Json;
+using System.Text.Json;
 using EdjCase.JsonRpc.Router.Abstractions;
 
 namespace EdjCase.JsonRpc.Router
@@ -13,7 +13,7 @@ namespace EdjCase.JsonRpc.Router
 		/// Json serialization settings that will be used in serialization and deserialization
 		/// for rpc requests
 		/// </summary>
-		public JsonSerializerSettings JsonSerializerSettings { get; set; }
+		public JsonSerializerOptions JsonSerializerSettings { get; set; }
 
 
 		/// <summary>

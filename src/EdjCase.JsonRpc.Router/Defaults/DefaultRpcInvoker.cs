@@ -16,6 +16,8 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
 using EdjCase.JsonRpc.Router.MethodProviders;
 using System.Collections.Concurrent;
+using Edjcase.JsonRpc.Router;
+using System.IO;
 
 namespace EdjCase.JsonRpc.Router.Defaults
 {
@@ -121,7 +123,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			RpcResponse rpcResponse;
 			try
 			{
-				RpcMethodInfo rpcMethod = this.GetMatchingMethod(path, request, routeContext.RouteProvider, routeContext.RequestServices);
+				List<MethodInfo> methods = routeContext.RouteProvider.GetMethodsByPath(path)
+				.SelectMany(m => m.GetRouteMethods())
+				.ToList();
+				RpcMethodInfo rpcMethod = this.rpcRequestMatcher.GetMatchingMethod(request, methods);
 
 				bool isAuthorized = await this.IsAuthorizedAsync(rpcMethod.Method, routeContext);
 
@@ -252,85 +257,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		}
 
 
-		/// <summary>
-		/// Finds the matching Rpc method for the current request
-		/// </summary>
-		/// <param name="path">Rpc route for the current request</param>
-		/// <param name="request">Current Rpc request</param>
-		/// <param name="parameterList">Parameter list parsed from the request</param>
-		/// <param name="serviceProvider">(Optional)IoC Container for rpc method controllers</param>
-		/// <returns>The matching Rpc method to the current request</returns>
-		private RpcMethodInfo GetMatchingMethod(RpcPath path, RpcRequest request, IRpcRouteProvider routeProvider, IServiceProvider serviceProvider)
-		{
-			if (request == null)
-			{
-				throw new ArgumentNullException(nameof(request));
-			}
-			this.logger?.LogDebug($"Attempting to match Rpc request to a method '{request.Method}'");
-			List<MethodInfo> allMethods = this.GetRpcMethods(path, routeProvider);
 
-			List<RpcMethodInfo> matches = this.rpcRequestMatcher.FilterAndBuildMethodInfoByRequest(allMethods, request);
-
-
-			RpcMethodInfo rpcMethod;
-			if (matches.Count > 1)
-			{
-				var methodInfoList = new List<string>();
-				foreach (RpcMethodInfo matchedMethod in matches)
-				{
-					var parameterTypeList = new List<string>();
-					foreach (ParameterInfo parameterInfo in matchedMethod.Method.GetParameters())
-					{
-						string parameterType = parameterInfo.Name + ": " + parameterInfo.ParameterType.Name;
-						if (parameterInfo.IsOptional)
-						{
-							parameterType += "(Optional)";
-						}
-						parameterTypeList.Add(parameterType);
-					}
-					string parameterString = string.Join(", ", parameterTypeList);
-					methodInfoList.Add($"{{Name: '{matchedMethod.Method.Name}', Parameters: [{parameterString}]}}");
-				}
-				string errorMessage = "More than one method matched the rpc request. Unable to invoke due to ambiguity. Methods that matched the same name: " + string.Join(", ", methodInfoList);
-				this.logger?.LogError(errorMessage);
-				throw new RpcException(RpcErrorCode.MethodNotFound, errorMessage);
-			}
-			else if (matches.Count == 0)
-			{
-				//Log diagnostics 
-				string methodsString = string.Join(", ", allMethods.Select(m => m.Name));
-				this.logger?.LogTrace("Methods in route: " + methodsString);
-				
-				const string errorMessage = "No methods matched request.";
-				this.logger?.LogError(errorMessage);
-				throw new RpcException(RpcErrorCode.MethodNotFound, errorMessage);
-			}
-			else
-			{
-				rpcMethod = matches.First();
-			}
-			this.logger?.LogDebug("Request was matched to a method");
-			return rpcMethod;
-		}
-
-		/// <summary>
-		/// Gets all the predefined Rpc methods for a Rpc route
-		/// </summary>
-		/// <param name="path">The route to get Rpc methods for</param>
-		/// <param name="serviceProvider">(Optional) IoC Container for rpc method controllers</param>
-		/// <returns>List of Rpc methods for the specified Rpc route</returns>
-		private List<MethodInfo> GetRpcMethods(RpcPath path, IRpcRouteProvider routeProvider)
-		{
-			var methods = new List<MethodInfo>();
-			foreach (IRpcMethodProvider methodProvider in routeProvider.GetMethodsByPath(path))
-			{
-				foreach (MethodInfo methodInfo in methodProvider.GetRouteMethods())
-				{
-					methods.Add(methodInfo);
-				}
-			}
-			return methods;
-		}
 
 
 		/// <summary>
@@ -355,7 +282,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 			try
 			{
-				object returnObj = methodInfo.Method.Invoke(obj, methodInfo.ConvertedParameters);
+				object returnObj = methodInfo.Method.Invoke(obj, methodInfo.Parameters);
 
 				returnObj = await DefaultRpcInvoker.HandleAsyncResponses(returnObj);
 

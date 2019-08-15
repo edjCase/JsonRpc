@@ -6,6 +6,7 @@
     <TargetFramework>netcoreapp2.2</TargetFramework>
     <AssemblyName>EdjCase.JsonRpc.Router.Tests</AssemblyName>
     <PackageId>EdjCase.JsonRpc.Router.Tests</PackageId>
+	<IsTestProject>true</IsTestProject>
   </PropertyGroup>
 
   <ItemGroup>

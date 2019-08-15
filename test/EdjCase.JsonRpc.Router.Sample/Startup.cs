@@ -23,7 +23,6 @@ using EdjCase.JsonRpc.Router.Defaults;
 using EdjCase.JsonRpc.Router.RouteProviders;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore;
-using EdjCase.JsonRpc.Router.WebSockets;
 
 namespace EdjCase.JsonRpc.Router.Sample
 {
@@ -90,15 +89,6 @@ namespace EdjCase.JsonRpc.Router.Sample
 				{
 					builder.BaseControllerType = typeof(ControllerBase);
 					builder.BaseRequestPath = "Auto";
-				});
-			})
-			.Map("/WebSocket", builder =>
-			{
-				builder
-				.UseJsonRpcWithWebSockets(options =>
-				{
-					options.AddClass<RpcMath>();
-					options.AddClass<RpcString>();
 				});
 			});
 

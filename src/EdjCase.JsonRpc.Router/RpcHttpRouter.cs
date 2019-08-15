@@ -62,7 +62,8 @@ namespace EdjCase.JsonRpc.Router
 				}
 				else
 				{
-					if (!RpcPath.TryParse(context.HttpContext.Request.Path.Value, out requestPath))
+					ReadOnlyMemory<char> pathMemory = context.HttpContext.Request.Path.Value.AsMemory();
+					if (!RpcPath.TryParse(path, out requestPath))
 					{
 						logger?.LogInformation($"Could not parse the path '{context.HttpContext.Request.Path.Value}' for the " +
 							$"request into an rpc path. Skipping rpc router middleware.");
@@ -76,36 +77,12 @@ namespace EdjCase.JsonRpc.Router
 				}
 				logger?.LogInformation($"Rpc request with route '{requestPath}' started.");
 
-				string jsonString;
-				if (context.HttpContext.Request.Body == null)
-				{
-					jsonString = null;
-				}
-				else
-				{
-					using (StreamReader streamReader = new StreamReader(context.HttpContext.Request.Body, Encoding.UTF8,
-						detectEncodingFromByteOrderMarks: true,
-						bufferSize: 1024,
-						leaveOpen: true))
-					{
-						try
-						{
-							jsonString = await streamReader.ReadToEndAsync();
-						}
-						catch (TaskCanceledException ex)
-						{
-							throw new RpcCanceledRequestException("Cancelled while reading the request.", ex);
-						}
-						jsonString = jsonString.Trim();
-					}
-
-				}
 
 				IRpcRequestHandler requestHandler = context.HttpContext.RequestServices.GetRequiredService<IRpcRequestHandler>();
 				var routeContext = DefaultRouteContext.FromHttpContext(context.HttpContext, this.routeProvider);
-				string responseJson = await requestHandler.HandleRequestAsync(requestPath, jsonString, routeContext);
+				await requestHandler.HandleRequestAsync(requestPath, context.HttpContext.Request.Body, routeContext, context.HttpContext.Response.Body);
 
-				if (responseJson == null)
+				if (context.HttpContext.Response.Body == null || context.HttpContext.Response.Body.Length < 1)
 				{
 					//No response required, but status code must be 204
 					context.HttpContext.Response.StatusCode = 204;
@@ -115,7 +92,6 @@ namespace EdjCase.JsonRpc.Router
 
 				context.HttpContext.Response.ContentType = "application/json";
 
-				bool responseSet = false;
 				string acceptEncoding = context.HttpContext.Request.Headers["Accept-Encoding"];
 				if (!string.IsNullOrWhiteSpace(acceptEncoding))
 				{
@@ -131,18 +107,15 @@ namespace EdjCase.JsonRpc.Router
 								continue;
 							}
 							context.HttpContext.Response.Headers.Add("Content-Encoding", new[] { encoding });
-							using (Stream responseStream = new MemoryStream(Encoding.UTF8.GetBytes(responseJson)))
+							using (var memoryStream = new MemoryStream())
 							{
-								compressor.Compress(responseStream, context.HttpContext.Response.Body, compressionType);
+								compressor.Compress(context.HttpContext.Response.Body, memoryStream, compressionType);
+								context.HttpContext.Response.Body.Dispose();
+								context.HttpContext.Response.Body = memoryStream;
 							}
-							responseSet = true;
 							break;
 						}
 					}
-				}
-				if (!responseSet)
-				{
-					await context.HttpContext.Response.WriteAsync(responseJson);
 				}
 
 				context.MarkAsHandled();

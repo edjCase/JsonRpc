@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace EdjCase.JsonRpc.Core
+namespace EdjCase.JsonRpc.Client
 {
 	public enum RpcParametersType
 	{

@@ -56,7 +56,7 @@ namespace EdjCase.JsonRpc.Router
 			this.logger = logger;
 		}
 
-		public async Task<string> HandleRequestAsync(RpcPath requestPath, string requestBody, IRouteContext routeContext)
+		public async Task HandleRequestAsync(RpcPath requestPath, Stream requestBody, IRouteContext routeContext, Stream responseBody)
 		{
 			try
 			{
@@ -86,7 +86,7 @@ namespace EdjCase.JsonRpc.Router
 					}
 					foreach ((RpcId id, RpcError error) in result.Errors)
 					{
-						if(id == default)
+						if (id == default)
 						{
 							this.logger.LogError($"Request with no id failed and no response will be sent. Error - Code: {error.Code}, Message: {error.Message}");
 							continue;
@@ -97,24 +97,24 @@ namespace EdjCase.JsonRpc.Router
 				if (responses == null || !responses.Any())
 				{
 					this.logger?.LogInformation("No rpc responses created.");
-					return null;
+					return;
 				}
 				this.logger?.LogInformation($"{responses.Count} rpc response(s) created.");
 
 				if (result.IsBulkRequest)
 				{
-					return this.responseSerializer.SerializeBulk(responses);
+					this.responseSerializer.SerializeBulk(responses, responseBody);
 				}
 				else
 				{
-					return this.responseSerializer.Serialize(responses.Single());
+					this.responseSerializer.Serialize(responses.Single(), responseBody);
 				}
 			}
 			catch (RpcException ex)
 			{
 				this.logger?.LogException(ex, "Error occurred when proccessing Rpc request. Sending Rpc error response");
 				var response = new RpcResponse(null, ex.ToRpcError(this.serverConfig.Value.ShowServerExceptions));
-				return this.responseSerializer.Serialize(response);
+				this.responseSerializer.Serialize(response, responseBody);
 			}
 		}
 	}
