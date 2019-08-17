@@ -40,21 +40,21 @@ namespace EdjCase.JsonRpc.Router.RouteProviders
 				foreach (TypeInfo controllerType in controllerTypes)
 				{
 					var attribute = controllerType.GetCustomAttribute<RpcRouteAttribute>(true);
-					string routePathString;
+					ReadOnlySpan<char> routePathString;
 					if (attribute == null || attribute.RouteName == null)
 					{
 						if (controllerType.Name.EndsWith("Controller"))
 						{
-							routePathString = controllerType.Name.Substring(0, controllerType.Name.IndexOf("Controller"));
+							routePathString = controllerType.Name.AsSpan(0, controllerType.Name.IndexOf("Controller"));
 						}
 						else
 						{
-							routePathString = controllerType.Name;
+							routePathString = controllerType.Name.AsSpan();
 						}
 					}
 					else
 					{
-						routePathString = attribute.RouteName;
+						routePathString = attribute.RouteName.AsSpan();
 					}
 					RpcPath routePath = RpcPath.Parse(routePathString);
 					if (!controllerRoutes.TryGetValue(routePath, out List<IRpcMethodProvider> methodProviders))

@@ -17,7 +17,7 @@ namespace EdjCase.JsonRpc.Router.RouteProviders
 		public RpcSingleRouteProvider(IOptions<SingleRouteOptions> options)
 		{
 			this.Options = options ?? throw new ArgumentNullException(nameof(options));
-			this.BaseRequestPath = this.Options.Value?.BaseRequestPath ?? RpcPath.Default;
+			this.BaseRequestPath = this.Options.Value?.BaseRequestPath;
 		}
 
 
@@ -32,7 +32,7 @@ namespace EdjCase.JsonRpc.Router.RouteProviders
 	public class SingleRouteOptions
 	{
 		public List<IRpcMethodProvider> MethodProviders { get; set; } = new List<IRpcMethodProvider>();
-		public RpcPath BaseRequestPath { get; set; } = RpcPath.Default;
+		public RpcPath BaseRequestPath { get; set; }
 
 		public void AddClass<T>()
 		{

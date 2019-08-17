@@ -38,13 +38,54 @@ namespace EdjCase.JsonRpc.Router.Tests
 				Assert.NotEqual(routePath, requestPath);
 			}
 		}
-
+		
+		[Theory]
+		[InlineData("/", null)]
+		[InlineData("/Test", "test")]
+		[InlineData("/Test/", "test")]
+		[InlineData("Test/", "test")]
+		[InlineData("/Test/Test2", "test/test2")]
+		[InlineData("test", "test")]
+		public void ToString_LowerCaseAndTrimSlash(string path, string expected)
+		{
+			RpcPath fullPath = RpcPath.Parse(path);
+			Assert.Equal(expected, fullPath?.ToString());
+		}
+		
 		[Fact]
 		public void AddPath_Same_Match()
 		{
 			RpcPath fullPath = RpcPath.Parse("/Base/Test");
 			RpcPath otherPath = RpcPath.Parse("/Base").Add(RpcPath.Parse("/Test"));
 			Assert.Equal(fullPath, otherPath);
+		}
+
+		[Fact]
+		public void TryRemoveBasePath_2Part_1PartOutput()
+		{
+			RpcPath basePath = RpcPath.Parse("/Base");
+			RpcPath fullPath = RpcPath.Parse("/Base/Test");
+			bool removed = fullPath.TryRemoveBasePath(basePath, out RpcPath path);
+			Assert.True(removed);
+			Assert.Equal(RpcPath.Parse("Test"), path);
+
+			//Also check the Remove is the same
+			RpcPath path2 = fullPath.RemoveBasePath(basePath);
+			Assert.Equal(path, path2);
+		}
+
+		[Fact]
+		public void TryRemoveBasePath_1Part_NullOutput()
+		{
+			RpcPath basePath = RpcPath.Parse("/Base");
+			RpcPath fullPath = RpcPath.Parse("/Base/");
+			bool removed = fullPath.TryRemoveBasePath(basePath, out RpcPath path);
+			Assert.True(removed);
+			Assert.Null(path);
+
+			//Also check the Remove is the same
+			RpcPath path2 = fullPath.RemoveBasePath(basePath);
+			Assert.Equal(path, path2);
 		}
 
 

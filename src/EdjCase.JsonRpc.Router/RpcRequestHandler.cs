@@ -78,7 +78,7 @@ namespace EdjCase.JsonRpc.Router
 				{
 					if (result.Requests.Any())
 					{
-						responses = await this.invoker.InvokeBatchRequestAsync(result.Requests, requestPath, routeContext);
+						responses = await this.invoker.InvokeBatchRequestAsync(result.Requests, routeContext, requestPath);
 					}
 					else
 					{

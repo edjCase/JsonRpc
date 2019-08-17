@@ -79,13 +79,13 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <param name="path">Rpc path that applies to the current request</param>
 		/// <param name="httpContext">The context of the current http request</param>
 		/// <returns>List of Rpc responses for the requests</returns>
-		public async Task<List<RpcResponse>> InvokeBatchRequestAsync(IList<RpcRequest> requests, RpcPath path, IRouteContext routeContext)
+		public async Task<List<RpcResponse>> InvokeBatchRequestAsync(IList<RpcRequest> requests, IRouteContext routeContext, RpcPath path = null)
 		{
 			this.logger?.LogDebug($"Invoking '{requests.Count}' batch requests");
 			var invokingTasks = new List<Task<RpcResponse>>();
 			foreach (RpcRequest request in requests)
 			{
-				Task<RpcResponse> invokingTask = this.InvokeRequestAsync(request, path, routeContext);
+				Task<RpcResponse> invokingTask = this.InvokeRequestAsync(request, routeContext, path);
 				if (request.Id.HasValue)
 				{
 					//Only wait for non-notification requests
@@ -112,7 +112,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <param name="path">Rpc path that applies to the current request</param>
 		/// <param name="httpContext">The context of the current http request</param>
 		/// <returns>An Rpc response for the request</returns>
-		public async Task<RpcResponse> InvokeRequestAsync(RpcRequest request, RpcPath path, IRouteContext routeContext)
+		public async Task<RpcResponse> InvokeRequestAsync(RpcRequest request, IRouteContext routeContext, RpcPath path = null)
 		{
 			if (request == null)
 			{

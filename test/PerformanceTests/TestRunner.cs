@@ -63,7 +63,7 @@ namespace PerformanceTests
 			var routeContext = new DefaultRouteContext(serviceProvider, user, routeProvider);
 			for (int i = 0; i < 10_000_000; i++)
 			{
-				await invoker.InvokeRequestAsync(request, path, routeContext);
+				await invoker.InvokeRequestAsync(request, routeContext, path);
 			}
 		}
 

@@ -79,7 +79,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			var stringRequest = new RpcRequest("1", "GuidTypeMethod", parameters);
 			IRouteContext routeContext = this.GetRouteContext<TestRouteClass>();
 			DefaultRpcInvoker invoker = this.GetInvoker();
-			RpcResponse stringResponse = await invoker.InvokeRequestAsync(stringRequest, RpcPath.Default, routeContext);
+			RpcResponse stringResponse = await invoker.InvokeRequestAsync(stringRequest, routeContext);
 
 
 			Assert.Equal(randomGuid, stringResponse.Result);
@@ -93,7 +93,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			IRouteContext routeContext = this.GetRouteContext<TestRouteClass>();
 			DefaultRpcInvoker invoker = this.GetInvoker();
-			RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, RpcPath.Default, routeContext);
+			RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, routeContext);
 
 			Assert.NotNull(response.Error);
 			Assert.Equal((int)RpcErrorCode.MethodNotFound, response.Error.Code);
@@ -108,7 +108,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			IRouteContext routeContext = this.GetRouteContext<TestRouteClass>();
 			DefaultRpcInvoker invoker = this.GetInvoker();
 
-			RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, RpcPath.Default, routeContext);
+			RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, routeContext);
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.NotNull(resultResponse.Result);
@@ -124,7 +124,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			IRouteContext routeContext = this.GetRouteContext<TestRouteClass>();
 			DefaultRpcInvoker invoker = this.GetInvoker();
 
-			RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, RpcPath.Default, routeContext);
+			RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, routeContext);
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.NotNull(resultResponse.Result);
@@ -139,7 +139,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			DefaultRpcInvoker invoker = this.GetInvoker();
 			IServiceProvider serviceProvider = this.GetServiceProvider();
 			IRouteContext routeContext = this.GetRouteContext<TestIoCRouteClass>();
-			RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, RpcPath.Default, routeContext);
+			RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, routeContext);
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.NotNull(resultResponse.Result);
@@ -156,7 +156,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			//No params specified
 			RpcRequest stringRequest = new RpcRequest("1", "Optional", parameters: null);
-			RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, RpcPath.Default, routeContext);
+			RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, routeContext);
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.Null(resultResponse.Result);
@@ -165,7 +165,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			//Param is empty
 			var parameters = new RpcParameters(new List<IRpcParameter>());
 			stringRequest = new RpcRequest("1", "Optional", parameters: parameters);
-			response = await invoker.InvokeRequestAsync(stringRequest, RpcPath.Default, routeContext);
+			response = await invoker.InvokeRequestAsync(stringRequest, routeContext);
 
 			resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.Null(resultResponse.Result);
@@ -176,7 +176,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			const string value = "Test";
 			parameters = new RpcParameters(new List<IRpcParameter> { new RawRpcParameter(value) });
 			stringRequest = new RpcRequest("1", "Optional", parameters: parameters);
-			response = await invoker.InvokeRequestAsync(stringRequest, RpcPath.Default, routeContext);
+			response = await invoker.InvokeRequestAsync(stringRequest, routeContext);
 
 			resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.NotNull(resultResponse.Result);

@@ -29,7 +29,7 @@
 			"type": "process",
 			"args": [
 				"build",
-				"${workspaceFolder}/Edjcase.JsonRpc.sln",
+				"${workspaceFolder}/EdjCase.JsonRpc.sln",
 				"/property:GenerateFullPaths=true"
 			],
 			"problemMatcher": "$msCompile",
