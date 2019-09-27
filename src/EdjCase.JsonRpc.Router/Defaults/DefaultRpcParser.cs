@@ -45,7 +45,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <returns>List of Rpc requests that were parsed from the json</returns>
 		public ParsingResult ParseRequests(Stream jsonStream)
 		{
-			this.logger?.LogDebug($"Attempting to parse Rpc request from the json");
+			this.logger.LogDebug($"Attempting to parse Rpc request from the json");
 			List<RpcRequestParseResult> rpcRequests = null;
 			if (jsonStream == null || jsonStream.Length < 1)
 			{
@@ -54,41 +54,51 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			bool isBulkRequest = false;
 			try
 			{
-				//TODO 
-				var jsonBytes = new byte[jsonStream.Length];
-				jsonStream.Read(jsonBytes, 0, (int)jsonStream.Length);
-				var jsonReader = new System.Text.Json.Utf8JsonReader(jsonBytes);
-				if (jsonReader.Read())
+				if (jsonStream.Length > int.MaxValue)
 				{
-					switch (jsonReader.TokenType)
+					throw new RpcException(RpcErrorCode.ParseError, "Json body is too large to parse.");
+				}
+				byte[] jsonBytes = ArrayPool<byte>.Shared.Rent((int)jsonStream.Length);
+				try
+				{
+					jsonStream.Read(jsonBytes, 0, (int)jsonStream.Length);
+					var jsonReader = new System.Text.Json.Utf8JsonReader(jsonBytes);
+					if (jsonReader.Read())
 					{
-						case JsonTokenType.StartObject:
-							jsonReader.Read();
-							RpcRequestParseResult result = this.ParseResult(ref jsonReader);
-							rpcRequests = new List<RpcRequestParseResult> { result };
-							break;
-						case JsonTokenType.StartArray:
-							isBulkRequest = true;
-							jsonReader.Read();
-							rpcRequests = new List<RpcRequestParseResult>();
-							while (jsonReader.TokenType != JsonTokenType.EndArray)
-							{
+						switch (jsonReader.TokenType)
+						{
+							case JsonTokenType.StartObject:
 								jsonReader.Read();
-								RpcRequestParseResult r = this.ParseResult(ref jsonReader);
-								rpcRequests.Add(r);
-							}
-							break;
-						default:
-							throw new RpcException(RpcErrorCode.InvalidRequest, "Json request was invalid");
-					}
+								RpcRequestParseResult result = this.ParseResult(ref jsonReader);
+								rpcRequests = new List<RpcRequestParseResult> { result };
+								break;
+							case JsonTokenType.StartArray:
+								isBulkRequest = true;
+								jsonReader.Read();
+								rpcRequests = new List<RpcRequestParseResult>();
+								while (jsonReader.TokenType != JsonTokenType.EndArray)
+								{
+									jsonReader.Read();
+									RpcRequestParseResult r = this.ParseResult(ref jsonReader);
+									rpcRequests.Add(r);
+								}
+								break;
+							default:
+								throw new RpcException(RpcErrorCode.InvalidRequest, "Json request was invalid");
+						}
 
+					}
+				}
+				finally
+				{
+					ArrayPool<byte>.Shared.Return(jsonBytes, clearArray: false);
 				}
 
 			}
 			catch (Exception ex) when (!(ex is RpcException))
 			{
 				string errorMessage = "Unable to parse json request into an rpc format.";
-				this.logger?.LogException(ex, errorMessage);
+				this.logger.LogException(ex, errorMessage);
 				throw new RpcException(RpcErrorCode.InvalidRequest, errorMessage, ex);
 			}
 
@@ -96,7 +106,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			{
 				throw new RpcException(RpcErrorCode.InvalidRequest, "No rpc json requests found");
 			}
-			this.logger?.LogDebug($"Successfully parsed {rpcRequests.Count} Rpc request(s)");
+			this.logger.LogDebug($"Successfully parsed {rpcRequests.Count} Rpc request(s)");
 			var uniqueIds = new HashSet<RpcId>();
 			foreach (RpcRequestParseResult result in rpcRequests.Where(r => r.Id.HasValue))
 			{
@@ -111,7 +121,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 		private RpcRequestParseResult ParseResult(ref Utf8JsonReader jsonReader)
 		{
-			RpcId id = null;
+			RpcId id = default;
 			string method = null;
 			RpcParameters parameters = null;
 			string rpcVersion = null;
@@ -134,7 +144,12 @@ namespace EdjCase.JsonRpc.Router.Defaults
 									id = new RpcId(jsonReader.GetString());
 									break;
 								case JsonTokenType.Number:
-									id = new RpcId(jsonReader.GetInt64());
+									if (!jsonReader.TryGetInt64(out long longId))
+									{
+										var idError = new RpcError(RpcErrorCode.ParseError, "Unable to parse rpc id as an integer");
+										return RpcRequestParseResult.Fail(id, idError);
+									}
+									id = new RpcId(longId);
 									break;
 								default:
 									var error = new RpcError(RpcErrorCode.ParseError, "Unable to parse rpc id as a string or an integer");
@@ -156,7 +171,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 									var list = new List<IRpcParameter>();
 									while (jsonReader.TokenType != JsonTokenType.EndArray)
 									{
-										SerializedRpcParameter parameter = this.GetParameter(ref jsonReader);
+										IRpcParameter parameter = this.GetParameter(ref jsonReader);
 										list.Add(parameter);
 									}
 									ps = new RpcParameters(list);
@@ -168,7 +183,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 									{
 										string key = jsonReader.GetString();
 										jsonReader.Read();
-										SerializedRpcParameter parameter = this.GetParameter(ref jsonReader);
+										IRpcParameter parameter = this.GetParameter(ref jsonReader);
 										dict.Add(key, parameter);
 									}
 									ps = new RpcParameters(dict);
@@ -212,11 +227,32 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 		}
 
-		private SerializedRpcParameter GetParameter(ref Utf8JsonReader jsonReader)
+		private JsonRpcParameter GetParameter(ref Utf8JsonReader jsonReader)
 		{
 			//TODO
 			jsonReader.Read();
-			return new SerializedRpcParameter(new Memory<byte>(), this.serverConfig?.Value?.JsonSerializerSettings);
+			switch (jsonReader.TokenType)
+			{
+				case JsonTokenType.Number:
+					if (jsonReader.TryGetInt32(out int intV))
+					{
+						return new JsonRpcParameter(RpcParameterType.Number, intV);
+					}
+					if (jsonReader.TryGetInt64(out long longV))
+					{
+						return new JsonRpcParameter(RpcParameterType.Number, longV);
+					}
+					return new JsonRpcParameter(RpcParameterType.Number, jsonReader.GetDouble());
+				case JsonTokenType.Null:
+					return new JsonRpcParameter(RpcParameterType.Null, null);
+				case JsonTokenType.String:
+					return new JsonRpcParameter(RpcParameterType.String, jsonReader.GetString());
+				case JsonTokenType.StartObject:
+					var obj = new JsonRpcParameter.SerializedObject(jsonReader.ValueSpan, this.serverConfig?.Value?.JsonSerializerSettings);
+					return new JsonRpcParameter(RpcParameterType.Object, obj);
+				default:
+					throw new RpcException(RpcErrorCode.ParseError, "Invalid json");
+			}
 		}
 	}
 }

@@ -61,7 +61,7 @@ namespace EdjCase.JsonRpc.Router
 			try
 			{
 				ParsingResult result = this.parser.ParseRequests(requestBody);
-				this.logger?.LogInformation($"Processing {result.RequestCount} Rpc requests");
+				this.logger.LogInformation($"Processing {result.RequestCount} Rpc requests");
 
 				int? batchLimit = this.serverConfig.Value.BatchRequestLimit;
 				List<RpcResponse> responses = new List<RpcResponse>();
@@ -72,7 +72,7 @@ namespace EdjCase.JsonRpc.Router
 					{
 						new RpcResponse(null, new RpcError(RpcErrorCode.InvalidRequest, batchLimitError))
 					};
-					this.logger?.LogError(batchLimitError + " Returning error response.");
+					this.logger.LogError(batchLimitError + " Returning error response.");
 				}
 				else
 				{
@@ -96,10 +96,10 @@ namespace EdjCase.JsonRpc.Router
 				}
 				if (responses == null || !responses.Any())
 				{
-					this.logger?.LogInformation("No rpc responses created.");
+					this.logger.LogInformation("No rpc responses created.");
 					return;
 				}
-				this.logger?.LogInformation($"{responses.Count} rpc response(s) created.");
+				this.logger.LogInformation($"{responses.Count} rpc response(s) created.");
 
 				if (result.IsBulkRequest)
 				{
@@ -112,7 +112,7 @@ namespace EdjCase.JsonRpc.Router
 			}
 			catch (RpcException ex)
 			{
-				this.logger?.LogException(ex, "Error occurred when proccessing Rpc request. Sending Rpc error response");
+				this.logger.LogException(ex, "Error occurred when proccessing Rpc request. Sending Rpc error response");
 				var response = new RpcResponse(null, ex.ToRpcError(this.serverConfig.Value.ShowServerExceptions));
 				this.responseSerializer.Serialize(response, responseBody);
 			}

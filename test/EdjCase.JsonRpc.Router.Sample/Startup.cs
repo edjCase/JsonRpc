@@ -20,7 +20,6 @@ using Microsoft.Extensions.Configuration;
 using System.Net.WebSockets;
 using System.Threading;
 using EdjCase.JsonRpc.Router.Defaults;
-using EdjCase.JsonRpc.Router.RouteProviders;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore;
 
@@ -80,15 +79,19 @@ namespace EdjCase.JsonRpc.Router.Sample
 			{
 				rpcApp
 				.Use(this.LogBody)
-				.UseManualJsonRpc(options =>
+				.Map("/Manual", b =>
 				{
-					options.BaseRequestPath = "Manual";
-					options.RegisterController<RpcMath>();
+					b.UseJsonRpc(options =>
+					{
+						options.RegisterController<RpcMath>();
+					});
 				})
-				.UseJsonRpc(builder =>
+				.Map("/Auto", b =>
 				{
-					builder.BaseControllerType = typeof(ControllerBase);
-					builder.BaseRequestPath = "Auto";
+					b.UseJsonRpc(builder =>
+					{
+						builder.BaseControllerType = typeof(ControllerBase);
+					});
 				});
 			});
 

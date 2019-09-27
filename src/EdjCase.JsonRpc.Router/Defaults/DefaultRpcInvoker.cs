@@ -14,7 +14,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
-using EdjCase.JsonRpc.Router.MethodProviders;
 using System.Collections.Concurrent;
 using Edjcase.JsonRpc.Router;
 using System.IO;
@@ -52,7 +51,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 		private ConcurrentDictionary<Type, ObjectFactory> objectFactoryCache { get; } = new ConcurrentDictionary<Type, ObjectFactory>();
 		private ConcurrentDictionary<Type, (List<IAuthorizeData>, bool)> classAttributeCache { get; } = new ConcurrentDictionary<Type, (List<IAuthorizeData>, bool)>();
-		private ConcurrentDictionary<MethodInfo, (List<IAuthorizeData>, bool)> methodAttributeCache { get; } = new ConcurrentDictionary<MethodInfo, (List<IAuthorizeData>, bool)>();
+		private ConcurrentDictionary<RpcMethodInfo, (List<IAuthorizeData>, bool)> methodAttributeCache { get; } = new ConcurrentDictionary<RpcMethodInfo, (List<IAuthorizeData>, bool)>();
 
 
 		/// <param name="authorizationService">Service that authorizes each method for use if configured</param>
@@ -76,12 +75,12 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// Call the incoming Rpc requests methods and gives the appropriate respones
 		/// </summary>
 		/// <param name="requests">List of Rpc requests</param>
+		/// <param name="routeContext">The context of the current request</param>
 		/// <param name="path">Rpc path that applies to the current request</param>
-		/// <param name="httpContext">The context of the current http request</param>
 		/// <returns>List of Rpc responses for the requests</returns>
 		public async Task<List<RpcResponse>> InvokeBatchRequestAsync(IList<RpcRequest> requests, IRouteContext routeContext, RpcPath path = null)
 		{
-			this.logger?.LogDebug($"Invoking '{requests.Count}' batch requests");
+			this.logger.LogDebug($"Invoking '{requests.Count}' batch requests");
 			var invokingTasks = new List<Task<RpcResponse>>();
 			foreach (RpcRequest request in requests)
 			{
@@ -100,7 +99,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				.Where(r => r != null)
 				.ToList();
 
-			this.logger?.LogDebug($"Finished '{requests.Count}' batch requests");
+			this.logger.LogDebug($"Finished '{requests.Count}' batch requests");
 
 			return responses;
 		}
@@ -119,32 +118,29 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				throw new ArgumentNullException(nameof(request));
 			}
 
-			this.logger?.LogDebug($"Invoking request with id '{request.Id}'");
+			this.logger.LogDebug($"Invoking request with id '{request.Id}'");
 			RpcResponse rpcResponse;
 			try
 			{
-				List<MethodInfo> methods = routeContext.RouteProvider.GetMethodsByPath(path)
-				.SelectMany(m => m.GetRouteMethods())
-				.ToList();
-				RpcMethodInfo rpcMethod = this.rpcRequestMatcher.GetMatchingMethod(request, methods);
+				Router.RpcMethodInfo rpcMethod = this.rpcRequestMatcher.GetMatchingMethod(request, path);
 
 				bool isAuthorized = await this.IsAuthorizedAsync(rpcMethod.Method, routeContext);
 
 				if (isAuthorized)
 				{
 
-					this.logger?.LogDebug($"Attempting to invoke method '{request.Method}'");
+					this.logger.LogDebug($"Attempting to invoke method '{request.Method}'");
 					object result = await this.InvokeAsync(rpcMethod, path, routeContext.RequestServices);
-					this.logger?.LogDebug($"Finished invoking method '{request.Method}'");
+					this.logger.LogDebug($"Finished invoking method '{request.Method}'");
 
-					if (result is IRpcMethodResult)
+					if (result is IRpcMethodResult methodResult)
 					{
-						this.logger?.LogTrace($"Result is {nameof(IRpcMethodResult)}.");
-						rpcResponse = ((IRpcMethodResult)result).ToRpcResponse(request.Id);
+						this.logger.LogTrace($"Result is {nameof(IRpcMethodResult)}.");
+						rpcResponse = methodResult.ToRpcResponse(request.Id);
 					}
 					else
 					{
-						this.logger?.LogTrace($"Result is plain object.");
+						this.logger.LogTrace($"Result is plain object.");
 						rpcResponse = new RpcResponse(request.Id, result);
 					}
 				}
@@ -157,7 +153,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			catch (Exception ex)
 			{
 				string errorMessage = "An Rpc error occurred while trying to invoke request.";
-				this.logger?.LogException(ex, errorMessage);
+				this.logger.LogException(ex, errorMessage);
 				RpcError error;
 				if (ex is RpcException rpcException)
 				{
@@ -172,15 +168,15 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 			if (request.Id.HasValue)
 			{
-				this.logger?.LogDebug($"Finished request with id: {request.Id}");
+				this.logger.LogDebug($"Finished request with id: {request.Id}");
 				//Only give a response if there is an id
 				return rpcResponse;
 			}
-			this.logger?.LogDebug($"Finished request with no id. Not returning a response");
+			this.logger.LogDebug($"Finished request with no id. Not returning a response");
 			return null;
 		}
 
-		private async Task<bool> IsAuthorizedAsync(MethodInfo methodInfo, IRouteContext routeContext)
+		private async Task<bool> IsAuthorizedAsync(RpcMethodInfo methodInfo, IRouteContext routeContext)
 		{
 			(List<IAuthorizeData> authorizeDataListClass, bool allowAnonymousOnClass) = this.classAttributeCache.GetOrAdd(methodInfo.DeclaringType, GetClassAttributeInfo);
 			(List<IAuthorizeData> authorizeDataListMethod, bool allowAnonymousOnMethod) = this.methodAttributeCache.GetOrAdd(methodInfo, GetMethodAttributeInfo);
@@ -189,11 +185,11 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			{
 				if (allowAnonymousOnClass || allowAnonymousOnMethod)
 				{
-					this.logger?.LogDebug("Skipping authorization. Allow anonymous specified for method.");
+					this.logger.LogDebug("Skipping authorization. Allow anonymous specified for method.");
 				}
 				else
 				{
-					this.logger?.LogDebug($"Running authorization for method.");
+					this.logger.LogDebug($"Running authorization for method.");
 					AuthorizationResult authResult = await this.CheckAuthorize(authorizeDataListClass, routeContext);
 					if (authResult.Succeeded)
 					{
@@ -202,18 +198,18 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					}
 					if (authResult.Succeeded)
 					{
-						this.logger?.LogDebug($"Authorization was successful for user '{routeContext.User.Identity.Name}'.");
+						this.logger.LogDebug($"Authorization was successful for user '{routeContext.User.Identity.Name}'.");
 					}
 					else
 					{
-						this.logger?.LogInformation($"Authorization failed for user '{routeContext.User.Identity.Name}'.");
+						this.logger.LogInformation($"Authorization failed for user '{routeContext.User.Identity.Name}'.");
 						return false;
 					}
 				}
 			}
 			else
 			{
-				this.logger?.LogDebug("Skipping authorization. None configured for class or method.");
+				this.logger.LogDebug("Skipping authorization. None configured for class or method.");
 			}
 			return true;
 
@@ -223,7 +219,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				return GetAttributeInfo(type.GetCustomAttributes());
 			}
 
-			(List<IAuthorizeData> Data, bool allowAnonymous) GetMethodAttributeInfo(MethodInfo info)
+			(List<IAuthorizeData> Data, bool allowAnonymous) GetMethodAttributeInfo(RpcMethodInfo info)
 			{
 				return GetAttributeInfo(info.GetCustomAttributes());
 			}
@@ -266,7 +262,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <exception cref="RpcInvalidParametersException">Thrown when conversion of parameters fails or when invoking the method is not compatible with the parameters</exception>
 		/// <param name="parameters">List of parameters to invoke the method with</param>
 		/// <returns>The result of the invoked method</returns>
-		private async Task<object> InvokeAsync(RpcMethodInfo methodInfo, RpcPath path, IServiceProvider serviceProvider)
+		private async Task<object> InvokeAsync(Router.RpcMethodInfo methodInfo, RpcPath path, IServiceProvider serviceProvider)
 		{
 			object obj = null;
 			if (serviceProvider != null)

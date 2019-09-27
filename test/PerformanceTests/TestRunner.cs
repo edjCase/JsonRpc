@@ -50,7 +50,7 @@ namespace PerformanceTests
 			var options = Options.Create(new RpcServerConfiguration());
 			const string methodName = "Ping";
 			MethodInfo methodInfo = typeof(Controllers.TestController).GetMethod(methodName);
-			var info = new RpcMethodInfo(methodInfo, parameters: new object[0]);
+			var info = new EdjCase.JsonRpc.Router.RpcMethodInfo(methodInfo, parameters: new object[0]);
 			var rpcRequestMatcher = new FakeRequestMatcher(info);
 			var invoker = new DefaultRpcInvoker(authorizationService, policyProvider, logger, options, rpcRequestMatcher);
 
@@ -123,7 +123,7 @@ namespace PerformanceTests
 		private class FakeRequestMatcher : IRpcRequestMatcher
 		{
 			private RpcMethodInfo method { get; }
-			public FakeRequestMatcher(RpcMethodInfo method)
+			public FakeRequestMatcher(EdjCase.JsonRpc.Router.RpcMethodInfo method)
 			{
 				this.method = method;
 			}

@@ -11,7 +11,6 @@ using Moq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using EdjCase.JsonRpc.Router.MethodProviders;
 using System.Reflection;
 using Edjcase.JsonRpc.Router;
 using System.Text;

@@ -21,27 +21,5 @@ namespace EdjCase.JsonRpc.Router
 			this.Method = method;
 			this.Parameters = parameters;
 		}
-
-		public bool HasExactParameterMatch()
-		{
-			try
-			{
-				ParameterInfo[] parameters = this.Method.GetParameters();
-				for (int i = 0; i < this.Parameters.Length; i++)
-				{
-					object original = this.Parameters[i];
-					ParameterInfo parameter = parameters[i];
-					if (!RpcUtil.TypesMatch(original, parameter.ParameterType))
-					{
-						return false;
-					}
-				}
-				return true;
-			}
-			catch
-			{
-				return false;
-			}
-		}
 	}
 }

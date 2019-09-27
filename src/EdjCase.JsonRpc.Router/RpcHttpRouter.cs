@@ -15,6 +15,7 @@ using EdjCase.JsonRpc.Router.Defaults;
 using Microsoft.AspNetCore.Http;
 using EdjCase.JsonRpc.Core.Tools;
 using Microsoft.Extensions.DependencyInjection;
+using System.Buffers;
 
 namespace EdjCase.JsonRpc.Router
 {
@@ -23,16 +24,7 @@ namespace EdjCase.JsonRpc.Router
 	/// </summary>
 	public class RpcHttpRouter : IRouter
 	{
-		/// <summary>
-		/// Provider that allows the retrieval of all configured routes
-		/// </summary>
-		private IRpcRouteProvider routeProvider { get; }
-
-		/// <param name="routeProvider">Provider that allows the retrieval of all configured routes</param>
-		public RpcHttpRouter(IRpcRouteProvider routeProvider)
-		{
-			this.routeProvider = routeProvider ?? throw new ArgumentNullException(nameof(routeProvider));
-		}
+		private static readonly char[] encodingSeperators = new[] { ',', ' ' };
 
 		/// <summary>
 		/// Generates the virtual path data for the router
@@ -69,16 +61,11 @@ namespace EdjCase.JsonRpc.Router
 						return;
 					}
 				}
-				if (!requestPath.TryRemoveBasePath(this.routeProvider.BaseRequestPath, out requestPath))
-				{
-					logger?.LogTrace("Request did not match the base request path. Skipping rpc router.");
-					return;
-				}
 				logger?.LogInformation($"Rpc request with route '{requestPath}' started.");
 
 
 				IRpcRequestHandler requestHandler = context.HttpContext.RequestServices.GetRequiredService<IRpcRequestHandler>();
-				var routeContext = DefaultRouteContext.FromHttpContext(context.HttpContext, this.routeProvider);
+				var routeContext = DefaultRouteContext.FromHttpContext(context.HttpContext);
 				await requestHandler.HandleRequestAsync(requestPath, context.HttpContext.Request.Body, routeContext, context.HttpContext.Response.Body);
 
 				if (context.HttpContext.Response.Body == null || context.HttpContext.Response.Body.Length < 1)
@@ -97,7 +84,7 @@ namespace EdjCase.JsonRpc.Router
 					IStreamCompressor compressor = context.HttpContext.RequestServices.GetService<IStreamCompressor>();
 					if (compressor != null)
 					{
-						string[] encodings = acceptEncoding.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+						string[] encodings = acceptEncoding.Split(RpcHttpRouter.encodingSeperators, StringSplitOptions.RemoveEmptyEntries);
 						foreach (string encoding in encodings)
 						{
 							bool haveType = Enum.TryParse(encoding, true, out CompressionType compressionType);
@@ -105,8 +92,17 @@ namespace EdjCase.JsonRpc.Router
 							{
 								continue;
 							}
-							context.HttpContext.Response.Headers.Add("Content-Encoding", new[] { encoding });
-							using (var memoryStream = new MemoryStream())
+							context.HttpContext.Response.Headers.Add("Content-Encoding", encoding);
+
+							if (context.HttpContext.Response.Body.Length > int.MaxValue)
+							{
+								throw new RpcException(RpcErrorCode.ParseError, "Response is too large to handle.");
+							}
+
+							//The compressed stream should be smaller than the current response, so it should be ok to set the buffer size
+							//to the current size
+							byte[] buffer = ArrayPool<byte>.Shared.Rent((int)context.HttpContext.Response.Body.Length);
+							using (var memoryStream = new MemoryStream(buffer))
 							{
 								compressor.Compress(context.HttpContext.Response.Body, memoryStream, compressionType);
 								context.HttpContext.Response.Body.Dispose();

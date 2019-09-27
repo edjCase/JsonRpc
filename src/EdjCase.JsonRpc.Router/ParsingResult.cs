@@ -146,7 +146,16 @@ namespace Edjcase.JsonRpc.Router
 
 	public interface IRpcParameter
 	{
+		RpcParameterType Type { get; }
 		bool TryGetValue(Type type, out object value);
+	}
+
+	public enum RpcParameterType
+	{
+		Null,
+		Number,
+		String,
+		Object
 	}
 
 	public static class RpcParameterExtensions
@@ -164,59 +173,69 @@ namespace Edjcase.JsonRpc.Router
 		}
 	}
 
-	public class RawRpcParameter : IRpcParameter
+	public class JsonRpcParameter : IRpcParameter
 	{
-		public object Value { get; }
-		public RawRpcParameter(object value)
-		{
-			this.Value = value;
-		}
-		public bool TryGetValue(Type type, out object value)
-		{
-			if (this.Value == null)
-			{
-				value = null;
-				return true;
-			}
-			if (this.Value.GetType() == type)
-			{
-				value = this.Value;
-				return true;
-			}
-			TypeConverter typeConverter = TypeDescriptor.GetConverter(type);
-			if (typeConverter.CanConvertTo(type))
-			{
-				value = typeConverter.ConvertTo(this.Value, type);
-				return true;
-			}
-			value = default;
-			return false;
-		}
-	}
+		public RpcParameterType Type { get; }
+		private object Object { get; }
 
-	public class SerializedRpcParameter : IRpcParameter
-	{
-		public ReadOnlyMemory<byte> Value { get; }
-		public JsonSerializerOptions Options { get; }
-
-		public SerializedRpcParameter(ReadOnlyMemory<byte> value, JsonSerializerOptions options)
+		public JsonRpcParameter(RpcParameterType type, object obj)
 		{
-			this.Value = value;
-			this.Options = options;
+			this.Type = type;
+			this.Object = obj;
 		}
 
 		public bool TryGetValue(Type type, out object value)
 		{
-			try
+			switch (this.Type)
 			{
-				value = System.Text.Json.JsonSerializer.Deserialize(this.Value.Span, type, this.Options);
+				case RpcParameterType.Object:
+					if (!(this.Object is SerializedObject serialized))
+					{
+						value = null;
+						return false;
+					}
+					try
+					{
+						value = System.Text.Json.JsonSerializer.Deserialize(serialized.Value.Span, type, serialized.Options);
+					}
+					catch (Exception)
+					{
+						value = default;
+						return false;
+					}
+					return true;
+				default:
+					if (this.Object == null)
+					{
+						value = null;
+						return true;
+					}
+					if (this.Object.GetType() == type)
+					{
+						value = this.Object;
+						return true;
+					}
+					TypeConverter typeConverter = TypeDescriptor.GetConverter(type);
+					if (typeConverter.CanConvertTo(type))
+					{
+						value = typeConverter.ConvertTo(this.Object, type);
+						return true;
+					}
+					value = default;
+					return false;
 			}
-			catch (Exception)
+		}
+
+		internal class SerializedObject
+		{
+			public ReadOnlyMemory<byte> Value { get; }
+			public JsonSerializerOptions Options { get; }
+
+			public SerializedObject(ReadOnlyMemory<byte> value, JsonSerializerOptions options = null)
 			{
-				value = default;
-				return false;
+				this.Value = value;
+				this.Options = options;
 			}
-			return true;
 		}
 	}
 }

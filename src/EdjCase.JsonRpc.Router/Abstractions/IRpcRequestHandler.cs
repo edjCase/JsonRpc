@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using EdjCase.JsonRpc.Router.Utilities;
 
 namespace EdjCase.JsonRpc.Router.Abstractions
 {
@@ -16,7 +18,7 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 	{
 		public static async Task<string> HandleRequestAsync(this IRpcRequestHandler handler, RpcPath requestPath, string requestJson, IRouteContext routeContext)
 		{
-			using (var requestStream = new MemoryStream(Encoding.UTF8.GetBytes(requestJson)))
+			using (var requestStream = StreamUtil.GetStreamFromUtf8String(requestJson))
 			{
 				using (var responseStream = new MemoryStream())
 				{

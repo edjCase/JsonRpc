@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Edjcase.JsonRpc.Router;
 using EdjCase.JsonRpc.Core;
+using EdjCase.JsonRpc.Router.Utilities;
 using Newtonsoft.Json;
 
 namespace EdjCase.JsonRpc.Router.Abstractions
@@ -22,8 +24,7 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 	{
 		public static ParsingResult ParseRequests(this IRpcParser parser, string json)
 		{
-			byte[] bytes = json == null ? new byte[0] : Encoding.UTF8.GetBytes(json);
-			using (var stream = new MemoryStream(bytes))
+			using (var stream = StreamUtil.GetStreamFromUtf8String(json))
 			{
 				return parser.ParseRequests(stream);
 			}
