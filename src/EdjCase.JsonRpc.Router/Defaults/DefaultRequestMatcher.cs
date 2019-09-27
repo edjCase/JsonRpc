@@ -1,5 +1,6 @@
 using System;
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -25,7 +26,8 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 	public class DefaultRequestMatcher : IRpcRequestMatcher
 	{
-		private Dictionary<string, CompiledMethodInfo> cache { get; } = new Dictionary<string, CompiledMethodInfo>():
+		private static ConcurrentDictionary<MethodInfo, CompiledMethodInfo> compiledMethodCache { get; } = new ConcurrentDictionary<MethodInfo, CompiledMethodInfo>();
+		private static ConcurrentDictionary<string, CompiledMethodInfo> requestToMethodCache { get; } = new ConcurrentDictionary<string, CompiledMethodInfo>();
 
 		private ILogger<DefaultRequestMatcher> logger { get; }
 		private IOptions<RpcServerConfiguration> serverConfig { get; }
@@ -44,8 +46,17 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 			this.logger.LogDebug($"Attempting to match Rpc request to a method '{request.Method}'");
 
-			Span<Router.RpcMethodInfo> matches = this.FilterAndBuildMethodInfoByRequest(methods, request);
-
+			CompiledMethodInfo[] compiledMethods = ArrayPool<CompiledMethodInfo>.Shared.Rent(methods.Count);
+			Span<Router.RpcMethodInfo> matches;
+			try
+			{
+				this.CompileMethodInfo(methods, compiledMethods);
+				matches = this.FilterAndBuildMethodInfoByRequest(compiledMethods, request);
+			}
+			finally
+			{
+				ArrayPool<CompiledMethodInfo>.Shared.Return(compiledMethods, clearArray: true);
+			}
 			if (matches.Length == 1)
 			{
 				this.logger.LogDebug("Request was matched to a method");
@@ -84,9 +95,44 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			throw new RpcException(RpcErrorCode.MethodNotFound, errorMessage);
 		}
 
-		private Dictionary<string, IReadOnlyList<CompiledMethodInfo>> GetMethodMap(List<MethodInfo> methods)
+		private void CompileMethodInfo(List<MethodInfo> methods, CompiledMethodInfo[] compiledMethods)
 		{
+			for (int i = 0; i < methods.Count; i++)
+			{
+				MethodInfo methodInfo = methods[i];
+				if (!DefaultRequestMatcher.compiledMethodCache.TryGetValue(methodInfo, out CompiledMethodInfo info))
+				{
+					var parameters = methodInfo.GetParameters().Select(ExtractParam).ToArray();
+					info = new CompiledMethodInfo(methodInfo, parameters);
 
+					CompiledParameterInfo ExtractParam(ParameterInfo parameterInfo)
+					{
+						RpcParameterType type;
+						if (parameterInfo.ParameterType == typeof(short)
+							|| parameterInfo.ParameterType == typeof(ushort)
+							|| parameterInfo.ParameterType == typeof(int)
+							|| parameterInfo.ParameterType == typeof(uint)
+							|| parameterInfo.ParameterType == typeof(long)
+							|| parameterInfo.ParameterType == typeof(ulong)
+							|| parameterInfo.ParameterType == typeof(float)
+							|| parameterInfo.ParameterType == typeof(double)
+							|| parameterInfo.ParameterType == typeof(decimal))
+						{
+							type = RpcParameterType.Number;
+						}
+						else if (parameterInfo.ParameterType == typeof(string))
+						{
+							type = RpcParameterType.String;
+						}
+						else
+						{
+							type = RpcParameterType.Object;
+						}
+						return new CompiledParameterInfo(parameterInfo.Name, type, parameterInfo.ParameterType, parameterInfo.IsOptional);
+					}
+				}
+				compiledMethods[i] = info;
+			}
 		}
 
 		private Span<Router.RpcMethodInfo> FilterAndBuildMethodInfoByRequest(IReadOnlyList<CompiledMethodInfo> methods, RpcRequest request)
@@ -306,6 +352,12 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		{
 			public MethodInfo MethodInfo { get; }
 			public CompiledParameterInfo[] Parameters { get; }
+
+			public CompiledMethodInfo(MethodInfo methodInfo, CompiledParameterInfo[] parameters)
+			{
+				this.MethodInfo = methodInfo;
+				this.Parameters = parameters;
+			}
 		}
 
 		private class CompiledParameterInfo
@@ -314,6 +366,14 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			public RpcParameterType Type { get; }
 			public Type RawType { get; }
 			public bool IsOptional { get; }
+
+			public CompiledParameterInfo(string name, RpcParameterType type, Type rawType, bool isOptional)
+			{
+				this.Name = name;
+				this.Type = type;
+				this.RawType = rawType;
+				this.IsOptional = isOptional;
+			}
 		}
 
 	}
