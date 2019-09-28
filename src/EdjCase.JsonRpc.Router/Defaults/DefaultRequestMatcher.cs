@@ -27,7 +27,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 	public class DefaultRequestMatcher : IRpcRequestMatcher
 	{
 		private static ConcurrentDictionary<MethodInfo, CompiledMethodInfo> compiledMethodCache { get; } = new ConcurrentDictionary<MethodInfo, CompiledMethodInfo>();
-		private static ConcurrentDictionary<string, CompiledMethodInfo> requestToMethodCache { get; } = new ConcurrentDictionary<string, CompiledMethodInfo>();
+		private static ConcurrentDictionary<string, Router.RpcMethodInfo[]> requestToMethodCache { get; } = new ConcurrentDictionary<string, Router.RpcMethodInfo[]>();
 
 		private ILogger<DefaultRequestMatcher> logger { get; }
 		private IOptions<RpcServerConfiguration> serverConfig { get; }
@@ -50,7 +50,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			Span<Router.RpcMethodInfo> matches;
 			try
 			{
-				this.CompileMethodInfo(methods, compiledMethods);
+				this.FillCompiledMethodInfos(methods, compiledMethods);
 				matches = this.FilterAndBuildMethodInfoByRequest(compiledMethods, request);
 			}
 			finally
@@ -95,7 +95,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			throw new RpcException(RpcErrorCode.MethodNotFound, errorMessage);
 		}
 
-		private void CompileMethodInfo(List<MethodInfo> methods, CompiledMethodInfo[] compiledMethods)
+		private void FillCompiledMethodInfos(List<MethodInfo> methods, CompiledMethodInfo[] compiledMethods)
 		{
 			for (int i = 0; i < methods.Count; i++)
 			{
@@ -135,131 +135,206 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 		}
 
-		private Span<Router.RpcMethodInfo> FilterAndBuildMethodInfoByRequest(IReadOnlyList<CompiledMethodInfo> methods, RpcRequest request)
+		private Router.RpcMethodInfo[] FilterAndBuildMethodInfoByRequest(IReadOnlyList<CompiledMethodInfo> methods, RpcRequest request)
 		{
-			string requestSignature = request.GetSignature();
-			if (this.TryGetMethodBySignature(requestSignature, out Span<Router.RpcMethodInfo> cachedMethod))
-			{
-				return cachedMethod;
-			}
-
-			CompiledMethodInfo[] methodsWithSameName = ArrayPool<CompiledMethodInfo>.Shared.Rent(methods.Count);
+			//TODO size
+			int signatureLength = request.Method.Length + 3;
+			int initialParamSize = 200;
+			const char delimiter = ' ';
+			const int incrementSize = 30;
+			char[] requestSignatureArray = ArrayPool<char>.Shared.Rent(signatureLength + initialParamSize);
 			try
 			{
-				//Case insenstive check for hybrid approach. Will check for case sensitive if there is ambiguity
-				int methodsWithSameNameCount = 0;
-				for (int i = 0; i < methods.Count(); i++)
+				for (int a = 0; a < request.Method.Length; a++)
 				{
-					CompiledMethodInfo compiledMethodInfo = methods[i];
-					if (RpcUtil.NamesMatch(compiledMethodInfo.MethodInfo.Name.AsSpan(), request.Method.AsSpan()))
-					{
-						methodsWithSameName[methodsWithSameNameCount++] = compiledMethodInfo;
-						break;
-					}
+					requestSignatureArray[signatureLength++] = request.Method[a];
 				}
-				if (methodsWithSameNameCount < 1)
+				requestSignatureArray[signatureLength++] = delimiter;
+				requestSignatureArray[signatureLength++] = request.Parameters.IsDictionary ? 'd' : 'a';
+				requestSignatureArray[signatureLength++] = delimiter;
+				if (request.Parameters.IsDictionary)
 				{
-					return Span<Router.RpcMethodInfo>.Empty;
-				}
-
-				Router.RpcMethodInfo[] potentialMatches = ArrayPool<Router.RpcMethodInfo>.Shared.Rent(methodsWithSameNameCount);
-
-				try
-				{
-					int potentialMatchCount = 0;
-					foreach (CompiledMethodInfo m in methodsWithSameName)
+					foreach (KeyValuePair<string, IRpcParameter> parameter in request.Parameters.AsDictionary)
 					{
-						(bool isMatch, Router.RpcMethodInfo methodInfo) = this.HasParameterSignature(m, request);
-						if (isMatch)
+						int greatestIndex = signatureLength + parameter.Key.Length + 1;
+						if (greatestIndex >= parameter.Key.Length)
 						{
-							potentialMatches[potentialMatchCount++] = methodInfo;
+							ArrayPool<char>.Shared.Return(requestSignatureArray);
+							requestSignatureArray = ArrayPool<char>.Shared.Rent(requestSignatureArray.Length + incrementSize);
+						}
+						//TODO is this space ok?
+						requestSignatureArray[signatureLength++] = delimiter;
+						for (int i = 0; i < parameter.Key.Length; i++)
+						{
+							requestSignatureArray[signatureLength++] = parameter.Key[i];
 						}
 					}
-
-					if (potentialMatchCount <= 1)
+				}
+				else
+				{
+					List<IRpcParameter> list = request.Parameters.AsList;
+					for (int i = 0; i < list.Count; i++)
 					{
-						return potentialMatches.AsSpan(0, potentialMatchCount);
-					}
-					Router.RpcMethodInfo[] exactParamMatches = ArrayPool<Router.RpcMethodInfo>.Shared.Rent(potentialMatchCount);
-					try
-					{
-						int exactParamMatchCount = 0;
-						//Try to remove ambiguity with 'perfect matching' (usually optional params and types)
-						for (int i = 0; i < potentialMatchCount; i++)
+						char c;
+						switch (list[i].Type)
 						{
-							bool matched = true;
-							Router.RpcMethodInfo info = potentialMatches[i];
-							ParameterInfo[] parameters = info.Method.GetParameters();
-							if (info.Parameters.Length == parameters.Length)
+							case RpcParameterType.String:
+								c = 's';
+								break;
+							case RpcParameterType.Object:
+								c = 'o';
+								break;
+							case RpcParameterType.Number:
+								c = 'n';
+								break;
+							case RpcParameterType.Null:
+								c = '-';
+								break;
+							default:
+								throw new InvalidOperationException($"Unimplemented parameter type '{list[i].Type}'");
+
+						}
+						requestSignatureArray[signatureLength++] = c;
+					}
+				}
+
+				string requestSignature = new string(requestSignatureArray);
+				if (DefaultRequestMatcher.requestToMethodCache.TryGetValue(requestSignature, out Router.RpcMethodInfo[] cachedMethod))
+				{
+					return cachedMethod;
+				}
+
+				CompiledMethodInfo[] methodsWithSameName = ArrayPool<CompiledMethodInfo>.Shared.Rent(methods.Count);
+				try
+				{
+					//Case insenstive check for hybrid approach. Will check for case sensitive if there is ambiguity
+					int methodsWithSameNameCount = 0;
+					for (int i = 0; i < methods.Count(); i++)
+					{
+						CompiledMethodInfo compiledMethodInfo = methods[i];
+						if (RpcUtil.NamesMatch(compiledMethodInfo.MethodInfo.Name.AsSpan(), request.Method.AsSpan()))
+						{
+							methodsWithSameName[methodsWithSameNameCount++] = compiledMethodInfo;
+							break;
+						}
+					}
+					Span<Router.RpcMethodInfo> span;
+					if (methodsWithSameNameCount < 1)
+					{
+						span = Span<Router.RpcMethodInfo>.Empty;
+					}
+					else
+					{
+						Router.RpcMethodInfo[] potentialMatches = ArrayPool<Router.RpcMethodInfo>.Shared.Rent(methodsWithSameNameCount);
+
+						try
+						{
+							int potentialMatchCount = 0;
+							foreach (CompiledMethodInfo m in methodsWithSameName)
 							{
-								for (int j = 0; j < info.Parameters.Length; j++)
+								(bool isMatch, Router.RpcMethodInfo methodInfo) = this.HasParameterSignature(m, request);
+								if (isMatch)
 								{
-									object original = info.Parameters[j];
-									ParameterInfo parameter = parameters[j];
-									if (!RpcUtil.TypesMatch(original, parameter.ParameterType))
-									{
-										matched = false;
-										break;
-									}
+									potentialMatches[potentialMatchCount++] = methodInfo;
 								}
+							}
+
+							if (potentialMatchCount <= 1)
+							{
+								span = potentialMatches.AsSpan(0, potentialMatchCount);
 							}
 							else
 							{
-								matched = false;
-							}
-							if (matched)
-							{
-								exactParamMatches[exactParamMatchCount++] = potentialMatches[i];
-							}
-						}
-
-						(Router.RpcMethodInfo[] matches, int count) = exactParamMatchCount > 0
-							? (exactParamMatches, exactParamMatchCount)
-							: (potentialMatches, potentialMatchCount);
-
-						if (count <= 1)
-						{
-							return potentialMatches.AsSpan(0, count);
-						}
-						//Try to remove ambiguity with case sensitive check
-						Router.RpcMethodInfo[] caseSensitiveMatches = ArrayPool<Router.RpcMethodInfo>.Shared.Rent(count);
-						try
-						{
-							int caseSensitiveCount = 0;
-							for (int i = 0; i < count; i++)
-							{
-								Router.RpcMethodInfo m = matches[i];
-								if (string.Equals(m.Method.Name, request.Method, StringComparison.Ordinal))
+								Router.RpcMethodInfo[] exactParamMatches = ArrayPool<Router.RpcMethodInfo>.Shared.Rent(potentialMatchCount);
+								try
 								{
-									caseSensitiveMatches[caseSensitiveCount++] = m;
+									int exactParamMatchCount = 0;
+									//Try to remove ambiguity with 'perfect matching' (usually optional params and types)
+									for (int i = 0; i < potentialMatchCount; i++)
+									{
+										bool matched = true;
+										Router.RpcMethodInfo info = potentialMatches[i];
+										ParameterInfo[] parameters = info.Method.GetParameters();
+										if (info.Parameters.Length == parameters.Length)
+										{
+											for (int j = 0; j < info.Parameters.Length; j++)
+											{
+												object original = info.Parameters[j];
+												ParameterInfo parameter = parameters[j];
+												if (!RpcUtil.TypesMatch(original, parameter.ParameterType))
+												{
+													matched = false;
+													break;
+												}
+											}
+										}
+										else
+										{
+											matched = false;
+										}
+										if (matched)
+										{
+											exactParamMatches[exactParamMatchCount++] = potentialMatches[i];
+										}
+									}
+
+									(Router.RpcMethodInfo[] matches, int count) = exactParamMatchCount > 0
+										? (exactParamMatches, exactParamMatchCount)
+										: (potentialMatches, potentialMatchCount);
+
+
+
+									if (count <= 1)
+									{
+										span = potentialMatches.AsSpan(0, count);
+									}
+									else
+									{
+										//Try to remove ambiguity with case sensitive check
+										Router.RpcMethodInfo[] caseSensitiveMatches = ArrayPool<Router.RpcMethodInfo>.Shared.Rent(count);
+										try
+										{
+											int caseSensitiveCount = 0;
+											for (int i = 0; i < count; i++)
+											{
+												Router.RpcMethodInfo m = matches[i];
+												if (string.Equals(m.Method.Name, request.Method, StringComparison.Ordinal))
+												{
+													caseSensitiveMatches[caseSensitiveCount++] = m;
+												}
+											}
+											span = caseSensitiveMatches.AsSpan(0, caseSensitiveCount);
+										}
+										finally
+										{
+											ArrayPool<Router.RpcMethodInfo>.Shared.Return(caseSensitiveMatches, clearArray: false);
+										}
+									}
+								}
+								finally
+								{
+									ArrayPool<Router.RpcMethodInfo>.Shared.Return(exactParamMatches, clearArray: false);
 								}
 							}
-							return caseSensitiveMatches.AsSpan(0, caseSensitiveCount);
 						}
 						finally
 						{
-							ArrayPool<Router.RpcMethodInfo>.Shared.Return(caseSensitiveMatches, clearArray: false);
+							ArrayPool<Router.RpcMethodInfo>.Shared.Return(potentialMatches, clearArray: false);
 						}
 					}
-					finally
-					{
-						ArrayPool<Router.RpcMethodInfo>.Shared.Return(exactParamMatches, clearArray: false);
-					}
+					Router.RpcMethodInfo[] methodInfos = span.ToArray();
+					DefaultRequestMatcher.requestToMethodCache.TryAdd(requestSignature, methodInfos);
+					return methodInfos;
 				}
 				finally
 				{
-					ArrayPool<Router.RpcMethodInfo>.Shared.Return(potentialMatches, clearArray: false);
+					ArrayPool<CompiledMethodInfo>.Shared.Return(methodsWithSameName, clearArray: false);
 				}
 			}
 			finally
 			{
-				ArrayPool<CompiledMethodInfo>.Shared.Return(methodsWithSameName, clearArray: false);
+				ArrayPool<char>.Shared.Return(requestSignatureArray);
 			}
-		}
-
-		private bool TryGetMethodBySignature(string requestSignature, out Span<RpcMethodInfo> cachedMethod)
-		{
-
 		}
 
 

@@ -109,7 +109,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// </summary>
 		/// <param name="request">Rpc request</param>
 		/// <param name="path">Rpc path that applies to the current request</param>
-		/// <param name="httpContext">The context of the current http request</param>
+		/// <param name="routeContext">The context of the current rpc request</param>
 		/// <returns>An Rpc response for the request</returns>
 		public async Task<RpcResponse> InvokeRequestAsync(RpcRequest request, IRouteContext routeContext, RpcPath path = null)
 		{
@@ -122,9 +122,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			RpcResponse rpcResponse;
 			try
 			{
-				Router.RpcMethodInfo rpcMethod = this.rpcRequestMatcher.GetMatchingMethod(request, path);
+				List<MethodInfo> methods;
+				Router.RpcMethodInfo rpcMethod = this.rpcRequestMatcher.GetMatchingMethod(request, methods);
 
-				bool isAuthorized = await this.IsAuthorizedAsync(rpcMethod.Method, routeContext);
+				bool isAuthorized = await this.IsAuthorizedAsync(rpcMethod, routeContext);
 
 				if (isAuthorized)
 				{
@@ -178,7 +179,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 		private async Task<bool> IsAuthorizedAsync(RpcMethodInfo methodInfo, IRouteContext routeContext)
 		{
-			(List<IAuthorizeData> authorizeDataListClass, bool allowAnonymousOnClass) = this.classAttributeCache.GetOrAdd(methodInfo.DeclaringType, GetClassAttributeInfo);
+			(List<IAuthorizeData> authorizeDataListClass, bool allowAnonymousOnClass) = this.classAttributeCache.GetOrAdd(methodInfo.Method.DeclaringType, GetClassAttributeInfo);
 			(List<IAuthorizeData> authorizeDataListMethod, bool allowAnonymousOnMethod) = this.methodAttributeCache.GetOrAdd(methodInfo, GetMethodAttributeInfo);
 
 			if (authorizeDataListClass.Any() || authorizeDataListMethod.Any())
@@ -221,7 +222,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 			(List<IAuthorizeData> Data, bool allowAnonymous) GetMethodAttributeInfo(RpcMethodInfo info)
 			{
-				return GetAttributeInfo(info.GetCustomAttributes());
+				return GetAttributeInfo(info.Method.GetCustomAttributes());
 			}
 			(List<IAuthorizeData> Data, bool allowAnonymous) GetAttributeInfo(IEnumerable<Attribute> attributes)
 			{
