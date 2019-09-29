@@ -122,7 +122,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			RpcResponse rpcResponse;
 			try
 			{
-				List<MethodInfo> methods;
+				if (!routeContext.Methods.TryGetValue(path, out IList<MethodInfo> methods))
+				{
+					throw new RpcException(RpcErrorCode.MethodNotFound, $"No methods found with the path: {path}");
+				}
 				Router.RpcMethodInfo rpcMethod = this.rpcRequestMatcher.GetMatchingMethod(request, methods);
 
 				bool isAuthorized = await this.IsAuthorizedAsync(rpcMethod, routeContext);

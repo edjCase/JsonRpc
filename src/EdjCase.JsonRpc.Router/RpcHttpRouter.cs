@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Http;
 using EdjCase.JsonRpc.Core.Tools;
 using Microsoft.Extensions.DependencyInjection;
 using System.Buffers;
+using System.Reflection;
 
 namespace EdjCase.JsonRpc.Router
 {
@@ -25,6 +26,12 @@ namespace EdjCase.JsonRpc.Router
 	public class RpcHttpRouter : IRouter
 	{
 		private static readonly char[] encodingSeperators = new[] { ',', ' ' };
+
+		private IDictionary<RpcPath, IList<MethodInfo>> methods { get; }
+		public RpcHttpRouter(IDictionary<RpcPath, IList<MethodInfo>> methods)
+		{
+			this.methods = methods;
+		}
 
 		/// <summary>
 		/// Generates the virtual path data for the router
@@ -65,7 +72,7 @@ namespace EdjCase.JsonRpc.Router
 
 
 				IRpcRequestHandler requestHandler = context.HttpContext.RequestServices.GetRequiredService<IRpcRequestHandler>();
-				var routeContext = DefaultRouteContext.FromHttpContext(context.HttpContext);
+				var routeContext = DefaultRouteContext.FromHttpContext(context.HttpContext, this.methods);
 				await requestHandler.HandleRequestAsync(requestPath, context.HttpContext.Request.Body, routeContext, context.HttpContext.Response.Body);
 
 				if (context.HttpContext.Response.Body == null || context.HttpContext.Response.Body.Length < 1)

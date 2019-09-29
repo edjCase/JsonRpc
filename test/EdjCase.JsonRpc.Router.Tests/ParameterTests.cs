@@ -2,23 +2,24 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.Json;
 using Xunit;
 
 namespace EdjCase.JsonRpc.Router.Tests
 {
 	public class ParameterTests
 	{
-		private SerializedRpcParameter BuildParam(string json)
+		private JsonBytesRpcParameter BuildParam(string json)
 		{
 			var bytes = new Memory<byte>(Encoding.UTF8.GetBytes(json));
-			return new SerializedRpcParameter(bytes, options: null);
+			return new JsonBytesRpcParameter(RpcParameterType.Object, bytes);
 		}
 
 		[Fact]
 		public void TryGetValue_String_StringParsed()
 		{
 			const string expected = "Test";
-			SerializedRpcParameter param = this.BuildParam($"\"{expected}\"");
+			JsonBytesRpcParameter param = this.BuildParam($"\"{expected}\"");
 			bool parsed = param.TryGetValue(out string actual);
 			Assert.True(parsed);
 			Assert.Equal(expected, actual);
@@ -27,7 +28,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		[Fact]
 		public void TryGetValue_Number_NumberParsed()
 		{
-			SerializedRpcParameter param = this.BuildParam("1");
+			JsonBytesRpcParameter param = this.BuildParam("1");
 
 			bool parsed = param.TryGetValue(out int actual);
 			Assert.True(parsed);
@@ -58,7 +59,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public void TryGetValue_DateTime_DateTimeParsed()
 		{
 			const string expected = "2019-01-01T00:00:00.000";
-			SerializedRpcParameter param = this.BuildParam($"\"{expected}\"");
+			JsonBytesRpcParameter param = this.BuildParam($"\"{expected}\"");
 
 			bool parsed = param.TryGetValue(out DateTime actual);
 			Assert.True(parsed);
@@ -82,7 +83,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			const string expectedString = "Test";
 			string json = $"{{\"DateTime\": \"{expectedDateTime}\", \"String\": \"{expectedString}\", \"Integer\": {expectedInteger}, \"Decimal\": {expectedDecimal}}}";
 
-			SerializedRpcParameter param = this.BuildParam(json);
+			JsonBytesRpcParameter param = this.BuildParam(json);
 
 			bool parsed = param.TryGetValue(out TestObject actual);
 			Assert.True(parsed);
@@ -104,7 +105,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public void TryGetValue_Array_ArrayParsed()
 		{
 			string json = $"[0,1,2,3,4]";
-			SerializedRpcParameter param = this.BuildParam(json);
+			JsonBytesRpcParameter param = this.BuildParam(json);
 
 			bool parsed = param.TryGetValue(out List<int> actual);
 			Assert.True(parsed);

@@ -14,6 +14,6 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 		/// <param name="request">Current Rpc request</param>
 		/// <param name="methods">Methods for the current path</param>
 		/// <returns>The matching Rpc method to the current request</returns>
-		RpcMethodInfo GetMatchingMethod(RpcRequest request, List<MethodInfo> methods);
+		RpcMethodInfo GetMatchingMethod(RpcRequest request, IList<MethodInfo> methods);
 	}
 }

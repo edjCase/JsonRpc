@@ -4,7 +4,6 @@ using EdjCase.JsonRpc.Core.Tools;
 using EdjCase.JsonRpc.Router;
 using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Defaults;
-using EdjCase.JsonRpc.Router.RouteProviders;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -56,11 +55,10 @@ namespace PerformanceTests
 
 			var request = new RpcRequest(id: null, methodName);
 			const string path = "Test";
-			var routingOptions = new RpcAutoRoutingOptions();
-			var routeProvider = new RpcAutoRouteProvider(Options.Create(routingOptions));
 			var user = new ClaimsPrincipal();
 			IServiceProvider serviceProvider = null;
-			var routeContext = new DefaultRouteContext(serviceProvider, user, routeProvider);
+			var methods = new Dictionary<RpcPath, IList<MethodInfo>> { [path] = new List<MethodInfo> { methodInfo } };
+			var routeContext = new DefaultRouteContext(serviceProvider, user, methods);
 			for (int i = 0; i < 10_000_000; i++)
 			{
 				await invoker.InvokeRequestAsync(request, routeContext, path);
@@ -128,7 +126,7 @@ namespace PerformanceTests
 				this.method = method;
 			}
 
-			public RpcMethodInfo GetMatchingMethod(RpcRequest request, List<MethodInfo> methods)
+			public RpcMethodInfo GetMatchingMethod(RpcRequest request, IList<MethodInfo> methods)
 			{
 				return this.method;
 			}

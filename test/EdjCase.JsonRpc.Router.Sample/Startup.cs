@@ -83,15 +83,12 @@ namespace EdjCase.JsonRpc.Router.Sample
 				{
 					b.UseJsonRpc(options =>
 					{
-						options.RegisterController<RpcMath>();
+						options.AddController<RpcMath>();
 					});
 				})
 				.Map("/Auto", b =>
 				{
-					b.UseJsonRpc(builder =>
-					{
-						builder.BaseControllerType = typeof(ControllerBase);
-					});
+					b.UseJsonRpcWithBaseController<ControllerBase>();
 				});
 			});
 

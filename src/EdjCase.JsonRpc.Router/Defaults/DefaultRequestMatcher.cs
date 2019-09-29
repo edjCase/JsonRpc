@@ -38,7 +38,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			this.serverConfig = serverConfig;
 		}
 
-		public RpcMethodInfo GetMatchingMethod(RpcRequest request, List<MethodInfo> methods)
+		public RpcMethodInfo GetMatchingMethod(RpcRequest request, IList<MethodInfo> methods)
 		{
 			if (request == null)
 			{
@@ -95,7 +95,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			throw new RpcException(RpcErrorCode.MethodNotFound, errorMessage);
 		}
 
-		private void FillCompiledMethodInfos(List<MethodInfo> methods, CompiledMethodInfo[] compiledMethods)
+		private void FillCompiledMethodInfos(IList<MethodInfo> methods, CompiledMethodInfo[] compiledMethods)
 		{
 			for (int i = 0; i < methods.Count; i++)
 			{
