@@ -122,7 +122,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			RpcResponse rpcResponse;
 			try
 			{
-				if (!routeContext.Methods.TryGetValue(path, out IList<MethodInfo> methods))
+				if (!routeContext.MethodProvider.TryGetByPath(path, out IReadOnlyList<MethodInfo> methods))
 				{
 					throw new RpcException(RpcErrorCode.MethodNotFound, $"No methods found with the path: {path}");
 				}

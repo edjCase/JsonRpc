@@ -195,18 +195,33 @@ namespace Edjcase.JsonRpc.Router
 				value = null;
 				return false;
 			}
-			if (this.Value.GetType() == type)
+            Type parameterType = this.Value.GetType();
+
+            if (parameterType == type)
 			{
 				value = this.Value;
 				return true;
 			}
 			TypeConverter typeConverter = TypeDescriptor.GetConverter(type);
-			if (typeConverter.CanConvertTo(type))
-			{
-				value = typeConverter.ConvertTo(this.Value, type);
-				return true;
-			}
-			value = default;
+            if (typeConverter != null)
+            {
+                if (typeConverter.CanConvertFrom(parameterType))
+                {
+                    value = typeConverter.ConvertFrom(this.Value);
+                    return true;
+                }
+            }
+            TypeConverter parameterTypeConverter = TypeDescriptor.GetConverter(parameterType);
+            if(parameterTypeConverter != null)
+            {
+                if (typeConverter.CanConvertTo(parameterType))
+                {
+                    value = typeConverter.ConvertTo(this.Value, type);
+                    return true;
+                }
+            }
+
+            value = default;
 			return false;
 		}
 	}

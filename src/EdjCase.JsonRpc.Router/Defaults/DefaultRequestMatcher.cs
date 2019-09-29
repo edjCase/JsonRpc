@@ -38,7 +38,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			this.serverConfig = serverConfig;
 		}
 
-		public RpcMethodInfo GetMatchingMethod(RpcRequest request, IList<MethodInfo> methods)
+		public RpcMethodInfo GetMatchingMethod(RpcRequest request, IReadOnlyList<MethodInfo> methods)
 		{
 			if (request == null)
 			{
@@ -51,7 +51,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			try
 			{
 				this.FillCompiledMethodInfos(methods, compiledMethods);
-				matches = this.FilterAndBuildMethodInfoByRequest(compiledMethods, request);
+				matches = this.FilterAndBuildMethodInfoByRequest(compiledMethods.AsSpan(0, methods.Count), request);
 			}
 			finally
 			{
@@ -95,7 +95,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			throw new RpcException(RpcErrorCode.MethodNotFound, errorMessage);
 		}
 
-		private void FillCompiledMethodInfos(IList<MethodInfo> methods, CompiledMethodInfo[] compiledMethods)
+		private void FillCompiledMethodInfos(IReadOnlyList<MethodInfo> methods, CompiledMethodInfo[] compiledMethods)
 		{
 			for (int i = 0; i < methods.Count; i++)
 			{
@@ -107,20 +107,29 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 					CompiledParameterInfo ExtractParam(ParameterInfo parameterInfo)
 					{
+                        Type parameterType = parameterInfo.ParameterType;
+                        if (parameterType.IsGenericType)
+                        {
+                            Type realType = Nullable.GetUnderlyingType(parameterType);
+                            if(realType != null)
+                            {
+                                parameterType = realType;
+                            }
+                        }
 						RpcParameterType type;
-						if (parameterInfo.ParameterType == typeof(short)
-							|| parameterInfo.ParameterType == typeof(ushort)
-							|| parameterInfo.ParameterType == typeof(int)
-							|| parameterInfo.ParameterType == typeof(uint)
-							|| parameterInfo.ParameterType == typeof(long)
-							|| parameterInfo.ParameterType == typeof(ulong)
-							|| parameterInfo.ParameterType == typeof(float)
-							|| parameterInfo.ParameterType == typeof(double)
-							|| parameterInfo.ParameterType == typeof(decimal))
+						if (parameterType == typeof(short)
+							|| parameterType == typeof(ushort)
+							|| parameterType == typeof(int)
+							|| parameterType == typeof(uint)
+							|| parameterType == typeof(long)
+							|| parameterType == typeof(ulong)
+							|| parameterType == typeof(float)
+							|| parameterType == typeof(double)
+							|| parameterType == typeof(decimal))
 						{
 							type = RpcParameterType.Number;
 						}
-						else if (parameterInfo.ParameterType == typeof(string))
+						else if (parameterType == typeof(string))
 						{
 							type = RpcParameterType.String;
 						}
@@ -135,14 +144,14 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 		}
 
-		private Router.RpcMethodInfo[] FilterAndBuildMethodInfoByRequest(IReadOnlyList<CompiledMethodInfo> methods, RpcRequest request)
+		private Router.RpcMethodInfo[] FilterAndBuildMethodInfoByRequest(ReadOnlySpan<CompiledMethodInfo> methods, RpcRequest request)
 		{
 			//TODO size
-			int signatureLength = request.Method.Length + 3;
+			int signatureLength = 0;
 			int initialParamSize = 200;
 			const char delimiter = ' ';
 			const int incrementSize = 30;
-			char[] requestSignatureArray = ArrayPool<char>.Shared.Rent(signatureLength + initialParamSize);
+			char[] requestSignatureArray = ArrayPool<char>.Shared.Rent(request.Method.Length + 3 + initialParamSize);
 			try
 			{
 				for (int a = 0; a < request.Method.Length; a++)
@@ -198,18 +207,18 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					}
 				}
 
-				string requestSignature = new string(requestSignatureArray);
+				string requestSignature = new string(requestSignatureArray, 0, signatureLength);
 				if (DefaultRequestMatcher.requestToMethodCache.TryGetValue(requestSignature, out Router.RpcMethodInfo[] cachedMethod))
 				{
 					return cachedMethod;
 				}
 
-				CompiledMethodInfo[] methodsWithSameName = ArrayPool<CompiledMethodInfo>.Shared.Rent(methods.Count);
+				CompiledMethodInfo[] methodsWithSameName = ArrayPool<CompiledMethodInfo>.Shared.Rent(methods.Length);
 				try
 				{
 					//Case insenstive check for hybrid approach. Will check for case sensitive if there is ambiguity
 					int methodsWithSameNameCount = 0;
-					for (int i = 0; i < methods.Count(); i++)
+					for (int i = 0; i < methods.Length; i++)
 					{
 						CompiledMethodInfo compiledMethodInfo = methods[i];
 						if (RpcUtil.NamesMatch(compiledMethodInfo.MethodInfo.Name.AsSpan(), request.Method.AsSpan()))
@@ -230,9 +239,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 						try
 						{
 							int potentialMatchCount = 0;
-							foreach (CompiledMethodInfo m in methodsWithSameName)
+                            for (int i = 0; i < methodsWithSameNameCount; i++)
 							{
-								(bool isMatch, Router.RpcMethodInfo methodInfo) = this.HasParameterSignature(m, request);
+                                CompiledMethodInfo m = methodsWithSameName[i];
+                                (bool isMatch, Router.RpcMethodInfo methodInfo) = this.HasParameterSignature(m, request);
 								if (isMatch)
 								{
 									potentialMatches[potentialMatchCount++] = methodInfo;
@@ -375,7 +385,8 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			{
 				CompiledParameterInfo parameterInfo = method.Parameters[i];
 				IRpcParameter parameter = parameters[i];
-				if (parameter.Type != parameterInfo.Type)
+				if (parameter.Type != parameterInfo.Type
+                    && parameterInfo.Type != RpcParameterType.Object)
 				{
 					return (false, null);
 				}

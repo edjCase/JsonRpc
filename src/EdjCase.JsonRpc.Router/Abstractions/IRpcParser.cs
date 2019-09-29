@@ -24,7 +24,7 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 	{
 		public static ParsingResult ParseRequests(this IRpcParser parser, string json)
 		{
-			using (var stream = StreamUtil.GetStreamFromUtf8String(json))
+			using (var stream = StreamUtil.GetStreamFromUtf8String(json ?? string.Empty))
 			{
 				return parser.ParseRequests(stream);
 			}

@@ -51,12 +51,18 @@ namespace EdjCase.JsonRpc.Router.Tests
 			IServiceProvider serviceProvider = this.GetServiceProvider();
 			var routeContext = new Mock<IRouteContext>(MockBehavior.Strict);
 
+            IRpcMethodProvider methodProvider = new RpcEndpointBuilder()
+                .AddController<TController>()
+                .Resolve();
 			routeContext
 				.SetupGet(rc => rc.RequestServices)
 				.Returns(serviceProvider);
 			routeContext
 				.SetupGet(rc => rc.User)
 				.Returns(new System.Security.Claims.ClaimsPrincipal());
+            routeContext
+                .SetupGet(rc => rc.MethodProvider)
+                .Returns(methodProvider);
 			return routeContext.Object;
 		}
 
@@ -224,5 +230,5 @@ namespace EdjCase.JsonRpc.Router.Tests
 	public class TestInjectionClass
 	{
 
-	}
+    }
 }

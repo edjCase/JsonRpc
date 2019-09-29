@@ -15,18 +15,18 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 		public ClaimsPrincipal User { get; }
 
-		public IDictionary<RpcPath, IList<MethodInfo>> Methods { get; }
+		public IRpcMethodProvider MethodProvider { get; }
 
-		public DefaultRouteContext(IServiceProvider serviceProvider, ClaimsPrincipal user, IDictionary<RpcPath, IList<MethodInfo>> methods)
+		public DefaultRouteContext(IServiceProvider serviceProvider, ClaimsPrincipal user, IRpcMethodProvider methodProvider)
 		{
 			this.RequestServices = serviceProvider;
 			this.User = user;
-			this.Methods = methods;
+			this.MethodProvider = methodProvider;
 		}
 
-		public static IRouteContext FromHttpContext(HttpContext httpContext, IDictionary<RpcPath, IList<MethodInfo>> methods)
+		public static IRouteContext FromHttpContext(HttpContext httpContext, IRpcMethodProvider methodProvider)
 		{
-			return new DefaultRouteContext(httpContext.RequestServices, httpContext.User, methods);
+			return new DefaultRouteContext(httpContext.RequestServices, httpContext.User, methodProvider);
 		}
 	}
 }

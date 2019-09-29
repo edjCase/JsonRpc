@@ -54,10 +54,10 @@ namespace PerformanceTests
 			var invoker = new DefaultRpcInvoker(authorizationService, policyProvider, logger, options, rpcRequestMatcher);
 
 			var request = new RpcRequest(id: null, methodName);
-			const string path = "Test";
+			RpcPath path = "Test";
 			var user = new ClaimsPrincipal();
 			IServiceProvider serviceProvider = null;
-			var methods = new Dictionary<RpcPath, IList<MethodInfo>> { [path] = new List<MethodInfo> { methodInfo } };
+			var methods = new FakeRpcMethodProvider(methodInfo, path);
 			var routeContext = new DefaultRouteContext(serviceProvider, user, methods);
 			for (int i = 0; i < 10_000_000; i++)
 			{
@@ -126,7 +126,7 @@ namespace PerformanceTests
 				this.method = method;
 			}
 
-			public RpcMethodInfo GetMatchingMethod(RpcRequest request, IList<MethodInfo> methods)
+			public RpcMethodInfo GetMatchingMethod(RpcRequest request, IReadOnlyList<MethodInfo> methods)
 			{
 				return this.method;
 			}
@@ -137,6 +137,28 @@ namespace PerformanceTests
 			public void Dispose()
 			{
 
+			}
+		}
+
+		public class FakeRpcMethodProvider : IRpcMethodProvider
+		{
+			private List<MethodInfo> methods { get; }
+			private RpcPath path { get; }
+			public FakeRpcMethodProvider(MethodInfo info, RpcPath path = null)
+			{
+				this.methods = new List<MethodInfo> { info };
+				this.path = path;
+			}
+
+			public bool TryGetByPath(RpcPath path, out IReadOnlyList<MethodInfo> methods)
+			{
+				if (path != this.path)
+				{
+					methods = null;
+					return false;
+				}
+				methods = this.methods;
+				return true;
 			}
 		}
 	}

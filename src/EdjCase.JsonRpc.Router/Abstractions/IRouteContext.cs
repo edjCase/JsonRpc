@@ -9,5 +9,10 @@ public interface IRouteContext
 {
 	IServiceProvider RequestServices { get; }
 	ClaimsPrincipal User { get; }
-	IDictionary<RpcPath, IList<MethodInfo>> Methods { get; }
+	IRpcMethodProvider MethodProvider { get; }
+}
+
+public interface IRpcMethodProvider
+{
+	bool TryGetByPath(RpcPath path, out IReadOnlyList<MethodInfo> methods);
 }

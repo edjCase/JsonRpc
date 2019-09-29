@@ -20,75 +20,6 @@ using System.Linq;
 // ReSharper disable once CheckNamespace
 namespace Microsoft.AspNetCore.Builder
 {
-
-	public class RpcEndpointBuilder
-	{
-		private IDictionary<RpcPath, IList<MethodInfo>> methods { get; } = new Dictionary<RpcPath, IList<MethodInfo>>();
-
-		public RpcEndpointBuilder AddMethod(RpcPath path, MethodInfo methodInfo)
-		{
-			this.Add(path, methodInfo);
-			return this;
-		}
-
-		public RpcEndpointBuilder AddController<T>()
-		{
-			Type controllerType = typeof(T);
-			var attribute = controllerType.GetCustomAttribute<RpcRouteAttribute>(true);
-			ReadOnlySpan<char> routePathString;
-			if (attribute == null || attribute.RouteName == null)
-			{
-				if (controllerType.Name.EndsWith("Controller"))
-				{
-					routePathString = controllerType.Name.AsSpan(0, controllerType.Name.IndexOf("Controller"));
-				}
-				else
-				{
-					routePathString = controllerType.Name.AsSpan();
-				}
-			}
-			else
-			{
-				routePathString = attribute.RouteName.AsSpan();
-			}
-			RpcPath routePath = RpcPath.Parse(routePathString);
-			return this.AddController<T>(routePath);
-		}
-
-		public RpcEndpointBuilder AddController<T>(RpcPath path)
-		{
-			IEnumerable<MethodInfo> methods = this.Extract<T>();
-			foreach (MethodInfo method in methods)
-			{
-				this.Add(path, method);
-			}
-			return this;
-		}
-
-		internal IDictionary<RpcPath, IList<MethodInfo>> Resolve()
-		{
-			return this.methods;
-		}
-
-		private IEnumerable<MethodInfo> Extract<T>()
-		{
-			//TODO will entry assembly be good enough
-			Type baseControllerType = typeof(T);
-			return Assembly.GetEntryAssembly().DefinedTypes
-				.Where(t => !t.IsAbstract && t.IsSubclassOf(baseControllerType))
-				.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance))
-				.Where(m => m.DeclaringType != typeof(object));
-		}
-
-		private void Add(RpcPath path, MethodInfo methodInfo)
-		{
-			if (!this.methods.TryGetValue(path, out IList<MethodInfo> methods))
-			{
-				methods = this.methods[path] = new List<MethodInfo>();
-			}
-			methods.Add(methodInfo);
-		}
-	}
 	/// <summary>
 	/// Extension class to add JsonRpc router to Asp.Net pipeline
 	/// </summary>
@@ -159,7 +90,7 @@ namespace Microsoft.AspNetCore.Builder
 
 			return app.UseJsonRpc(builder =>
 			{
-				builder.AddController<T>();
+				builder.AddControllerWithDefaultPath<T>();
 			});
 		}
 
@@ -189,23 +120,23 @@ namespace Microsoft.AspNetCore.Builder
 		/// Extension method to use the JsonRpc router in the Asp.Net pipeline
 		/// </summary>
 		/// <param name="app"><see cref="IApplicationBuilder"/> that is supplied by Asp.Net</param>
-		/// <param name="methods">All the available methods to call</param>
+		/// <param name="methodProvider">All the available methods to call</param>
 		/// <returns><see cref="IApplicationBuilder"/> that includes the Basic auth middleware</returns>
-		public static IApplicationBuilder UseJsonRpc(this IApplicationBuilder app, IDictionary<RpcPath, IList<MethodInfo>> methods)
+		public static IApplicationBuilder UseJsonRpc(this IApplicationBuilder app, IRpcMethodProvider methodProvider)
 		{
 			if (app == null)
 			{
 				throw new ArgumentNullException(nameof(app));
 			}
-			if (methods == null)
+			if (methodProvider == null)
 			{
-				throw new ArgumentNullException(nameof(methods));
+				throw new ArgumentNullException(nameof(methodProvider));
 			}
 			if (app.ApplicationServices.GetService<RpcServicesMarker>() == null)
 			{
 				throw new InvalidOperationException("AddJsonRpc() needs to be called in the ConfigureServices method.");
 			}
-			var router = new RpcHttpRouter(methods);
+			var router = new RpcHttpRouter(methodProvider);
 			return app.UseRouter(router);
 		}
 

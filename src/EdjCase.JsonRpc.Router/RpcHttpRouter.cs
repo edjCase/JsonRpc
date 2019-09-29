@@ -27,10 +27,10 @@ namespace EdjCase.JsonRpc.Router
 	{
 		private static readonly char[] encodingSeperators = new[] { ',', ' ' };
 
-		private IDictionary<RpcPath, IList<MethodInfo>> methods { get; }
-		public RpcHttpRouter(IDictionary<RpcPath, IList<MethodInfo>> methods)
+		private IRpcMethodProvider methodProvider { get; }
+		public RpcHttpRouter(IRpcMethodProvider methodProvider)
 		{
-			this.methods = methods;
+			this.methodProvider = methodProvider;
 		}
 
 		/// <summary>
@@ -72,7 +72,7 @@ namespace EdjCase.JsonRpc.Router
 
 
 				IRpcRequestHandler requestHandler = context.HttpContext.RequestServices.GetRequiredService<IRpcRequestHandler>();
-				var routeContext = DefaultRouteContext.FromHttpContext(context.HttpContext, this.methods);
+				var routeContext = DefaultRouteContext.FromHttpContext(context.HttpContext, this.methodProvider);
 				await requestHandler.HandleRequestAsync(requestPath, context.HttpContext.Request.Body, routeContext, context.HttpContext.Response.Body);
 
 				if (context.HttpContext.Response.Body == null || context.HttpContext.Response.Body.Length < 1)

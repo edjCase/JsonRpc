@@ -19,6 +19,20 @@
 			"internalConsoleOptions": "openOnSessionStart"
 		},
 		{
+			"name": "Performance Tests",
+			"type": "coreclr",
+			"request": "launch",
+			"preLaunchTask": "Build Performance Tests",
+			// If you have changed target frameworks, make sure to update the program path.
+			"program": "${workspaceFolder}/test/PerformanceTests/bin/Debug/netcoreapp2.2/PerformanceTests.dll",
+			"args": [],
+			"cwd": "${workspaceFolder}/test/PerformanceTests",
+			// For more information about the 'console' field, see https://github.com/OmniSharp/omnisharp-vscode/blob/master/debugger-launchjson.md#console-terminal-window
+			"console": "internalConsole",
+			"stopAtEntry": false,
+			"internalConsoleOptions": "openOnSessionStart"
+		},
+		{
 			"name": "Client Tester",
 			"type": "coreclr",
 			"request": "launch",
