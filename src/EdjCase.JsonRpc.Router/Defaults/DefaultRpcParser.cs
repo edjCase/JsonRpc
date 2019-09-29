@@ -79,10 +79,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 								rpcRequests = new List<RpcRequestParseResult>();
 								while (jsonReader.TokenType != JsonTokenType.EndArray)
 								{
-									jsonReader.Read();
 									RpcRequestParseResult r = this.ParseResult(ref jsonReader);
 									rpcRequests.Add(r);
-								}
+                                    jsonReader.Read();
+                                }
 								break;
 							default:
 								throw new RpcException(RpcErrorCode.InvalidRequest, "Json request was invalid");
@@ -197,7 +197,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					}
 					jsonReader.Read();
 				}
-				jsonReader.Read();
+
 				if (string.IsNullOrWhiteSpace(method))
 				{
 					return RpcRequestParseResult.Fail(id, new RpcError(RpcErrorCode.InvalidRequest, "The request method is required."));
@@ -230,8 +230,6 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 		private JsonBytesRpcParameter GetParameter(ref Utf8JsonReader jsonReader)
 		{
-			//TODO
-			jsonReader.Read();
 			//TODO shared memory?
 			byte[] bytes = jsonReader.HasValueSequence
 				? jsonReader.ValueSequence.ToArray()
@@ -255,6 +253,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				default:
 					throw new RpcException(RpcErrorCode.ParseError, "Invalid json");
 			}
+            jsonReader.Read();
 			return new JsonBytesRpcParameter(paramType, bytes, this.serverConfig.Value?.JsonSerializerSettings);
 		}
 	}

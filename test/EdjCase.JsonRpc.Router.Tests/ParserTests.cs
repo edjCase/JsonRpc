@@ -112,27 +112,26 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.Single(result.Requests);
 			Assert.Equal(RpcId.FromObject(id), result.Requests[0].Id);
 			Assert.Equal(method, result.Requests[0].Method);
-			//TODO
-			//ParserTests.CompareParameters(parameters, result.Requests[0].JsonParameterBytes);
+			ParserTests.CompareParameters(parameters, result.Requests[0].Parameters);
 			Assert.False(result.IsBulkRequest);
 		}
 
-		// private static void CompareParameters(object[] parameters, RpcParameters jParameters)
-		// {
-		// 	if (parameters != null)
-		// 	{
-		// 		Assert.NotEqual(default(RpcParameters), jParameters);
-		// 		Assert.Equal(RpcParametersType.Array, jParameters.Type);
-		// 		Assert.Equal(parameters.Length, jParameters.ArrayValue.Length);
-		// 		//TODO compare types?
-		// 	}
-		// 	else
-		// 	{
-		// 		Assert.Equal(default(RpcParameters), jParameters);
-		// 	}
-		// }
+        private static void CompareParameters(object[] parameters, RpcParameters jParameters)
+        {
+            if (parameters != null)
+            {
+                Assert.NotEqual(default(RpcParameters), jParameters);
+                Assert.False(jParameters.IsDictionary);
+                Assert.Equal(parameters.Length, jParameters.AsList.Count);
+                //TODO compare types?
+            }
+            else
+            {
+                Assert.Equal(default(RpcParameters), jParameters);
+            }
+        }
 
-		[Fact]
+        [Fact]
 		public void ParseRequests_DateTime_Valid()
 		{
 			const string json = "{\"jsonrpc\": \"2.0\", \"method\": \"datetime\", \"params\": [\"2000-12-15T22:11:03\"], \"id\": 1}";
@@ -147,8 +146,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.Single(result.Requests);
 			Assert.Equal(1, result.Requests[0].Id);
 			Assert.Equal("datetime", result.Requests[0].Method);
-			//TODO
-			//ParserTests.CompareParameters(new object[] { dateTime }, result.Requests[0].Parameters);
+			ParserTests.CompareParameters(new object[] { dateTime }, result.Requests[0].Parameters);
 			Assert.False(result.IsBulkRequest);
 		}
 
@@ -167,13 +165,12 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.Equal(2, result.Requests.Count);
 			Assert.Equal("1", result.Requests[0].Id);
 			Assert.Equal("one", result.Requests[0].Method);
-			//TODO
-			//ParserTests.CompareParameters(new object[] { "1" }, result.Requests[0].Parameters);
+			ParserTests.CompareParameters(new object[] { "1" }, result.Requests[0].Parameters);
 
 			Assert.Equal("2", result.Requests[1].Id);
 			Assert.Equal("two", result.Requests[1].Method);
-			//TODO
-			//ParserTests.CompareParameters(new object[] { "2" }, result.Requests[1].Parameters);
+
+			ParserTests.CompareParameters(new object[] { "2" }, result.Requests[1].Parameters);
 
 			Assert.True(result.IsBulkRequest);
 		}
@@ -204,8 +201,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.Single(result.Requests);
 			Assert.Equal("1", result.Requests[0].Id);
 			Assert.Equal("one", result.Requests[0].Method);
-			//TODO
-			//ParserTests.CompareParameters(new object[] { "1" }, result.Requests[0].Parameters);
+			ParserTests.CompareParameters(new object[] { "1" }, result.Requests[0].Parameters);
 			Assert.True(result.IsBulkRequest);
 		}
 
@@ -283,8 +279,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.Single(result.Requests);
 			Assert.Equal(default(RpcId), result.Requests[0].Id);
 			Assert.Equal("datetime", result.Requests[0].Method);
-			//TODO
-			//ParserTests.CompareParameters(new object[] { "2000-12-15T22:11:03" }, result.Requests[0].Parameters);
+			ParserTests.CompareParameters(new object[] { "2000-12-15T22:11:03" }, result.Requests[0].Parameters);
 			Assert.False(result.IsBulkRequest);
 		}
 
@@ -300,8 +295,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.Single(result.Requests);
 			Assert.Equal("1", result.Requests[0].Id);
 			Assert.Equal("datetime", result.Requests[0].Method);
-			//TODO
-			//Assert.Equal(default(RpcParameters), result.Requests[0].Parameters);
+			Assert.Equal(default(RpcParameters), result.Requests[0].Parameters);
 			Assert.False(result.IsBulkRequest);
 		}
 	}

@@ -151,61 +151,70 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			int initialParamSize = 200;
 			const char delimiter = ' ';
 			const int incrementSize = 30;
-			char[] requestSignatureArray = ArrayPool<char>.Shared.Rent(request.Method.Length + 3 + initialParamSize);
+            int arraySize = request.Method.Length;
+            if(request.Parameters != null)
+            {
+                arraySize += 3 + initialParamSize;
+            }
+
+            char[] requestSignatureArray = ArrayPool<char>.Shared.Rent(arraySize);
 			try
 			{
 				for (int a = 0; a < request.Method.Length; a++)
 				{
 					requestSignatureArray[signatureLength++] = request.Method[a];
 				}
-				requestSignatureArray[signatureLength++] = delimiter;
-				requestSignatureArray[signatureLength++] = request.Parameters.IsDictionary ? 'd' : 'a';
-				requestSignatureArray[signatureLength++] = delimiter;
-				if (request.Parameters.IsDictionary)
-				{
-					foreach (KeyValuePair<string, IRpcParameter> parameter in request.Parameters.AsDictionary)
-					{
-						int greatestIndex = signatureLength + parameter.Key.Length + 1;
-						if (greatestIndex >= parameter.Key.Length)
-						{
-							ArrayPool<char>.Shared.Return(requestSignatureArray);
-							requestSignatureArray = ArrayPool<char>.Shared.Rent(requestSignatureArray.Length + incrementSize);
-						}
-						//TODO is this space ok?
-						requestSignatureArray[signatureLength++] = delimiter;
-						for (int i = 0; i < parameter.Key.Length; i++)
-						{
-							requestSignatureArray[signatureLength++] = parameter.Key[i];
-						}
-					}
-				}
-				else
-				{
-					List<IRpcParameter> list = request.Parameters.AsList;
-					for (int i = 0; i < list.Count; i++)
-					{
-						char c;
-						switch (list[i].Type)
-						{
-							case RpcParameterType.String:
-								c = 's';
-								break;
-							case RpcParameterType.Object:
-								c = 'o';
-								break;
-							case RpcParameterType.Number:
-								c = 'n';
-								break;
-							case RpcParameterType.Null:
-								c = '-';
-								break;
-							default:
-								throw new InvalidOperationException($"Unimplemented parameter type '{list[i].Type}'");
+                if (request.Parameters != null)
+                {
+                    requestSignatureArray[signatureLength++] = delimiter;
+                    requestSignatureArray[signatureLength++] = request.Parameters.IsDictionary ? 'd' : 'a';
+                    requestSignatureArray[signatureLength++] = delimiter;
+                    if (request.Parameters.IsDictionary)
+                    {
+                        foreach (KeyValuePair<string, IRpcParameter> parameter in request.Parameters.AsDictionary)
+                        {
+                            int greatestIndex = signatureLength + parameter.Key.Length + 1;
+                            if (greatestIndex >= parameter.Key.Length)
+                            {
+                                ArrayPool<char>.Shared.Return(requestSignatureArray);
+                                requestSignatureArray = ArrayPool<char>.Shared.Rent(requestSignatureArray.Length + incrementSize);
+                            }
+                            //TODO is this space ok?
+                            requestSignatureArray[signatureLength++] = delimiter;
+                            for (int i = 0; i < parameter.Key.Length; i++)
+                            {
+                                requestSignatureArray[signatureLength++] = parameter.Key[i];
+                            }
+                        }
+                    }
+                    else
+                    {
+                        List<IRpcParameter> list = request.Parameters.AsList;
+                        for (int i = 0; i < list.Count; i++)
+                        {
+                            char c;
+                            switch (list[i].Type)
+                            {
+                                case RpcParameterType.String:
+                                    c = 's';
+                                    break;
+                                case RpcParameterType.Object:
+                                    c = 'o';
+                                    break;
+                                case RpcParameterType.Number:
+                                    c = 'n';
+                                    break;
+                                case RpcParameterType.Null:
+                                    c = '-';
+                                    break;
+                                default:
+                                    throw new InvalidOperationException($"Unimplemented parameter type '{list[i].Type}'");
 
-						}
-						requestSignatureArray[signatureLength++] = c;
-					}
-				}
+                            }
+                            requestSignatureArray[signatureLength++] = c;
+                        }
+                    }
+                }
 
 				string requestSignature = new string(requestSignatureArray, 0, signatureLength);
 				if (DefaultRequestMatcher.requestToMethodCache.TryGetValue(requestSignature, out Router.RpcMethodInfo[] cachedMethod))
@@ -224,7 +233,6 @@ namespace EdjCase.JsonRpc.Router.Defaults
 						if (RpcUtil.NamesMatch(compiledMethodInfo.MethodInfo.Name.AsSpan(), request.Method.AsSpan()))
 						{
 							methodsWithSameName[methodsWithSameNameCount++] = compiledMethodInfo;
-							break;
 						}
 					}
 					Span<Router.RpcMethodInfo> span;
