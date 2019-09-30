@@ -44,7 +44,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			{
 				throw new ArgumentNullException(nameof(request));
 			}
-			this.logger.LogDebug($"Attempting to match Rpc request to a method '{request.Method}'");
+			this.logger.AttemptingToMatchMethod(request.Method);
 
 			CompiledMethodInfo[] compiledMethods = ArrayPool<CompiledMethodInfo>.Shared.Rent(methods.Count);
 			Span<Router.RpcMethodInfo> matches;
@@ -59,7 +59,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 			if (matches.Length == 1)
 			{
-				this.logger.LogDebug("Request was matched to a method");
+				this.logger.RequestMatchedMethod();
 				return matches[0];
 			}
 
@@ -87,11 +87,9 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			else
 			{
 				//Log diagnostics 
-				string methodsString = string.Join(", ", methods.Select(m => m.Name));
-				this.logger.LogTrace("Methods in route: " + methodsString);
+                this.logger.MethodsInRoute(methods);
 				errorMessage = "No methods matched request.";
 			}
-			this.logger.LogError(errorMessage);
 			throw new RpcException(RpcErrorCode.MethodNotFound, errorMessage);
 		}
 

@@ -46,7 +46,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <returns>List of Rpc requests that were parsed from the json</returns>
 		public ParsingResult ParseRequests(Stream jsonStream)
 		{
-			this.logger.LogDebug($"Attempting to parse Rpc request from the json");
+			this.logger.ParsingRequests();
 			List<RpcRequestParseResult> rpcRequests = null;
 			if (jsonStream == null || jsonStream.Length < 1)
 			{
@@ -107,7 +107,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			{
 				throw new RpcException(RpcErrorCode.InvalidRequest, "No rpc json requests found");
 			}
-			this.logger.LogDebug($"Successfully parsed {rpcRequests.Count} Rpc request(s)");
+			this.logger.ParsedRequests(rpcRequests.Count);
 			var uniqueIds = new HashSet<RpcId>();
 			foreach (RpcRequestParseResult result in rpcRequests.Where(r => r.Id.HasValue))
 			{

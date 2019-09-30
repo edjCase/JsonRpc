@@ -61,7 +61,7 @@ namespace EdjCase.JsonRpc.Router
 			try
 			{
 				ParsingResult result = this.parser.ParseRequests(requestBody);
-				this.logger.LogInformation($"Processing {result.RequestCount} Rpc requests");
+				this.logger.ProcessingRequests(result.RequestCount);
 
 				int? batchLimit = this.serverConfig.Value.BatchRequestLimit;
 				List<RpcResponse> responses = new List<RpcResponse>();
@@ -88,7 +88,7 @@ namespace EdjCase.JsonRpc.Router
 					{
 						if (id == default)
 						{
-							this.logger.LogError($"Request with no id failed and no response will be sent. Error - Code: {error.Code}, Message: {error.Message}");
+							this.logger.ResponseFailedWithNoId(error.Code, error.Message);
 							continue;
 						}
 						responses.Add(new RpcResponse(id, error));
@@ -96,10 +96,10 @@ namespace EdjCase.JsonRpc.Router
 				}
 				if (responses == null || !responses.Any())
 				{
-					this.logger.LogInformation("No rpc responses created.");
+					this.logger.NoResponses();
 					return;
 				}
-				this.logger.LogInformation($"{responses.Count} rpc response(s) created.");
+				this.logger.Responses(responses.Count);
 
 				if (result.IsBulkRequest)
 				{
