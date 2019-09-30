@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 
-namespace Edjcase.JsonRpc.Router
+namespace EdjCase.JsonRpc.Router
 {
 	public class ParsingResult
 	{
@@ -243,7 +243,7 @@ namespace Edjcase.JsonRpc.Router
 		{
 			try
 			{
-				value = System.Text.Json.JsonSerializer.Deserialize(this.bytes.Span, type, this.serializerOptions);
+				value = JsonSerializer.Deserialize(this.bytes.Span, type, this.serializerOptions);
 				return true;
 			}
 			catch (Exception)

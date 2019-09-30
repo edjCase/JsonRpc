@@ -1,4 +1,4 @@
-﻿using Edjcase.JsonRpc.Router;
+﻿using EdjCase.JsonRpc.Router;
 using System;
 using System.Collections.Generic;
 using System.Text;

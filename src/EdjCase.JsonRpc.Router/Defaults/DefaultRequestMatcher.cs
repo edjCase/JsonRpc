@@ -4,7 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Edjcase.JsonRpc.Router;
+using EdjCase.JsonRpc.Router;
 using EdjCase.JsonRpc.Core;
 using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Utilities;
@@ -389,12 +389,22 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 			for (int i = 0; i < parameters.Count(); i++)
 			{
-				CompiledParameterInfo parameterInfo = method.Parameters[i];
-				IRpcParameter parameter = parameters[i];
-				if (parameter.Type != parameterInfo.Type
-                    && parameterInfo.Type != RpcParameterType.Object)
-				{
-					return (false, null);
+				CompiledParameterInfo methodParam = method.Parameters[i];
+				IRpcParameter requestParam = parameters[i];
+                bool isSameType = requestParam.Type == methodParam.Type;
+
+
+                if (!isSameType)
+                {
+                    bool methodParamIsObject = methodParam.Type == RpcParameterType.Object;
+                    if (!methodParamIsObject)
+                    {
+                        bool nullable = requestParam.Type == RpcParameterType.Null && methodParam.RawType.IsNullableType();
+                        if (!nullable)
+                        {
+					        return (false, null);
+                        }
+                    }
 				}
 			}
 

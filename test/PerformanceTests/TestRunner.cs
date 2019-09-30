@@ -1,4 +1,4 @@
-﻿using Edjcase.JsonRpc.Router;
+﻿using EdjCase.JsonRpc.Router;
 using EdjCase.JsonRpc.Core;
 using EdjCase.JsonRpc.Core.Tools;
 using EdjCase.JsonRpc.Router;
@@ -21,27 +21,6 @@ namespace PerformanceTests
 {
 	public static class TestRunner
 	{
-
-		public static void RunCompression()
-		{
-			var compressor = new DefaultStreamCompressor();
-			const string text = "df;lkajsd;flkja;lksdjf;lkajsd;lkfjl;aksjdfl;kjas;kldjfkl;ajsd;lkfjalk;sdjflk;ajsd;klfjal;ksdjfl;kajsdklf;j";
-			using (Stream inputStream = new MemoryStream(Encoding.UTF8.GetBytes(text)))
-			{
-				for (int i = 0; i < 1_000_000; i++)
-				{
-					using (MemoryStream compressedStream = new MemoryStream((int)inputStream.Length))
-					{
-						compressor.Compress(inputStream, compressedStream, CompressionType.Gzip);
-						compressedStream.Position = 0;
-						using (MemoryStream uncompressedStream = new MemoryStream((int)inputStream.Length))
-						{
-							compressor.Decompress(compressedStream, uncompressedStream, CompressionType.Gzip);
-						}
-					}
-				}
-			}
-		}
 		public static async Task RunInvokerAsync()
 		{
 			var authorizationService = new FakeAuthorizationService();

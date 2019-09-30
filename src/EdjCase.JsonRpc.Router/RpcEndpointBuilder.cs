@@ -17,10 +17,14 @@ namespace EdjCase.JsonRpc.Router
 			return this;
 		}
 
-		public RpcEndpointBuilder AddControllerWithDefaultPath<T>()
-		{
-			Type controllerType = typeof(T);
-			var attribute = controllerType.GetCustomAttribute<RpcRouteAttribute>(true);
+        public RpcEndpointBuilder AddControllerWithDefaultPath<T>()
+        {
+            Type controllerType = typeof(T);
+            return this.AddControllerWithDefaultPath(controllerType);
+        }
+        public RpcEndpointBuilder AddControllerWithDefaultPath(Type controllerType)
+        {
+            var attribute = controllerType.GetCustomAttribute<RpcRouteAttribute>(true);
 			ReadOnlySpan<char> routePathString;
 			if (attribute == null || attribute.RouteName == null)
 			{
@@ -38,12 +42,17 @@ namespace EdjCase.JsonRpc.Router
 				routePathString = attribute.RouteName.AsSpan();
 			}
 			RpcPath routePath = RpcPath.Parse(routePathString);
-			return this.AddController<T>(routePath);
+			return this.AddController(controllerType, routePath);
 		}
 
-		public RpcEndpointBuilder AddController<T>(RpcPath path = null)
-		{
-			IEnumerable<MethodInfo> methods = this.Extract<T>();
+        public RpcEndpointBuilder AddController<T>(RpcPath path = null)
+        {
+            Type controllerType = typeof(T);
+            return this.AddController(controllerType, path);
+        }
+        public RpcEndpointBuilder AddController(Type type, RpcPath path = null)
+        {
+            IEnumerable<MethodInfo> methods = this.Extract(type);
 			foreach (MethodInfo method in methods)
 			{
 				this.Add(path, method);
@@ -56,11 +65,10 @@ namespace EdjCase.JsonRpc.Router
 			return new StaticRpcMethodProvider(this.baseMethods, this.methods);
 		}
 
-		private IEnumerable<MethodInfo> Extract<T>()
+		private IEnumerable<MethodInfo> Extract(Type controllerType)
 		{
-			Type baseControllerType = typeof(T);
-			return Assembly.GetAssembly(typeof(T)).GetTypes()
-				.Where(t => !t.IsAbstract && (t == baseControllerType || t.IsSubclassOf(baseControllerType)))
+			return controllerType.Assembly.GetTypes()
+				.Where(t => t == controllerType)
 				.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance))
 				.Where(m => m.DeclaringType != typeof(object));
 		}

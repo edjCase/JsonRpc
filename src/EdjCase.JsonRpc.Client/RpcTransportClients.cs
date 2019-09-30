@@ -127,16 +127,11 @@ namespace EdjCase.JsonRpc.Client
 			{
 				foreach (string encoding in encodings)
 				{
-					bool haveType = Enum.TryParse(encoding, true, out CompressionType compressionType);
-					if (!haveType)
+					if (this.streamCompressor.TryGetCompressionStream(responseStream, encoding, CompressionMode.Decompress, out Stream decompressedResponseStream))
 					{
-						continue;
+						responseStream = decompressedResponseStream;
+						break;
 					}
-
-					var decompressedResponseStream = new MemoryStream();
-					this.streamCompressor.Decompress(responseStream, decompressedResponseStream, compressionType);
-					responseStream = decompressedResponseStream;
-					break;
 				}
 			}
 			if (!httpResponseMessage.IsSuccessStatusCode)

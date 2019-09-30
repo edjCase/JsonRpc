@@ -75,24 +75,23 @@ namespace EdjCase.JsonRpc.Router.Sample
 
 			//app.UseAuthentication();
 
-			app.Map("/Api", rpcApp =>
-			{
-				rpcApp
-				.Use(this.LogBody)
-				.Map("/Manual", b =>
-				{
-					b.UseJsonRpc(options =>
-					{
-						options.AddControllerWithDefaultPath<RpcMath>();
-					});
-				})
-				.Map("/Auto", b =>
-				{
-					b.UseJsonRpcWithBaseController<ControllerBase>();
-				});
-			});
+			app
+                //.Use(this.LogBody)
+                .Map("/Manual", b =>
+                {
+                    b.UseJsonRpc(options =>
+                    {
+                        options
+                        .AddControllerWithDefaultPath<RpcMath>()
+                        .AddController<RpcCommands>();
+                    });
+                })
+                .Map("/Auto", b =>
+                {
+                    b.UseJsonRpcWithBaseController<ControllerBase>();
+                });
 
-		}
+        }
 
 		public async Task LogBody(HttpContext context, Func<Task> next)
 		{
@@ -115,14 +114,17 @@ namespace EdjCase.JsonRpc.Router.Sample
 
 					await next();
 
-					newBodyStream.Seek(0, SeekOrigin.Begin);
+                    if (newBodyStream.CanSeek)
+                    {
+                        newBodyStream.Seek(0, SeekOrigin.Begin);
 
-					StreamReader reader = new StreamReader(newBodyStream);
-					string body = reader.ReadToEnd();
-					logger.LogInformation(body);
+                        StreamReader reader = new StreamReader(newBodyStream);
+                        string body = reader.ReadToEnd();
+                        logger.LogInformation(body);
 
-					newBodyStream.Seek(0, SeekOrigin.Begin);
-					newBodyStream.CopyTo(bodyStream);
+                        newBodyStream.Seek(0, SeekOrigin.Begin);
+                        newBodyStream.CopyTo(bodyStream);
+                    }
 					context.Response.Body = bodyStream;
 				}
 			}

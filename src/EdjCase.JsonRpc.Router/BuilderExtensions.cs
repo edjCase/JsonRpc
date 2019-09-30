@@ -90,7 +90,19 @@ namespace Microsoft.AspNetCore.Builder
 
 			return app.UseJsonRpc(builder =>
 			{
-				builder.AddControllerWithDefaultPath<T>();
+				Type baseControllerType = typeof(T);
+				IEnumerable<Type> controllers = Assembly
+					.GetEntryAssembly()
+					.GetReferencedAssemblies()
+					.Select(Assembly.Load)
+					.SelectMany(x => x.DefinedTypes)
+					.Concat(Assembly.GetEntryAssembly().DefinedTypes)
+					.Where(t => !t.IsAbstract && (t == baseControllerType || t.IsSubclassOf(baseControllerType)));
+
+				foreach (Type type in controllers)
+				{
+					builder.AddControllerWithDefaultPath(type);
+				}
 			});
 		}
 

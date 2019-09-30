@@ -15,7 +15,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
-using Edjcase.JsonRpc.Router;
+using EdjCase.JsonRpc.Router;
 using System.IO;
 
 namespace EdjCase.JsonRpc.Router.Defaults

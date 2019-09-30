@@ -1,4 +1,4 @@
-﻿using Edjcase.JsonRpc.Router;
+﻿using EdjCase.JsonRpc.Router;
 using EdjCase.JsonRpc.Core;
 using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Defaults;
@@ -56,7 +56,7 @@ namespace EdjCase.JsonRpc.Router
 			this.logger = logger;
 		}
 
-		public async Task HandleRequestAsync(RpcPath requestPath, Stream requestBody, IRouteContext routeContext, Stream responseBody)
+		public async Task<bool> HandleRequestAsync(RpcPath requestPath, Stream requestBody, IRouteContext routeContext, Stream responseBody)
 		{
 			try
 			{
@@ -97,7 +97,7 @@ namespace EdjCase.JsonRpc.Router
 				if (responses == null || !responses.Any())
 				{
 					this.logger.NoResponses();
-					return;
+					return false;
 				}
 				this.logger.Responses(responses.Count);
 
@@ -116,6 +116,7 @@ namespace EdjCase.JsonRpc.Router
 				var response = new RpcResponse(null, ex.ToRpcError(this.serverConfig.Value.ShowServerExceptions));
 				this.responseSerializer.Serialize(response, responseBody);
 			}
+            return true;
 		}
 	}
 }

@@ -11,7 +11,7 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 {
 	public interface IRpcRequestHandler
 	{
-		Task HandleRequestAsync(RpcPath requestPath, Stream requestBody, IRouteContext routeContext, Stream responseBody);
+		Task<bool> HandleRequestAsync(RpcPath requestPath, Stream requestBody, IRouteContext routeContext, Stream responseBody);
 	}
 
 	public static class RpcRequestHandlerExtensions
@@ -22,7 +22,11 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 			{
 				using (var responseStream = new MemoryStream())
 				{
-					await handler.HandleRequestAsync(requestPath, requestStream, routeContext, responseStream);
+					bool hasResponse = await handler.HandleRequestAsync(requestPath, requestStream, routeContext, responseStream);
+                    if (!hasResponse)
+                    {
+                        return null;
+                    }
 					responseStream.Position = 0;
 					return await new StreamReader(responseStream).ReadToEndAsync();
 				}

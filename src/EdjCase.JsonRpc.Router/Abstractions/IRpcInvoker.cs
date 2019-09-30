@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Newtonsoft.Json.Linq;
-using Edjcase.JsonRpc.Router;
+using EdjCase.JsonRpc.Router;
 
 namespace EdjCase.JsonRpc.Router.Abstractions
 {

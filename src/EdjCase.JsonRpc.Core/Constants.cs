@@ -24,11 +24,4 @@
 		public const string ErrorMessagePropertyName = "message";
 		public const string ErrorDataPropertyName = "data";
 	}
-
-
-	public enum CompressionType
-	{
-		Gzip,
-		Deflate
-	}
 }

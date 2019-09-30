@@ -17,119 +17,113 @@ using EdjCase.JsonRpc.Core.Tools;
 using Microsoft.Extensions.DependencyInjection;
 using System.Buffers;
 using System.Reflection;
+using System.IO.Compression;
 
 namespace EdjCase.JsonRpc.Router
 {
-	/// <summary>
-	/// Router for Asp.Net to direct Http Rpc requests to the correct method, invoke it and return the proper response
-	/// </summary>
-	public class RpcHttpRouter : IRouter
-	{
-		private static readonly char[] encodingSeperators = new[] { ',', ' ' };
+    /// <summary>
+    /// Router for Asp.Net to direct Http Rpc requests to the correct method, invoke it and return the proper response
+    /// </summary>
+    public class RpcHttpRouter : IRouter
+    {
+        private static readonly char[] encodingSeperators = new[] { ',', ' ' };
 
-		private IRpcMethodProvider methodProvider { get; }
-		public RpcHttpRouter(IRpcMethodProvider methodProvider)
-		{
-			this.methodProvider = methodProvider;
-		}
+        private IRpcMethodProvider methodProvider { get; }
+        public RpcHttpRouter(IRpcMethodProvider methodProvider)
+        {
+            this.methodProvider = methodProvider;
+        }
 
-		/// <summary>
-		/// Generates the virtual path data for the router
-		/// </summary>
-		/// <param name="context">Virtual path context</param>
-		/// <returns>Virtual path data for the router</returns>
-		public VirtualPathData GetVirtualPath(VirtualPathContext context)
-		{
-			// We return null here because we're not responsible for generating the url, the route is.
-			return null;
-		}
+        /// <summary>
+        /// Generates the virtual path data for the router
+        /// </summary>
+        /// <param name="context">Virtual path context</param>
+        /// <returns>Virtual path data for the router</returns>
+        public VirtualPathData GetVirtualPath(VirtualPathContext context)
+        {
+            // We return null here because we're not responsible for generating the url, the route is.
+            return null;
+        }
 
-		/// <summary>
-		/// Takes a route/http contexts and attempts to parse, invoke, respond to an Rpc request
-		/// </summary>
-		/// <param name="context">Route context</param>
-		/// <returns>Task for async routing</returns>
-		public async Task RouteAsync(RouteContext context)
-		{
-			ILogger<RpcHttpRouter> logger = context.HttpContext.RequestServices.GetService<ILogger<RpcHttpRouter>>();
-			try
-			{
-				RpcPath requestPath;
-				if (!context.HttpContext.Request.Path.HasValue)
-				{
-					requestPath = null;
-				}
-				else
-				{
-					if (!RpcPath.TryParse(context.HttpContext.Request.Path.Value.AsSpan(), out requestPath))
-					{
-						logger?.LogInformation($"Could not parse the path '{context.HttpContext.Request.Path.Value}' for the " +
-							$"request into an rpc path. Skipping rpc router middleware.");
-						return;
-					}
-				}
-				logger?.LogInformation($"Rpc request with route '{requestPath}' started.");
+        /// <summary>
+        /// Takes a route/http contexts and attempts to parse, invoke, respond to an Rpc request
+        /// </summary>
+        /// <param name="context">Route context</param>
+        /// <returns>Task for async routing</returns>
+        public async Task RouteAsync(RouteContext context)
+        {
+            ILogger<RpcHttpRouter> logger = context.HttpContext.RequestServices.GetService<ILogger<RpcHttpRouter>>();
+            try
+            {
+                RpcPath requestPath;
+                if (!context.HttpContext.Request.Path.HasValue)
+                {
+                    requestPath = null;
+                }
+                else
+                {
+                    if (!RpcPath.TryParse(context.HttpContext.Request.Path.Value.AsSpan(), out requestPath))
+                    {
+                        logger?.LogInformation($"Could not parse the path '{context.HttpContext.Request.Path.Value}' for the " +
+                            $"request into an rpc path. Skipping rpc router middleware.");
+                        return;
+                    }
+                }
+                logger?.LogInformation($"Rpc request with route '{requestPath}' started.");
 
 
-				IRpcRequestHandler requestHandler = context.HttpContext.RequestServices.GetRequiredService<IRpcRequestHandler>();
-				var routeContext = DefaultRouteContext.FromHttpContext(context.HttpContext, this.methodProvider);
-				await requestHandler.HandleRequestAsync(requestPath, context.HttpContext.Request.Body, routeContext, context.HttpContext.Response.Body);
+                IRpcRequestHandler requestHandler = context.HttpContext.RequestServices.GetRequiredService<IRpcRequestHandler>();
+                var routeContext = DefaultRouteContext.FromHttpContext(context.HttpContext, this.methodProvider);
 
-				if (context.HttpContext.Response.Body == null || context.HttpContext.Response.Body.Length < 1)
-				{
-					//No response required, but status code must be 204
-					context.HttpContext.Response.StatusCode = 204;
-					context.MarkAsHandled();
-					return;
-				}
+                Stream writableStream = this.BuildWritableResponseStream(context.HttpContext);
+                using (var requestBody = new MemoryStream())
+                {
+                    await context.HttpContext.Request.Body.CopyToAsync(requestBody);
+                    requestBody.Position = 0;
+                    bool hasResponse = await requestHandler.HandleRequestAsync(requestPath, requestBody, routeContext, writableStream);
+                    if (!hasResponse)
+                    {
+                        //No response required, but status code must be 204
+                        context.HttpContext.Response.StatusCode = 204;
+                        context.MarkAsHandled();
+                        return;
+                    }
+                }
 
-				context.HttpContext.Response.ContentType = "application/json";
 
-				string acceptEncoding = context.HttpContext.Request.Headers["Accept-Encoding"];
-				if (!string.IsNullOrWhiteSpace(acceptEncoding))
-				{
-					IStreamCompressor compressor = context.HttpContext.RequestServices.GetService<IStreamCompressor>();
-					if (compressor != null)
-					{
-						string[] encodings = acceptEncoding.Split(RpcHttpRouter.encodingSeperators, StringSplitOptions.RemoveEmptyEntries);
-						foreach (string encoding in encodings)
-						{
-							bool haveType = Enum.TryParse(encoding, true, out CompressionType compressionType);
-							if (!haveType)
-							{
-								continue;
-							}
-							context.HttpContext.Response.Headers.Add("Content-Encoding", encoding);
+                context.MarkAsHandled();
 
-							if (context.HttpContext.Response.Body.Length > int.MaxValue)
-							{
-								throw new RpcException(RpcErrorCode.ParseError, "Response is too large to handle.");
-							}
+                logger?.LogInformation("Rpc request complete");
+            }
+            catch (Exception ex)
+            {
+                string errorMessage = "Unknown exception occurred when trying to process Rpc request. Marking route unhandled";
+                logger?.LogException(ex, errorMessage);
+                context.MarkAsHandled();
+            }
+        }
 
-							//The compressed stream should be smaller than the current response, so it should be ok to set the buffer size
-							//to the current size
-							byte[] buffer = ArrayPool<byte>.Shared.Rent((int)context.HttpContext.Response.Body.Length);
-							using (var memoryStream = new MemoryStream(buffer))
-							{
-								compressor.Compress(context.HttpContext.Response.Body, memoryStream, compressionType);
-								context.HttpContext.Response.Body.Dispose();
-								context.HttpContext.Response.Body = memoryStream;
-							}
-							break;
-						}
-					}
-				}
-
-				context.MarkAsHandled();
-
-				logger?.LogInformation("Rpc request complete");
-			}
-			catch (Exception ex)
-			{
-				string errorMessage = "Unknown exception occurred when trying to process Rpc request. Marking route unhandled";
-				logger?.LogException(ex, errorMessage);
-				context.MarkAsHandled();
-			}
-		}
-	}
+        private Stream BuildWritableResponseStream(HttpContext httpContext)
+        {
+            httpContext.Response.ContentType = "application/json";
+            string acceptEncoding = httpContext.Request.Headers["Accept-Encoding"];
+            if (!string.IsNullOrWhiteSpace(acceptEncoding))
+            {
+                IStreamCompressor compressor = httpContext.RequestServices.GetService<IStreamCompressor>();
+                if (compressor != null)
+                {
+                    string[] encodings = acceptEncoding.Split(RpcHttpRouter.encodingSeperators, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (string encoding in encodings)
+                    {
+                        if(compressor.TryGetCompressionStream(httpContext.Response.Body, encoding, CompressionMode.Compress, out Stream compressedStream))
+                        {
+                            httpContext.Response.Headers.Add("Content-Encoding", encoding);
+                            return compressedStream;
+                        }
+                    }
+                }
+            }
+            return httpContext.Response.Body;
+        }
+    }
 }

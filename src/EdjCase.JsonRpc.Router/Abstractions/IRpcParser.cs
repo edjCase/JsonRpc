@@ -3,7 +3,7 @@ using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using Edjcase.JsonRpc.Router;
+using EdjCase.JsonRpc.Router;
 using EdjCase.JsonRpc.Core;
 using EdjCase.JsonRpc.Router.Utilities;
 using Newtonsoft.Json;

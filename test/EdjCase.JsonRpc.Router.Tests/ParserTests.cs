@@ -6,7 +6,7 @@ using EdjCase.JsonRpc.Router.Defaults;
 using Xunit;
 using Newtonsoft.Json.Linq;
 using EdjCase.JsonRpc.Router.Abstractions;
-using Edjcase.JsonRpc.Router;
+using EdjCase.JsonRpc.Router;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 
@@ -283,20 +283,42 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.False(result.IsBulkRequest);
 		}
 
-		[Fact]
-		public void ParseRequests_MissingParams_NoException()
-		{
-			const string json = "{\"method\": \"datetime\",\"jsonrpc\": \"2.0\", \"id\": \"1\"}";
-			DefaultRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
+        [Fact]
+        public void ParseRequests_MissingParams_NoException()
+        {
+            const string json = "{\"method\": \"datetime\",\"jsonrpc\": \"2.0\", \"id\": \"1\"}";
+            DefaultRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
 
-			ParsingResult result = parser.ParseRequests(json);
-			Assert.NotNull(result);
-			Assert.Equal(1, result.RequestCount);
-			Assert.Single(result.Requests);
-			Assert.Equal("1", result.Requests[0].Id);
-			Assert.Equal("datetime", result.Requests[0].Method);
-			Assert.Equal(default(RpcParameters), result.Requests[0].Parameters);
-			Assert.False(result.IsBulkRequest);
-		}
-	}
+            ParsingResult result = parser.ParseRequests(json);
+            Assert.NotNull(result);
+            Assert.Equal(1, result.RequestCount);
+            Assert.Single(result.Requests);
+            Assert.Equal("1", result.Requests[0].Id);
+            Assert.Equal("datetime", result.Requests[0].Method);
+            Assert.Equal(default(RpcParameters), result.Requests[0].Parameters);
+            Assert.False(result.IsBulkRequest);
+        }
+
+        [Fact]
+        public void ParseRequests_ObjectParam_NoException()
+        {
+            const string json = "{\"method\": \"obj\", \"jsonrpc\": \"2.0\", \"params\": [{\"test\":1}], \"id\": \"1\"}";
+            DefaultRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
+
+            ParsingResult result = parser.ParseRequests(json);
+
+            Assert.NotNull(result);
+            Assert.Equal(1, result.RequestCount);
+            Assert.Single(result.Requests);
+            Assert.Equal("1", result.Requests[0].Id);
+            Assert.Equal("obj", result.Requests[0].Method);
+            ParserTests.CompareParameters(new object[] { new Obj { Test = 1 } }, result.Requests[0].Parameters);
+            Assert.False(result.IsBulkRequest);
+        }
+
+        private class Obj
+        {
+            public int Test { get; set; }
+        }
+    }
 }

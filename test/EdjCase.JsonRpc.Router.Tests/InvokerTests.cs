@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Reflection;
-using Edjcase.JsonRpc.Router;
+using EdjCase.JsonRpc.Router;
 using System.Text;
 using System.IO;
 
