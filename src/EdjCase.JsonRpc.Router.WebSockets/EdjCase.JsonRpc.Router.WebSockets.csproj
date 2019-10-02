@@ -2,13 +2,13 @@
 
 	<PropertyGroup>
 		<Description>A AspNet Core IRouter extension for Json Rpc v2 websocket based requests for Microsoft.AspNetCore.Routing.</Description>
-		<Version>3.0.1</Version>
+		<Version>3.1.0</Version>
 		<Authors>Gekctek</Authors>
-		<TargetFramework>netstandard2.0</TargetFramework>
+		<TargetFrameworks>netstandard2.0;netstandard2.1</TargetFrameworks>
 		<AssemblyName>EdjCase.JsonRpc.Router.WebSockets</AssemblyName>
 		<PackageId>EdjCase.JsonRpc.Router.WebSockets</PackageId>
 		<PackageTags>JsonRpc Rpc AspNet Json-Rpc .Net Core WebSockets</PackageTags>
-		<PackageReleaseNotes>Fixing bulk serialization issue. Restricting ids to integers rather than any number.</PackageReleaseNotes>
+		<PackageReleaseNotes>Net standard 2.1.</PackageReleaseNotes>
 		<PackageProjectUrl>https://github.com/edjCase/JsonRpc</PackageProjectUrl>
 		<PackageLicenseUrl>https://raw.githubusercontent.com/edjCase/JsonRpc/master/LICENSE</PackageLicenseUrl>
 		<RepositoryType>git</RepositoryType>
@@ -21,7 +21,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.AspNetCore.WebSockets" Version="2.1.1" />
+		<PackageReference Include="Microsoft.AspNetCore.WebSockets" Version="2.2.1" />
 	</ItemGroup>
 
 </Project>

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<Version>3.1.0-pre.5</Version>
+		<Version>3.1.0</Version>
 		<Description>A .Net Core Client implementation for Json Rpc v2 requests.</Description>
 		<Authors>Gekctek</Authors>
 		<TargetFrameworks>netstandard2.0;netstandard1.1</TargetFrameworks>
@@ -20,14 +20,14 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
-		<PackageReference Include="System.Net.Http" Version="4.3.3" />
+		<PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+		<PackageReference Include="System.Net.Http" Version="4.3.4" />
 		<PackageReference Include="System.ValueTuple" Version="4.5.0" />
 	</ItemGroup>
 
 	<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
 	  <PackageReference Include="System.Net.WebSockets.Client" Version="4.3.2" />
-	  <PackageReference Include="Microsoft.Extensions.Options" Version="2.1.1" />
-	  <PackageReference Include="Microsoft.Extensions.Http" Version="2.1.1" />
+	  <PackageReference Include="Microsoft.Extensions.Options" Version="3.0.0" />
+	  <PackageReference Include="Microsoft.Extensions.Http" Version="3.0.0" />
 	</ItemGroup>
 </Project>

@@ -1,17 +1,16 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp2.2</TargetFrameworks>
+    <TargetFrameworks>netcoreapp3.0</TargetFrameworks>
     <AssemblyName>EdjCase.JsonRpc.Router.Sample</AssemblyName>
     <PackageId>EdjCase.JsonRpc.Router.Sample</PackageId>
+    <UserSecretsId>bd997694-63b3-4cf8-8798-f7274f180573</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\EdjCase.JsonRpc.Router.WebSockets\EdjCase.JsonRpc.Router.WebSockets.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.All" />
+	<ItemGroup>
     <PackageReference Include="EdjCase.BasicAuth" Version="2.0.2" />
-  </ItemGroup>
+	</ItemGroup>
 </Project>
