@@ -5,7 +5,6 @@ using EdjCase.JsonRpc.Router.Defaults;
 using EdjCase.JsonRpc.Router.Utilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -103,18 +102,18 @@ namespace EdjCase.JsonRpc.Router
 
 				if (result.IsBulkRequest)
 				{
-					this.responseSerializer.SerializeBulk(responses, responseBody);
+					await this.responseSerializer.SerializeBulkAsync(responses, responseBody);
 				}
 				else
 				{
-					this.responseSerializer.Serialize(responses.Single(), responseBody);
+					await this.responseSerializer.SerializeAsync(responses.Single(), responseBody);
 				}
 			}
 			catch (RpcException ex)
 			{
 				this.logger.LogException(ex, "Error occurred when proccessing Rpc request. Sending Rpc error response");
 				var response = new RpcResponse(null, ex.ToRpcError(this.serverConfig.Value.ShowServerExceptions));
-				this.responseSerializer.Serialize(response, responseBody);
+				await this.responseSerializer.SerializeAsync(response, responseBody);
 			}
 			return true;
 		}

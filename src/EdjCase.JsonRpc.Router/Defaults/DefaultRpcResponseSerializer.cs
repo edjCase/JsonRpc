@@ -2,11 +2,13 @@
 using EdjCase.JsonRpc.Router.Abstractions;
 using Microsoft.Extensions.Options;
 using System;
+using System.Buffers.Text;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace EdjCase.JsonRpc.Router.Defaults
 {
@@ -18,19 +20,20 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			this.serverConfig = serverConfig;
 		}
 
-		public void SerializeBulk(IEnumerable<RpcResponse> responses, Stream stream)
+		public Task SerializeBulkAsync(IEnumerable<RpcResponse> responses, Stream stream)
 		{
-			this.SerializeInternal(responses, isBulkRequest: true, stream);
+			return this.SerializeInternalAsync(responses, isBulkRequest: true, stream);
 		}
 
-		public void Serialize(RpcResponse response, Stream stream)
+		public Task SerializeAsync(RpcResponse response, Stream stream)
 		{
-			this.SerializeInternal(new[] { response }, isBulkRequest: false, stream);
+			return this.SerializeInternalAsync(new[] { response }, isBulkRequest: false, stream);
 		}
 
-		private void SerializeInternal(IEnumerable<RpcResponse> responses, bool isBulkRequest, Stream stream)
+		private async Task SerializeInternalAsync(IEnumerable<RpcResponse> responses, bool isBulkRequest, Stream stream)
 		{
-			using (var jsonWriter = new Utf8JsonWriter(stream))
+			var jsonWriter = new Utf8JsonWriter(stream);
+			try
 			{
 				if (isBulkRequest)
 				{
@@ -45,6 +48,11 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				{
 					this.SerializeResponse(responses.Single(), jsonWriter);
 				}
+			}
+			finally
+			{
+				await jsonWriter.FlushAsync();
+				await jsonWriter.DisposeAsync();
 			}
 		}
 
@@ -88,7 +96,11 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			if (value != null)
 			{
 				JsonSerializerOptions options = this.serverConfig.Value.JsonSerializerSettings;
-				JsonSerializer.Serialize(jsonWriter, value, value.GetType(), options);
+
+				//TODO a better way? cant figure out how to serialize an object to the writer in an async way
+				//JsonSerializer.Serialize(jsonWriter, value, value.GetType(), options) does not work because kestrel doesnt allow non-async calls
+				byte[] jsonBytes = JsonSerializer.SerializeToUtf8Bytes(value, value.GetType(), options);
+				JsonDocument.Parse(jsonBytes).WriteTo(jsonWriter);
 			}
 			else
 			{

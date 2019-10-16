@@ -15,7 +15,6 @@ using System.Threading.Tasks;
 using EdjCase.JsonRpc.Router.Abstractions;
 using Microsoft.AspNetCore.Http;
 using System.Diagnostics;
-using Microsoft.ApplicationInsights.Extensibility.Implementation;
 using Microsoft.Extensions.Configuration;
 using System.Net.WebSockets;
 using System.Threading;
@@ -27,7 +26,7 @@ namespace EdjCase.JsonRpc.Router.Sample
 {
 	public class Startup
 	{
-		public Startup(IHostingEnvironment env)
+		public Startup()
 		{
 
 		}
@@ -67,7 +66,7 @@ namespace EdjCase.JsonRpc.Router.Sample
 		}
 
 		// Configure is called after ConfigureServices is called.
-		public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+		public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
 		{
 			//loggerFactory
 			//	.AddDebug(LogLevel.Debug)

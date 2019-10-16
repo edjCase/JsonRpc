@@ -6,7 +6,6 @@ using System.Text;
 using EdjCase.JsonRpc.Router;
 using EdjCase.JsonRpc.Core;
 using EdjCase.JsonRpc.Router.Utilities;
-using Newtonsoft.Json;
 
 namespace EdjCase.JsonRpc.Router.Abstractions
 {

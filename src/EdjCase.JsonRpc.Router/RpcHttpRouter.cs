@@ -8,7 +8,6 @@ using EdjCase.JsonRpc.Core;
 using EdjCase.JsonRpc.Router.Abstractions;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using EdjCase.JsonRpc.Router.Utilities;
 using Microsoft.Extensions.Options;
 using EdjCase.JsonRpc.Router.Defaults;

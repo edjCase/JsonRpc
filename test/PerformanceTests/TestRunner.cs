@@ -79,6 +79,11 @@ namespace PerformanceTests
 				return Task.FromResult(new AuthorizationPolicy(requirements, authenticationSchemes));
 			}
 
+			public Task<AuthorizationPolicy> GetFallbackPolicyAsync()
+			{
+				throw new NotImplementedException();
+			}
+
 			public Task<AuthorizationPolicy> GetPolicyAsync(string policyName)
 			{
 				throw new NotImplementedException();

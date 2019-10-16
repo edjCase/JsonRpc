@@ -53,7 +53,7 @@ namespace Microsoft.AspNetCore.Builder
 
 			serviceCollection
 				.AddRouting()
-				.AddAuthorization();
+				.AddAuthorizationCore();
 
 			return new RpcBuilder(serviceCollection);
 		}
