@@ -1,7 +1,7 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
 	<PropertyGroup>
-		<TargetFramework>netcoreapp2.2</TargetFramework>
+		<TargetFramework>netcoreapp3.0</TargetFramework>
 		<LangVersion>latest</LangVersion>
 	</PropertyGroup>
 
@@ -10,10 +10,6 @@
 	  <Content Remove="wwwroot\**" />
 	  <EmbeddedResource Remove="wwwroot\**" />
 	  <None Remove="wwwroot\**" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<PackageReference Include="Microsoft.AspNetCore.All" />
 	</ItemGroup>
 
 	<ItemGroup>

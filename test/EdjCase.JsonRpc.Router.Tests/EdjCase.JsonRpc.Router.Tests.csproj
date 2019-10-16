@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Description>JsonRpc.Router.Tests Class Library</Description>
     <Authors>Gekctek</Authors>
-    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
     <AssemblyName>EdjCase.JsonRpc.Router.Tests</AssemblyName>
     <PackageId>EdjCase.JsonRpc.Router.Tests</PackageId>
 	<IsTestProject>true</IsTestProject>
