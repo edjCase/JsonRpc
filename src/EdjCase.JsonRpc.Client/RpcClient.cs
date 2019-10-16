@@ -305,7 +305,7 @@ namespace EdjCase.JsonRpc.Client
 			}
 			catch (Exception ex) when (!(ex is RpcClientException) && !(ex is RpcException))
 			{
-				throw new RpcClientUnknownException("Error occurred when trying to send rpc requests(s)", ex);
+				throw new RpcClientUnknownException("Error occurred when trying to send rpc request(s)", ex);
 			}
 		}
 
