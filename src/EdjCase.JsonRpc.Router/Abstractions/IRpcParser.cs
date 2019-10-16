@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using EdjCase.JsonRpc.Router;
-using EdjCase.JsonRpc.Core;
+using EdjCase.JsonRpc.Common;
 using EdjCase.JsonRpc.Router.Utilities;
 
 namespace EdjCase.JsonRpc.Router.Abstractions

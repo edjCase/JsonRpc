@@ -4,7 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using EdjCase.JsonRpc.Core;
+using EdjCase.JsonRpc.Common;
 using EdjCase.JsonRpc.Router.Abstractions;
 using Microsoft.Extensions.Logging;
 using EdjCase.JsonRpc.Router.Utilities;

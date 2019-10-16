@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using EdjCase.JsonRpc.Core;
+using EdjCase.JsonRpc.Common;
 using EdjCase.JsonRpc.Router.Defaults;
 using Xunit;
 using Newtonsoft.Json.Linq;

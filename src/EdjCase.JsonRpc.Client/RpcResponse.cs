@@ -1,5 +1,5 @@
 ﻿using System;
-using EdjCase.JsonRpc.Core;
+using EdjCase.JsonRpc.Common;
 
 // ReSharper disable AutoPropertyCanBeMadeGetOnly.Local
 // ReSharper disable UnusedMember.Local

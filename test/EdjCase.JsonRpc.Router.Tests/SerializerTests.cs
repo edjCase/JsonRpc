@@ -1,4 +1,4 @@
-﻿using EdjCase.JsonRpc.Core;
+﻿using EdjCase.JsonRpc.Common;
 using EdjCase.JsonRpc.Router.Defaults;
 using Microsoft.Extensions.Options;
 using EdjCase.JsonRpc.Router.Abstractions;

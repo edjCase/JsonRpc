@@ -4,7 +4,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 
-namespace EdjCase.JsonRpc.Core.Tools
+namespace EdjCase.JsonRpc.Common.Tools
 {
 	public interface IStreamCompressor
 	{

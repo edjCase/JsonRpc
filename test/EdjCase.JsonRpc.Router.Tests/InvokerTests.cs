@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using EdjCase.JsonRpc.Core;
+using EdjCase.JsonRpc.Common;
 using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Defaults;
 using Microsoft.Extensions.DependencyInjection;

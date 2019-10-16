@@ -1,5 +1,5 @@
 ﻿using System;
-using EdjCase.JsonRpc.Core;
+using EdjCase.JsonRpc.Common;
 using EdjCase.JsonRpc.Router;
 using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Defaults;
@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using EdjCase.JsonRpc.Core.Tools;
+using EdjCase.JsonRpc.Common.Tools;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Builder;
 using System.Net.WebSockets;

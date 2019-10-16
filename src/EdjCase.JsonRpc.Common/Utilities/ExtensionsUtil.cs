@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace EdjCase.JsonRpc.Core.Utilities
+namespace EdjCase.JsonRpc.Common.Utilities
 {
 	public static class TypeExtensions
 	{

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using EdjCase.JsonRpc.Client;
-using EdjCase.JsonRpc.Core;
+using EdjCase.JsonRpc.Common;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json.Linq;
 

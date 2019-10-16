@@ -1,5 +1,5 @@
 using System.IO;
-using EdjCase.JsonRpc.Core;
+using EdjCase.JsonRpc.Common;
 
 namespace EdjCase.JsonRpc.Router
 {

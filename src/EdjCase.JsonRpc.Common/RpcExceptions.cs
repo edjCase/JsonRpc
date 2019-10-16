@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace EdjCase.JsonRpc.Core
+namespace EdjCase.JsonRpc.Common
 {
 	/// <summary>
 	/// Rpc server exception that contains Rpc specfic error info

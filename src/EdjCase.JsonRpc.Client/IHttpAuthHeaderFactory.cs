@@ -1,6 +1,6 @@
 
-using EdjCase.JsonRpc.Core;
-using EdjCase.JsonRpc.Core.Tools;
+using EdjCase.JsonRpc.Common;
+using EdjCase.JsonRpc.Common.Tools;
 using System;
 using System.Collections.Generic;
 using System.IO;

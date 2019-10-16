@@ -1,5 +1,5 @@
 ﻿using EdjCase.JsonRpc.Router;
-using EdjCase.JsonRpc.Core;
+using EdjCase.JsonRpc.Common;
 using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Defaults;
 using EdjCase.JsonRpc.Router.Utilities;

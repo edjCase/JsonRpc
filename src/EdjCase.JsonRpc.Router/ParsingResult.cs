@@ -1,4 +1,4 @@
-﻿using EdjCase.JsonRpc.Core;
+﻿using EdjCase.JsonRpc.Common;
 using System;
 using System.Buffers;
 using System.Collections.Generic;

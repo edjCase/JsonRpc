@@ -1,4 +1,4 @@
-﻿namespace EdjCase.JsonRpc.Core
+﻿namespace EdjCase.JsonRpc.Common
 {
 	/// <summary>
 	/// Error codes for different Rpc errors

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
-using EdjCase.JsonRpc.Core;
+using EdjCase.JsonRpc.Common;
 
 namespace EdjCase.JsonRpc.Router.Abstractions
 {

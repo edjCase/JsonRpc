@@ -4,13 +4,13 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Threading.Tasks;
-using EdjCase.JsonRpc.Core;
+using EdjCase.JsonRpc.Common;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
-using EdjCase.JsonRpc.Core.Tools;
+using EdjCase.JsonRpc.Common.Tools;
 
 namespace EdjCase.JsonRpc.Client
 {

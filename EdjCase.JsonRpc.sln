@@ -20,15 +20,18 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdjCase.JsonRpc.Router.Test
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdjCase.JsonRpc.Client", "src\EdjCase.JsonRpc.Client\EdjCase.JsonRpc.Client.csproj", "{87ED8B44-B59A-440C-A377-565EFFB2691A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdjCase.JsonRpc.Core", "src\EdjCase.JsonRpc.Core\EdjCase.JsonRpc.Core.csproj", "{9F2CEC93-9FEC-4949-8797-D08BF776BFBF}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdjCase.JsonRpc.Client.Sample", "test\EdjCase.JsonRpc.Client.Sample\EdjCase.JsonRpc.Client.Sample.csproj", "{84727B1C-6DED-4460-903B-27B19F1326AC}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdjCase.JsonRpc.Client.Tests", "test\EdjCase.JsonRpc.Client.Tests\EdjCase.JsonRpc.Client.Tests.csproj", "{C793BB58-9D77-401E-92F8-3BF81AA5B34C}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PerformanceTests", "test\PerformanceTests\PerformanceTests.csproj", "{3851AA74-0FF8-4FD3-AC82-7EB5B6F29FE1}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "EdjCase.JsonRpc.Common", "src\EdjCase.JsonRpc.Common\EdjCase.JsonRpc.Common.shproj", "{1546452E-2DB4-421C-90CD-B4B310CE9AD9}"
+EndProject
 Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		src\EdjCase.JsonRpc.Common\EdjCase.JsonRpc.Common.projitems*{1546452e-2db4-421c-90cd-b4b310ce9ad9}*SharedItemsImports = 13
+	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
@@ -50,10 +53,6 @@ Global
 		{87ED8B44-B59A-440C-A377-565EFFB2691A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{87ED8B44-B59A-440C-A377-565EFFB2691A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{87ED8B44-B59A-440C-A377-565EFFB2691A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9F2CEC93-9FEC-4949-8797-D08BF776BFBF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9F2CEC93-9FEC-4949-8797-D08BF776BFBF}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9F2CEC93-9FEC-4949-8797-D08BF776BFBF}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9F2CEC93-9FEC-4949-8797-D08BF776BFBF}.Release|Any CPU.Build.0 = Release|Any CPU
 		{84727B1C-6DED-4460-903B-27B19F1326AC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{84727B1C-6DED-4460-903B-27B19F1326AC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{84727B1C-6DED-4460-903B-27B19F1326AC}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -75,10 +74,10 @@ Global
 		{DC822B36-8944-48E5-AFC3-B6F859F49E02} = {B5DD29D3-4FCA-4CFB-A562-A7985BB1C269}
 		{EB3C5DC1-9E22-4C56-8E1F-0D93917E75E5} = {B5DD29D3-4FCA-4CFB-A562-A7985BB1C269}
 		{87ED8B44-B59A-440C-A377-565EFFB2691A} = {EB6CC2D7-ED2C-447F-A85B-5E204FD69352}
-		{9F2CEC93-9FEC-4949-8797-D08BF776BFBF} = {EB6CC2D7-ED2C-447F-A85B-5E204FD69352}
 		{84727B1C-6DED-4460-903B-27B19F1326AC} = {B5DD29D3-4FCA-4CFB-A562-A7985BB1C269}
 		{C793BB58-9D77-401E-92F8-3BF81AA5B34C} = {B5DD29D3-4FCA-4CFB-A562-A7985BB1C269}
 		{3851AA74-0FF8-4FD3-AC82-7EB5B6F29FE1} = {B5DD29D3-4FCA-4CFB-A562-A7985BB1C269}
+		{1546452E-2DB4-421C-90CD-B4B310CE9AD9} = {EB6CC2D7-ED2C-447F-A85B-5E204FD69352}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {297BE26F-B61D-4A43-9A84-2442133FD45E}

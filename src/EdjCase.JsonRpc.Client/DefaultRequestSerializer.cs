@@ -1,4 +1,4 @@
-﻿using EdjCase.JsonRpc.Core;
+﻿using EdjCase.JsonRpc.Common;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;

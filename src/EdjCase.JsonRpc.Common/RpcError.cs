@@ -1,6 +1,6 @@
 using System;
 
-namespace EdjCase.JsonRpc.Core
+namespace EdjCase.JsonRpc.Common
 {
 	public class RpcError<T> : RpcError
 	{
