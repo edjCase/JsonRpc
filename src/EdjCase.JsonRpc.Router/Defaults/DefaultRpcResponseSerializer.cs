@@ -88,8 +88,8 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			if (value != null)
 			{
 				JsonSerializerOptions options = this.serverConfig.Value.JsonSerializerSettings;
-                JsonSerializer.Serialize(jsonWriter, value, value.GetType(), options);
-            }
+				JsonSerializer.Serialize(jsonWriter, value, value.GetType(), options);
+			}
 			else
 			{
 				jsonWriter.WriteNullValue();

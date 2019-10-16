@@ -15,7 +15,7 @@ namespace EdjCase.JsonRpc.Core
 		/// Custom data attached to the error if needed
 		/// </summary>
 		public object RpcData { get; }
-		
+
 		/// <param name="errorCode">Rpc error code</param>
 		/// <param name="message">Error message</param>
 		/// <param name="data">Custom data if needed for error response</param>
@@ -45,5 +45,5 @@ namespace EdjCase.JsonRpc.Core
 			return new RpcError(this.ErrorCode, message, this.RpcData);
 		}
 	}
-	
+
 }

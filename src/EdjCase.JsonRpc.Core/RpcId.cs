@@ -144,11 +144,11 @@ namespace EdjCase.JsonRpc.Core
 			{
 				return default;
 			}
-			if(value is RpcId rpcId)
+			if (value is RpcId rpcId)
 			{
 				return rpcId;
 			}
-			if(value is string stringValue)
+			if (value is string stringValue)
 			{
 				return new RpcId(stringValue);
 			}

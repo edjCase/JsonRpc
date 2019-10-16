@@ -174,7 +174,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				//Only give a response if there is an id
 				return rpcResponse;
 			}
-            //TODO make no id run in a non-blocking way
+			//TODO make no id run in a non-blocking way
 			this.logger.FinishedRequestNoId();
 			return null;
 		}

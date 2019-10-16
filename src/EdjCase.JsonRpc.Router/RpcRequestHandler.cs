@@ -116,7 +116,7 @@ namespace EdjCase.JsonRpc.Router
 				var response = new RpcResponse(null, ex.ToRpcError(this.serverConfig.Value.ShowServerExceptions));
 				this.responseSerializer.Serialize(response, responseBody);
 			}
-            return true;
+			return true;
 		}
 	}
 }

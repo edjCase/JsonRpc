@@ -17,14 +17,14 @@ namespace EdjCase.JsonRpc.Router
 			return this;
 		}
 
-        public RpcEndpointBuilder AddControllerWithDefaultPath<T>()
-        {
-            Type controllerType = typeof(T);
-            return this.AddControllerWithDefaultPath(controllerType);
-        }
-        public RpcEndpointBuilder AddControllerWithDefaultPath(Type controllerType)
-        {
-            var attribute = controllerType.GetCustomAttribute<RpcRouteAttribute>(true);
+		public RpcEndpointBuilder AddControllerWithDefaultPath<T>()
+		{
+			Type controllerType = typeof(T);
+			return this.AddControllerWithDefaultPath(controllerType);
+		}
+		public RpcEndpointBuilder AddControllerWithDefaultPath(Type controllerType)
+		{
+			var attribute = controllerType.GetCustomAttribute<RpcRouteAttribute>(true);
 			ReadOnlySpan<char> routePathString;
 			if (attribute == null || attribute.RouteName == null)
 			{
@@ -45,14 +45,14 @@ namespace EdjCase.JsonRpc.Router
 			return this.AddController(controllerType, routePath);
 		}
 
-        public RpcEndpointBuilder AddController<T>(RpcPath path = null)
-        {
-            Type controllerType = typeof(T);
-            return this.AddController(controllerType, path);
-        }
-        public RpcEndpointBuilder AddController(Type type, RpcPath path = null)
-        {
-            IEnumerable<MethodInfo> methods = this.Extract(type);
+		public RpcEndpointBuilder AddController<T>(RpcPath path = null)
+		{
+			Type controllerType = typeof(T);
+			return this.AddController(controllerType, path);
+		}
+		public RpcEndpointBuilder AddController(Type type, RpcPath path = null)
+		{
+			IEnumerable<MethodInfo> methods = this.Extract(type);
 			foreach (MethodInfo method in methods)
 			{
 				this.Add(path, method);
@@ -75,18 +75,18 @@ namespace EdjCase.JsonRpc.Router
 
 		private void Add(RpcPath path, MethodInfo methodInfo)
 		{
-            List<MethodInfo> methods;
-            if (path == null)
-            {
-                methods = this.baseMethods;
-            }
-            else
-            {
-                if (!this.methods.TryGetValue(path, out methods))
-                {
-                    methods = this.methods[path] = new List<MethodInfo>();
-                }
-            }
+			List<MethodInfo> methods;
+			if (path == null)
+			{
+				methods = this.baseMethods;
+			}
+			else
+			{
+				if (!this.methods.TryGetValue(path, out methods))
+				{
+					methods = this.methods[path] = new List<MethodInfo>();
+				}
+			}
 			methods.Add(methodInfo);
 		}
 	}

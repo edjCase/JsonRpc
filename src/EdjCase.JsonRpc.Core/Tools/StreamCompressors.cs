@@ -8,34 +8,34 @@ namespace EdjCase.JsonRpc.Core.Tools
 {
 	public interface IStreamCompressor
 	{
-        bool TryGetCompressionStream(Stream uncompressedStream, string encoding, CompressionMode mode, out Stream compressedStream);
+		bool TryGetCompressionStream(Stream uncompressedStream, string encoding, CompressionMode mode, out Stream compressedStream);
 
-    }
+	}
 
 	public class DefaultStreamCompressor : IStreamCompressor
-    {
+	{
 
-        /// <summary>
-        /// Decompresses the input stream to the output stream.
-        /// </summary>
-        /// <param name="uncompressedStream">The uncompressed stream.</param>
-        /// <param name="compressionType">Type of the compression.</param>
-        /// <param name="mode">Specifies compression or decompression</param>
-        /// <returns></returns>
-        public bool TryGetCompressionStream(Stream uncompressedStream, string encoding, CompressionMode mode, out Stream compressedStream)
-        {
-            switch (encoding)
-            {
-                case "gzip":
-                    compressedStream = new GZipStream(uncompressedStream, mode, leaveOpen: false);
-                    return true;
-                case "deflate":
-                    compressedStream =  new DeflateStream(uncompressedStream, mode, leaveOpen: false);
-                    return true;
-                default:
-                    compressedStream = uncompressedStream;
-                    return false;
-            }
-        }
-    }
+		/// <summary>
+		/// Decompresses the input stream to the output stream.
+		/// </summary>
+		/// <param name="uncompressedStream">The uncompressed stream.</param>
+		/// <param name="compressionType">Type of the compression.</param>
+		/// <param name="mode">Specifies compression or decompression</param>
+		/// <returns></returns>
+		public bool TryGetCompressionStream(Stream uncompressedStream, string encoding, CompressionMode mode, out Stream compressedStream)
+		{
+			switch (encoding)
+			{
+				case "gzip":
+					compressedStream = new GZipStream(uncompressedStream, mode, leaveOpen: false);
+					return true;
+				case "deflate":
+					compressedStream = new DeflateStream(uncompressedStream, mode, leaveOpen: false);
+					return true;
+				default:
+					compressedStream = uncompressedStream;
+					return false;
+			}
+		}
+	}
 }

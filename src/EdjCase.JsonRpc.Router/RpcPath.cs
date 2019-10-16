@@ -213,8 +213,8 @@ namespace EdjCase.JsonRpc.Router
 				return true;
 			}
 			//Removes the / as well
-			var newComponents = new char[size-1];
-			this.path.AsSpan(basePath.path.Length+1).CopyTo(newComponents);
+			var newComponents = new char[size - 1];
+			this.path.AsSpan(basePath.path.Length + 1).CopyTo(newComponents);
 			path = new RpcPath(newComponents);
 			return true;
 		}

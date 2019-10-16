@@ -13,7 +13,7 @@
 	}
 
 	public static class JsonRpcContants
-	{		
+	{
 		public const string VersionPropertyName = "jsonrpc";
 		public const string MethodPropertyName = "method";
 		public const string ParamsPropertyName = "params";

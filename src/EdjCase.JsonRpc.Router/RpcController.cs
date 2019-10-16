@@ -32,7 +32,7 @@ namespace EdjCase.JsonRpc.Router
 			return new RpcMethodErrorResult(errorCode, message, data);
 		}
 	}
-	
+
 	public abstract class RpcErrorFilterAttribute : Attribute
 	{
 		public abstract OnExceptionResult OnException(RpcRouteInfo routeInfo, Exception ex);

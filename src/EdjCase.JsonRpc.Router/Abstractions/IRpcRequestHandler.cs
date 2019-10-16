@@ -23,10 +23,10 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 				using (var responseStream = new MemoryStream())
 				{
 					bool hasResponse = await handler.HandleRequestAsync(requestPath, requestStream, routeContext, responseStream);
-                    if (!hasResponse)
-                    {
-                        return null;
-                    }
+					if (!hasResponse)
+					{
+						return null;
+					}
 					responseStream.Position = 0;
 					return await new StreamReader(responseStream).ReadToEndAsync();
 				}
