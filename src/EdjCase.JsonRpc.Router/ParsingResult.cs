@@ -1,4 +1,5 @@
 ﻿using EdjCase.JsonRpc.Common;
+using EdjCase.JsonRpc.Router.Utilities;
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -142,6 +143,15 @@ namespace EdjCase.JsonRpc.Router
 				throw new InvalidOperationException();
 			}
 		}
+
+		public bool Any()
+		{
+			if (this.IsDictionary)
+			{
+				return this.AsDictionary.Any();
+			}
+			return this.AsList.Any();
+		}
 	}
 
 	public interface IRpcParameter
@@ -153,12 +163,13 @@ namespace EdjCase.JsonRpc.Router
 	public enum RpcParameterType
 	{
 		Null,
+		Boolean,
 		Number,
 		String,
 		Object
 	}
 
-	public static class RpcParameterExtensions
+	public static class RpcParameterUtil
 	{
 		public static bool TryGetValue<T>(this IRpcParameter parameter, out T value)
 		{
@@ -170,6 +181,25 @@ namespace EdjCase.JsonRpc.Router
 			}
 			value = default;
 			return false;
+		}
+
+		public static bool TypesCompatible(RpcParameterType requestType, RpcParameterType methodType)
+		{
+			switch (requestType)
+			{
+				case RpcParameterType.Boolean:
+					return methodType == RpcParameterType.Boolean || methodType == RpcParameterType.Object;
+				case RpcParameterType.Number:
+					//Almost anything can be converted from a number
+					return true;
+				case RpcParameterType.Object:
+					return methodType == RpcParameterType.Object;
+				case RpcParameterType.Null:
+				case RpcParameterType.String:
+					return methodType == RpcParameterType.String || methodType == RpcParameterType.Object;
+				default:
+					throw new ArgumentOutOfRangeException(nameof(requestType));
+			}
 		}
 	}
 
@@ -188,7 +218,7 @@ namespace EdjCase.JsonRpc.Router
 			if (this.Type == RpcParameterType.Null)
 			{
 				value = null;
-				return false;
+				return type.IsNullableType();
 			}
 			if (this.Value == null)
 			{
@@ -197,7 +227,7 @@ namespace EdjCase.JsonRpc.Router
 			}
 			Type parameterType = this.Value.GetType();
 
-			if (parameterType == type)
+			if (parameterType == type || type.IsAssignableFrom(parameterType))
 			{
 				value = this.Value;
 				return true;
@@ -214,7 +244,7 @@ namespace EdjCase.JsonRpc.Router
 			TypeConverter parameterTypeConverter = TypeDescriptor.GetConverter(parameterType);
 			if (parameterTypeConverter != null)
 			{
-				if (typeConverter.CanConvertTo(parameterType))
+				if (typeConverter.CanConvertTo(type))
 				{
 					value = typeConverter.ConvertTo(this.Value, type);
 					return true;
@@ -241,6 +271,11 @@ namespace EdjCase.JsonRpc.Router
 
 		public bool TryGetValue(Type type, out object value)
 		{
+			if (this.Type == RpcParameterType.Null)
+			{
+				value = null;
+				return type.IsNullableType();
+			}
 			try
 			{
 				value = JsonSerializer.Deserialize(this.bytes.Span, type, this.serializerOptions);

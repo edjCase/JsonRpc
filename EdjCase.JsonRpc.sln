@@ -28,6 +28,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PerformanceTests", "test\Pe
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "EdjCase.JsonRpc.Common", "src\EdjCase.JsonRpc.Common\EdjCase.JsonRpc.Common.shproj", "{1546452E-2DB4-421C-90CD-B4B310CE9AD9}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Benchmarks", "test\Benchmarks\Benchmarks.csproj", "{08608574-6625-40D4-85EC-953B1E889A5B}"
+EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		src\EdjCase.JsonRpc.Common\EdjCase.JsonRpc.Common.projitems*{1546452e-2db4-421c-90cd-b4b310ce9ad9}*SharedItemsImports = 13
@@ -65,6 +67,10 @@ Global
 		{3851AA74-0FF8-4FD3-AC82-7EB5B6F29FE1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{3851AA74-0FF8-4FD3-AC82-7EB5B6F29FE1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3851AA74-0FF8-4FD3-AC82-7EB5B6F29FE1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{08608574-6625-40D4-85EC-953B1E889A5B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{08608574-6625-40D4-85EC-953B1E889A5B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{08608574-6625-40D4-85EC-953B1E889A5B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{08608574-6625-40D4-85EC-953B1E889A5B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -78,6 +84,7 @@ Global
 		{C793BB58-9D77-401E-92F8-3BF81AA5B34C} = {B5DD29D3-4FCA-4CFB-A562-A7985BB1C269}
 		{3851AA74-0FF8-4FD3-AC82-7EB5B6F29FE1} = {B5DD29D3-4FCA-4CFB-A562-A7985BB1C269}
 		{1546452E-2DB4-421C-90CD-B4B310CE9AD9} = {EB6CC2D7-ED2C-447F-A85B-5E204FD69352}
+		{08608574-6625-40D4-85EC-953B1E889A5B} = {B5DD29D3-4FCA-4CFB-A562-A7985BB1C269}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {297BE26F-B61D-4A43-9A84-2442133FD45E}

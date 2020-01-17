@@ -51,18 +51,18 @@ namespace EdjCase.JsonRpc.Router.Tests
 			IServiceProvider serviceProvider = this.GetServiceProvider();
 			var routeContext = new Mock<IRouteContext>(MockBehavior.Strict);
 
-            IRpcMethodProvider methodProvider = new RpcEndpointBuilder()
-                .AddController<TController>()
-                .Resolve();
+			IRpcMethodProvider methodProvider = new RpcEndpointBuilder()
+				.AddController<TController>()
+				.Resolve();
 			routeContext
 				.SetupGet(rc => rc.RequestServices)
 				.Returns(serviceProvider);
 			routeContext
 				.SetupGet(rc => rc.User)
 				.Returns(new System.Security.Claims.ClaimsPrincipal());
-            routeContext
-                .SetupGet(rc => rc.MethodProvider)
-                .Returns(methodProvider);
+			routeContext
+				.SetupGet(rc => rc.MethodProvider)
+				.Returns(methodProvider);
 			return routeContext.Object;
 		}
 
@@ -155,7 +155,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.Null(resultResponse.Result);
-			Assert.False(resultResponse.HasError);
+			Assert.False(resultResponse.HasError, resultResponse.Error?.Message);
 
 			//Param is empty
 			var parameters = new RpcParameters(new List<IRpcParameter>());
@@ -177,6 +177,118 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.NotNull(resultResponse.Result);
 			Assert.IsType<string>(resultResponse.Result);
 			Assert.Equal(value, (string)resultResponse.Result);
+		}
+
+		[Fact]
+		public async Task InvokeRequest_ComplexParam_Valid()
+		{
+			DefaultRpcInvoker invoker = this.GetInvoker();
+			IRouteContext routeContext = this.GetRouteContext<TestRouteClass>();
+
+			TestComplexParam param = new TestComplexParam
+			{
+				A = "Test",
+				B = 5
+			};
+			var rpcParameter = new RawRpcParameter(RpcParameterType.Object, param);
+			RpcRequest stringRequest = new RpcRequest("1", "ComplexParam", parameters: new RpcParameters(rpcParameter));
+			RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, routeContext);
+
+			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
+			Assert.False(resultResponse.HasError);
+			Assert.Same(param, resultResponse.Result);
+		}
+
+		[Fact]
+		public async Task InvokeRequest_BoolParam_Valid()
+		{
+			DefaultRpcInvoker invoker = this.GetInvoker();
+			IRouteContext routeContext = this.GetRouteContext<TestRouteClass>();
+
+			var param = new RawRpcParameter(RpcParameterType.Boolean, true);
+			RpcRequest stringRequest = new RpcRequest("1", "BoolParameter", parameters: new RpcParameters(param));
+			RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, routeContext);
+
+			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
+			Assert.False(resultResponse.HasError);
+			Assert.Equal(param.Value, resultResponse.Result);
+		}
+
+		[Fact]
+		public async Task InvokeRequest_BoolDictParam_Valid()
+		{
+			DefaultRpcInvoker invoker = this.GetInvoker();
+			IRouteContext routeContext = this.GetRouteContext<TestRouteClass>();
+
+			var param = new RawRpcParameter(RpcParameterType.Boolean, true);
+			var paramDict = new Dictionary<string, IRpcParameter>
+			{
+				["a"] = param
+			};
+			RpcRequest stringRequest = new RpcRequest("1", "BoolParameter", parameters: new RpcParameters(paramDict));
+			RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, routeContext);
+
+			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
+			Assert.False(resultResponse.HasError);
+			Assert.Equal(param.Value, resultResponse.Result);
+		}
+
+		[Fact]
+		public async Task InvokeRequest_MultipleDictionaryValues_Valid()
+		{
+			DefaultRpcInvoker invoker = this.GetInvoker();
+			IRouteContext routeContext = this.GetRouteContext<TestRouteClass>();
+
+			bool a = true;
+			string bb = "Test";
+			object ccc = null;
+			var dddd = new TestComplexParam();
+			int eeeee = 1;
+			var paramDict = new Dictionary<string, IRpcParameter>
+			{
+				["a"] = new RawRpcParameter(RpcParameterType.Boolean, a),
+				["bb"] = new RawRpcParameter(RpcParameterType.String, bb),
+				["ccc"] = new RawRpcParameter(RpcParameterType.Null, ccc),
+				["dddd"] = new RawRpcParameter(RpcParameterType.Object, dddd),
+				["eeeee"] = new RawRpcParameter(RpcParameterType.Number, eeeee)
+			};
+			RpcRequest stringRequest = new RpcRequest("1", "AllTypes", parameters: new RpcParameters(paramDict));
+			RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, routeContext);
+
+			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
+			Assert.False(resultResponse.HasError);
+			var value = Assert.IsType<ValueTuple<bool, string, object, object, int>>(resultResponse.Result);
+			Assert.Equal((a, bb, ccc, dddd, eeeee), value);
+		}
+
+		[Fact]
+		public async Task InvokeRequest_ComplexParam_TwoRequests_NotCached()
+		{
+			DefaultRpcInvoker invoker = this.GetInvoker();
+			IRouteContext routeContext = this.GetRouteContext<TestRouteClass>();
+
+			async Task Test(TestComplexParam param)
+			{
+				var rpcParameter = new RawRpcParameter(RpcParameterType.Object, param);
+				RpcRequest stringRequest = new RpcRequest("1", "ComplexParam", parameters: new RpcParameters(rpcParameter));
+				RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, routeContext);
+
+				RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
+				Assert.False(resultResponse.HasError);
+				Assert.Same(param, resultResponse.Result);
+			}
+			TestComplexParam param1 = new TestComplexParam
+			{
+				A = "Test",
+				B = 5
+			};
+			await Test(param1);
+			TestComplexParam param2 = new TestComplexParam
+			{
+				A = "Test2",
+				B = 6
+			};
+			await Test(param2);
 		}
 	}
 
@@ -208,10 +320,31 @@ namespace EdjCase.JsonRpc.Router.Tests
 			return a;
 		}
 
+		public bool BoolParameter(bool a)
+		{
+			return a;
+		}
+
 		public string Optional(string test = null)
 		{
 			return test;
 		}
+
+		public TestComplexParam ComplexParam(TestComplexParam param)
+		{
+			return param;
+		}
+
+		public (bool, string, object, object, int) AllTypes(bool a, string bb, object ccc, object dddd, int eeeee)
+		{
+			return (a, bb, ccc, dddd, eeeee);
+		}
+	}
+
+	public class TestComplexParam
+	{
+		public string A { get; set; }
+		public int B { get; set; }
 	}
 
 	public class TestIoCRouteClass
@@ -230,5 +363,5 @@ namespace EdjCase.JsonRpc.Router.Tests
 	public class TestInjectionClass
 	{
 
-    }
+	}
 }

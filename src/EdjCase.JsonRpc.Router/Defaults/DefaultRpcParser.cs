@@ -237,6 +237,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				case JsonTokenType.Number:
 					paramType = RpcParameterType.Number;
 					break;
+				case JsonTokenType.True:
+				case JsonTokenType.False:
+					paramType = RpcParameterType.Boolean;
+					break;
 				case JsonTokenType.Null:
 					paramType = RpcParameterType.Null;
 					break;
