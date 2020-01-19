@@ -11,7 +11,7 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 		/// </summary>
 		/// <param name="request">Rpc request</param>
 		/// <returns>An Rpc response for the request</returns>
-		Task<RpcResponse> InvokeRequestAsync(RpcRequest request);
+		Task<RpcResponse?> InvokeRequestAsync(RpcRequest request);
 
 		/// <summary>
 		/// Call the incoming Rpc requests methods and gives the appropriate respones

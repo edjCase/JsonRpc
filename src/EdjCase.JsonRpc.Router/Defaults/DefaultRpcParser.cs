@@ -17,7 +17,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 	/// <summary>
 	/// Default Rpc parser that uses <see cref="Newtonsoft.Json"/>
 	/// </summary>
-	public class DefaultRpcParser : IRpcParser
+	internal class DefaultRpcParser : IRpcParser
 	{
 		/// <summary>
 		/// Logger for logging Rpc parsing
@@ -45,7 +45,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		public ParsingResult ParseRequests(Stream jsonStream)
 		{
 			this.logger.ParsingRequests();
-			List<RpcRequestParseResult> rpcRequests = null;
+			List<RpcRequestParseResult>? rpcRequests = null;
 
 			if (jsonStream == null || jsonStream.Length < 1)
 			{
@@ -122,9 +122,9 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		private RpcRequestParseResult ParseResult(ref Utf8JsonReader jsonReader, Memory<byte> bytes)
 		{
 			RpcId id = default;
-			string method = null;
-			RpcParameters parameters = null;
-			string rpcVersion = null;
+			string? method = null;
+			RpcParameters? parameters = null;
+			string? rpcVersion = null;
 			try
 			{
 				if (jsonReader.TokenType == JsonTokenType.StartObject)
@@ -211,7 +211,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					return RpcRequestParseResult.Fail(id, new RpcError(RpcErrorCode.InvalidRequest, $"The jsonrpc version '{rpcVersion}' is not supported. Supported versions: '2.0'"));
 				}
 
-				return RpcRequestParseResult.Success(id, method, parameters);
+				return RpcRequestParseResult.Success(id, method!, parameters);
 			}
 			catch (Exception ex)
 			{
@@ -267,7 +267,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 	internal class JsonBytesSequenceSegment : ReadOnlySequenceSegment<byte>
 	{
-		public JsonBytesSequenceSegment(Memory<byte> bytes, JsonBytesSequenceSegment next = null)
+		public JsonBytesSequenceSegment(Memory<byte> bytes, JsonBytesSequenceSegment? next = null)
 		{
 			this.Memory = bytes;
 			this.Next = next;

@@ -6,7 +6,7 @@ using System.Reflection;
 
 namespace EdjCase.JsonRpc.Router.Utilities
 {
-	public class RpcUtil
+	internal class RpcUtil
 	{
 		public static bool TypesMatch(object value, Type type)
 		{

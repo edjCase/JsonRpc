@@ -32,8 +32,8 @@ namespace EdjCase.JsonRpc.Client
 	{
 		public ConcurrentDictionary<string, HttpClient> Clients { get; } = new ConcurrentDictionary<string, HttpClient>();
 
-		public HttpMessageHandler MessageHandler { get; }
-		public DefaultHttpClientFactory(HttpMessageHandler handler = null)
+		public HttpMessageHandler? MessageHandler { get; }
+		public DefaultHttpClientFactory(HttpMessageHandler? handler = null)
 		{
 			this.MessageHandler = handler;
 		}

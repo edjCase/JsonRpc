@@ -23,7 +23,7 @@ namespace EdjCase.JsonRpc.Router
 	/// <summary>
 	/// Router for Asp.Net to direct Http Rpc requests to the correct method, invoke it and return the proper response
 	/// </summary>
-	public class RpcHttpRouter : IRouter
+	internal class RpcHttpRouter : IRouter
 	{
 		private static readonly char[] encodingSeperators = new[] { ',', ' ' };
 
@@ -32,7 +32,7 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		/// <param name="context">Virtual path context</param>
 		/// <returns>Virtual path data for the router</returns>
-		public VirtualPathData GetVirtualPath(VirtualPathContext context)
+		public VirtualPathData? GetVirtualPath(VirtualPathContext context)
 		{
 			// We return null here because we're not responsible for generating the url, the route is.
 			return null;
@@ -48,7 +48,7 @@ namespace EdjCase.JsonRpc.Router
 			ILogger<RpcHttpRouter> logger = context.HttpContext.RequestServices.GetService<ILogger<RpcHttpRouter>>();
 			try
 			{
-				RpcPath requestPath;
+				RpcPath? requestPath;
 				if (!context.HttpContext.Request.Path.HasValue)
 				{
 					requestPath = null;

@@ -24,7 +24,7 @@ namespace EdjCase.JsonRpc.Router
 
 		/// <param name="id">Request id</param>
 		/// <param name="result">Response result object</param>
-		public RpcResponse(RpcId id, object result) : this(id)
+		public RpcResponse(RpcId id, object? result) : this(id)
 		{
 			this.Result = result;
 		}
@@ -37,12 +37,12 @@ namespace EdjCase.JsonRpc.Router
 		/// <summary>
 		/// Reponse result object (Required)
 		/// </summary>
-		public object Result { get; private set; }
+		public object? Result { get; private set; }
 
 		/// <summary>
 		/// Error from processing Rpc request (Required)
 		/// </summary>
-		public RpcError Error { get; private set; }
+		public RpcError? Error { get; private set; }
 
 		public bool HasError => this.Error != null;
 
@@ -50,7 +50,7 @@ namespace EdjCase.JsonRpc.Router
 		{
 			if (this.HasError)
 			{
-				throw this.Error.CreateException();
+				throw this.Error!.CreateException();
 			}
 		}
 	}

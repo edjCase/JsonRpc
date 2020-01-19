@@ -43,14 +43,14 @@ namespace EdjCase.JsonRpc.Client
 			}
 		}
 
-		public RpcParameters(object[] parameters)
+		public RpcParameters(object[]? parameters)
 		{
 			this.HasValue = true;
 			this.Type = RpcParametersType.Array;
 			this.Value = parameters ?? new object[0];
 		}
 
-		public RpcParameters(Dictionary<string, object> parameters)
+		public RpcParameters(Dictionary<string, object>? parameters)
 		{
 			this.HasValue = true;
 			this.Type = RpcParametersType.Dictionary;

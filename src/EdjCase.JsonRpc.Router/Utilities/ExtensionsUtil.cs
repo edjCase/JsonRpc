@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace EdjCase.JsonRpc.Router.Utilities
 {
-	public static class TypeExtensions
+	internal static class TypeExtensions
 	{
 		/// <summary>
 		/// Determines if the type is nullable
@@ -18,7 +18,7 @@ namespace EdjCase.JsonRpc.Router.Utilities
 		}
 	}
 
-	public static class RouteContextExtensions
+	internal static class RouteContextExtensions
 	{
 		public static void MarkAsHandled(this RouteContext context)
 		{

@@ -176,7 +176,7 @@ namespace Microsoft.AspNetCore.Builder
 		}
 	}
 
-	public class RpcServicesMarker
+	internal class RpcServicesMarker
 	{
 
 	}

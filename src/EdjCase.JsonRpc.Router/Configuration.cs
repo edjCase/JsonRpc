@@ -13,7 +13,7 @@ namespace EdjCase.JsonRpc.Router
 		/// Json serialization settings that will be used in serialization and deserialization
 		/// for rpc requests
 		/// </summary>
-		public JsonSerializerOptions JsonSerializerSettings { get; set; }
+		public JsonSerializerOptions? JsonSerializerSettings { get; set; }
 
 
 		/// <summary>

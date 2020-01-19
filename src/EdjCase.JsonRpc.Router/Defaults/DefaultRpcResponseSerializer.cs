@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace EdjCase.JsonRpc.Router.Defaults
 {
-	public class DefaultRpcResponseSerializer : IRpcResponseSerializer
+	internal class DefaultRpcResponseSerializer : IRpcResponseSerializer
 	{
 		private IOptions<RpcServerConfiguration> serverConfig { get; }
 		public DefaultRpcResponseSerializer(IOptions<RpcServerConfiguration> serverConfig)
@@ -76,13 +76,13 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			{
 				jsonWriter.WritePropertyName(JsonRpcContants.ResultPropertyName);
 
-				this.SerializeValue(response.Result, jsonWriter);
+				this.SerializeValue(response.Result!, jsonWriter);
 			}
 			else
 			{
 				jsonWriter.WritePropertyName(JsonRpcContants.ErrorPropertyName);
 				jsonWriter.WriteStartObject();
-				jsonWriter.WriteNumber(JsonRpcContants.ErrorCodePropertyName, response.Error.Code);
+				jsonWriter.WriteNumber(JsonRpcContants.ErrorCodePropertyName, response.Error!.Code);
 				jsonWriter.WriteString(JsonRpcContants.ErrorMessagePropertyName, response.Error.Message);
 				jsonWriter.WritePropertyName(JsonRpcContants.ErrorDataPropertyName);
 				this.SerializeValue(response.Error.Data, jsonWriter);
@@ -91,11 +91,11 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			jsonWriter.WriteEndObject();
 		}
 
-		private void SerializeValue(object value, Utf8JsonWriter jsonWriter)
+		private void SerializeValue(object? value, Utf8JsonWriter jsonWriter)
 		{
 			if (value != null)
 			{
-				JsonSerializerOptions options = this.serverConfig.Value.JsonSerializerSettings;
+				JsonSerializerOptions? options = this.serverConfig.Value.JsonSerializerSettings;
 
 				//TODO a better way? cant figure out how to serialize an object to the writer in an async way
 				//JsonSerializer.Serialize(jsonWriter, value, value.GetType(), options) does not work because kestrel doesnt allow non-async calls

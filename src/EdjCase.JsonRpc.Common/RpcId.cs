@@ -17,7 +17,7 @@ namespace EdjCase.JsonRpc.Common
 
 		public RpcIdType Type { get; }
 
-		public object Value { get; }
+		public object? Value { get; }
 
 		public long NumberValue
 		{
@@ -27,7 +27,7 @@ namespace EdjCase.JsonRpc.Common
 				{
 					throw new InvalidOperationException("Cannot cast id to number.");
 				}
-				return (long)this.Value;
+				return (long)this.Value!;
 			}
 		}
 
@@ -39,13 +39,13 @@ namespace EdjCase.JsonRpc.Common
 				{
 					throw new InvalidOperationException("Cannot cast id to string.");
 				}
-				return (string)this.Value;
+				return (string)this.Value!;
 			}
 		}
 
 		public RpcId(string id)
 		{
-			this.HasValue = id != null;
+			this.HasValue = true;
 			this.Value = id;
 			this.Type = RpcIdType.String;
 		}
@@ -108,7 +108,7 @@ namespace EdjCase.JsonRpc.Common
 			{
 				return 0;
 			}
-			return this.Value.GetHashCode();
+			return this.Value!.GetHashCode();
 		}
 
 		public override string ToString()
@@ -120,9 +120,9 @@ namespace EdjCase.JsonRpc.Common
 			switch (this.Type)
 			{
 				case RpcIdType.Number:
-					return this.Value.ToString();
+					return this.Value!.ToString();
 				case RpcIdType.String:
-					return "'" + (string)this.Value + "'";
+					return "'" + (string)this.Value! + "'";
 				default:
 					throw new ArgumentOutOfRangeException(nameof(this.Type));
 			}

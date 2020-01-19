@@ -19,5 +19,5 @@ public interface IRpcContextAccessor
 
 public interface IRpcMethodProvider
 {
-	IReadOnlyList<MethodInfo> Get();
+	IReadOnlyList<MethodInfo>? Get();
 }

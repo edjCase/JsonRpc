@@ -16,17 +16,17 @@ namespace EdjCase.JsonRpc.Client
 {
 	public class RpcEvents
 	{
-		public Func<RequestEventContext, Task> OnRequestStartAsync { get; set; }
-		public Func<ResponseEventContext, RequestEventContext, Task> OnRequestCompleteAsync { get; set; }
+		public Func<RequestEventContext, Task>? OnRequestStartAsync { get; set; }
+		public Func<ResponseEventContext, RequestEventContext, Task>? OnRequestCompleteAsync { get; set; }
 	}
 
 	public class RequestEventContext
 	{
-		public string Route { get; }
+		public string? Route { get; }
 		public List<RpcRequest> Requests { get; }
 		public string RequestJson { get; }
 
-		public RequestEventContext(string route, List<RpcRequest> requests, string requestJson)
+		public RequestEventContext(string? route, List<RpcRequest> requests, string requestJson)
 		{
 			this.Route = route;
 			this.Requests = requests;
@@ -38,10 +38,10 @@ namespace EdjCase.JsonRpc.Client
 	{
 		public TimeSpan Duration { get; }
 		public string ResponseJson { get; }
-		public List<RpcResponse> Responses { get; }
-		public Exception ClientError { get; }
+		public List<RpcResponse>? Responses { get; }
+		public Exception? ClientError { get; }
 
-		public ResponseEventContext(TimeSpan duration, string responseJson, List<RpcResponse> responses, Exception clientError = null)
+		public ResponseEventContext(TimeSpan duration, string responseJson, List<RpcResponse>? responses, Exception? clientError = null)
 		{
 			this.Duration = duration;
 			this.ResponseJson = responseJson;

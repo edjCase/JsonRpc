@@ -45,12 +45,12 @@ namespace EdjCase.JsonRpc.Router
 			return this.AddController(controllerType, routePath);
 		}
 
-		public RpcEndpointBuilder AddController<T>(RpcPath path = null)
+		public RpcEndpointBuilder AddController<T>(RpcPath? path = null)
 		{
 			Type controllerType = typeof(T);
 			return this.AddController(controllerType, path);
 		}
-		public RpcEndpointBuilder AddController(Type type, RpcPath path = null)
+		public RpcEndpointBuilder AddController(Type type, RpcPath? path = null)
 		{
 			IEnumerable<MethodInfo> methods = this.Extract(type);
 			foreach (MethodInfo method in methods)
@@ -73,7 +73,7 @@ namespace EdjCase.JsonRpc.Router
 				.Where(m => m.DeclaringType != typeof(object));
 		}
 
-		private void Add(RpcPath path, MethodInfo methodInfo)
+		private void Add(RpcPath? path, MethodInfo methodInfo)
 		{
 			List<MethodInfo> methods;
 			if (path == null)

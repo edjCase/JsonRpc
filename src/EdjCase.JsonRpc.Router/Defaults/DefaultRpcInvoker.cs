@@ -22,7 +22,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 	/// <summary>
 	/// Default Rpc method invoker that uses asynchronous processing
 	/// </summary>
-	public class DefaultRpcInvoker : IRpcInvoker
+	internal class DefaultRpcInvoker : IRpcInvoker
 	{
 		/// <summary>
 		/// Logger for logging Rpc invocation
@@ -82,10 +82,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		public async Task<List<RpcResponse>> InvokeBatchRequestAsync(IList<RpcRequest> requests)
 		{
 			this.logger.InvokingBatchRequests(requests.Count);
-			var invokingTasks = new List<Task<RpcResponse>>();
+			var invokingTasks = new List<Task<RpcResponse?>>();
 			foreach (RpcRequest request in requests)
 			{
-				Task<RpcResponse> invokingTask = this.InvokeRequestAsync(request);
+				Task<RpcResponse?> invokingTask = this.InvokeRequestAsync(request);
 				if (request.Id.HasValue)
 				{
 					//Only wait for non-notification requests
@@ -96,8 +96,8 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			await Task.WhenAll(invokingTasks.ToArray());
 
 			List<RpcResponse> responses = invokingTasks
-				.Select(t => t.Result)
-				.Where(r => r != null)
+				.Where(t => t.Result != null)
+				.Select(t => t.Result!)
 				.ToList();
 
 			this.logger.BatchRequestsComplete();
@@ -112,7 +112,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <param name="path">Rpc path that applies to the current request</param>
 		/// <param name="routeContext">The context of the current rpc request</param>
 		/// <returns>An Rpc response for the request</returns>
-		public async Task<RpcResponse> InvokeRequestAsync(RpcRequest request)
+		public async Task<RpcResponse?> InvokeRequestAsync(RpcRequest request)
 		{
 			if (request == null)
 			{
@@ -129,16 +129,15 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					rpcMethod = this.rpcRequestMatcher.GetMatchingMethod(requestSignature);
 				}
 
-				object[] realParameters = this.ParseParameters(request.Parameters, rpcMethod.Parameters);
-
 				IRpcContext routeContext = this.contextAccessor.Value;
 				bool isAuthorized = await this.IsAuthorizedAsync(rpcMethod, routeContext);
 
 				if (isAuthorized)
 				{
+					object[] realParameters = this.ParseParameters(request.Parameters, rpcMethod.Parameters);
 
 					this.logger.InvokeMethod(request.Method);
-					object result = await this.InvokeAsync(rpcMethod, routeContext.Path, routeContext.RequestServices);
+					object? result = await this.InvokeAsync(rpcMethod.MethodInfo, realParameters, routeContext);
 					this.logger.InvokeMethodComplete(request.Method);
 
 					if (result is IRpcMethodResult methodResult)
@@ -183,32 +182,34 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			return null;
 		}
 
-		private object[] ParseParameters(RpcParameters requestParameters, RpcParameterInfo[] methodParameters)
+		private object[] ParseParameters(RpcParameters? requestParameters, RpcParameterInfo[] methodParameters)
 		{
 			object[] paramCache = ArrayPool<object>.Shared.Rent(methodParameters.Length);
 			try
 			{
-				if (requestParameters.Any())
+				if (requestParameters != null && requestParameters.Any())
 				{
 					IRpcParameter[] parameterList;
 					if (requestParameters.IsDictionary)
 					{
-						if(!this.TryParseParameterList(methodParameters, requestParameters.AsDictionary, out parameterList))
+						IRpcParameter[]? pList;
+						if(!this.TryParseParameterList(methodParameters, requestParameters.AsDictionary, out pList))
 						{
 							string message = "Unable to parse the ";
 							throw new RpcException(RpcErrorCode.InternalError, message);
 						}
+						parameterList = pList!;
 					}
 					else
 					{
 						parameterList = requestParameters.AsArray;
 					}
-					List<RpcParameterInfo> badParams = null;
-					for (int i = 0; i < parameterList.Length; i++)
+					List<RpcParameterInfo>? badParams = null;
+					for (int i = 0; i < parameterList!.Length; i++)
 					{
 						RpcParameterInfo parameterInfo = methodParameters[i];
 						IRpcParameter parameter = parameterList[i];
-						if (!parameter.TryGetValue(parameterInfo.RawType, out object value))
+						if (!parameter.TryGetValue(parameterInfo.RawType, out object? value))
 						{
 							if(badParams == null)
 							{
@@ -216,8 +217,9 @@ namespace EdjCase.JsonRpc.Router.Defaults
 								badParams = new List<RpcParameterInfo>(parametersRemaining);
 							}
 							badParams.Add(parameterInfo);
+							continue;
 						}
-						paramCache[i] = value;
+						paramCache[i] = value!;
 					}
 					if(badParams != null)
 					{
@@ -242,7 +244,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 		}
 
-		private bool TryParseParameterList(RpcParameterInfo[] methodParameters, Dictionary<string, IRpcParameter> requestParameters, out IRpcParameter[] parameterList)
+		private bool TryParseParameterList(RpcParameterInfo[] methodParameters, Dictionary<string, IRpcParameter> requestParameters, out IRpcParameter[]? parameterList)
 		{
 			if (methodParameters.Length > requestParameters.Count)
 			{
@@ -368,23 +370,19 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <exception cref="RpcInvalidParametersException">Thrown when conversion of parameters fails or when invoking the method is not compatible with the parameters</exception>
 		/// <param name="parameters">List of parameters to invoke the method with</param>
 		/// <returns>The result of the invoked method</returns>
-		private async Task<object> InvokeAsync(RpcMethodInfo methodInfo, RpcPath path, IServiceProvider serviceProvider)
+		private async Task<object?> InvokeAsync(MethodInfo methodInfo, object[] parameters, IRpcContext rpcContext)
 		{
-			object obj = null;
-			if (serviceProvider != null)
-			{
-				//Use service provider (if exists) to create instance
-				ObjectFactory objectFactory = this.objectFactoryCache.GetOrAdd(methodInfo.MethodInfo.DeclaringType, (t) => ActivatorUtilities.CreateFactory(t, new Type[0]));
-				obj = objectFactory(serviceProvider, null);
-			}
+			//Use service provider to create instance
+			ObjectFactory objectFactory = this.objectFactoryCache.GetOrAdd(methodInfo.DeclaringType, (t) => ActivatorUtilities.CreateFactory(t, new Type[0]));
+			object obj = objectFactory(rpcContext.RequestServices, null);
 			if (obj == null)
 			{
 				//Use reflection to create instance if service provider failed or is null
-				obj = Activator.CreateInstance(methodInfo.MethodInfo.DeclaringType);
+				obj = Activator.CreateInstance(methodInfo.DeclaringType);
 			}
 			try
 			{
-				object returnObj = methodInfo.MethodInfo.Invoke(obj, methodInfo.Parameters);
+				object? returnObj = methodInfo.Invoke(obj, parameters);
 
 				returnObj = await DefaultRpcInvoker.HandleAsyncResponses(returnObj);
 
@@ -392,16 +390,14 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 			catch (TargetInvocationException ex)
 			{
-				var routeInfo = new RpcRouteInfo(methodInfo, path, serviceProvider);
-
 				//Controller error handling
-				RpcErrorFilterAttribute errorFilter = methodInfo.MethodInfo.DeclaringType.GetTypeInfo().GetCustomAttribute<RpcErrorFilterAttribute>();
+				RpcErrorFilterAttribute errorFilter = methodInfo.DeclaringType.GetTypeInfo().GetCustomAttribute<RpcErrorFilterAttribute>();
 				if (errorFilter != null)
 				{
-					OnExceptionResult result = errorFilter.OnException(routeInfo, ex.InnerException);
+					OnExceptionResult result = errorFilter.OnException(rpcContext, ex.InnerException);
 					if (!result.ThrowException)
 					{
-						return result.ResponseObject;
+						return result.ResponseObject!;
 					}
 					if (result.ResponseObject is Exception rEx)
 					{
@@ -421,9 +417,9 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// </summary>
 		/// <param name="returnObj">The result of a invoked method</param>
 		/// <returns>Awaits a Task and returns its result if object is a Task, otherwise returns the same object given</returns>
-		private static async Task<object> HandleAsyncResponses(object returnObj)
+		private static async Task<object?> HandleAsyncResponses(object? returnObj)
 		{
-			Task task = returnObj as Task;
+			Task? task = returnObj as Task;
 			if (task == null) //Not async request
 			{
 				return returnObj;

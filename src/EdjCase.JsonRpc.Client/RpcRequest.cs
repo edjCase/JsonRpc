@@ -27,7 +27,7 @@ namespace EdjCase.JsonRpc.Client
 		/// <param name="parameterList">Json parameters for the target method</param>
 		public RpcRequest(string method, RpcParameters parameters = default)
 		{
-			this.Id = null;
+			this.Id = new RpcId();
 			this.Method = method;
 			this.Parameters = parameters;
 		}

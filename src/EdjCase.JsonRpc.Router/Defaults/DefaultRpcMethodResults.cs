@@ -24,12 +24,12 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <summary>
 		/// Data for error response
 		/// </summary>
-		public object Data { get; }
+		public object? Data { get; }
 
 		/// <param name="errorCode">JSON-RPC error code</param>
 		/// <param name="message">(Optional)Error message</param>
 		/// <param name="data">(Optional)Data for error response</param>
-		public RpcMethodErrorResult(int errorCode, string message = null, object data = null)
+		public RpcMethodErrorResult(int errorCode, string message, object? data = null)
 		{
 			this.ErrorCode = errorCode;
 			this.Message = message;
@@ -57,12 +57,12 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <summary>
 		/// Object to return in rpc response
 		/// </summary>
-		public object ReturnObject { get; }
+		public object? ReturnObject { get; }
 		/// <summary>
 		/// 
 		/// </summary>
 		/// <param name="returnObject">Object to return in rpc response</param>
-		public RpcMethodSuccessResult(object returnObject = null)
+		public RpcMethodSuccessResult(object? returnObject = null)
 		{
 			this.ReturnObject = returnObject;
 		}

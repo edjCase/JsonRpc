@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 
@@ -15,15 +16,19 @@ namespace EdjCase.JsonRpc.Router
 			this.contextAccessor = contextAccessor;
 		}
 
-		public IReadOnlyList<MethodInfo> Get()
+		public IReadOnlyList<MethodInfo>? Get()
 		{
 			IRpcContext context = this.contextAccessor.Value;
-			StaticRpcMethodData data = this.dataAccessor.Value;
+			StaticRpcMethodData? data = this.dataAccessor.Value;
+			if(data == null)
+			{
+				throw new InvalidOperationException("No rpc method data is avaliable. It must be added to the request pipeline.");
+			}
 			if (context.Path == null)
 			{
 				return data.BaseMethods;
 			}
-			bool result = data.Methods.TryGetValue(context.Path, out List<MethodInfo> m);
+			bool result = data.Methods.TryGetValue(context.Path, out List<MethodInfo>? m);
 
 			return result ? m : null;
 		}
@@ -43,6 +48,6 @@ namespace EdjCase.JsonRpc.Router
 
 	internal class StaticRpcMethodDataAccessor
 	{
-		public StaticRpcMethodData Value { get; set;}
+		public StaticRpcMethodData? Value { get; set;}
 	}
 }

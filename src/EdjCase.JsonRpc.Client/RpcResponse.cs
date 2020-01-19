@@ -20,16 +20,16 @@ namespace EdjCase.JsonRpc.Client
 
 		}
 
-		public new T Result => (T)base.Result;
+		public new T Result => (T)base.Result!;
 
 
 		public static RpcResponse<T> FromResponse(RpcResponse response)
 		{
 			if (response.HasError)
 			{
-				return new RpcResponse<T>(response.Id, response.Error);
+				return new RpcResponse<T>(response.Id, response.Error!);
 			}
-			return new RpcResponse<T>(response.Id, (T)response.Result);
+			return new RpcResponse<T>(response.Id, (T)response.Result!);
 		}
 	}
 
@@ -37,6 +37,7 @@ namespace EdjCase.JsonRpc.Client
 	{
 		protected RpcResponse()
 		{
+			this.Id = new RpcId();
 		}
 
 		/// <param name="id">Request id</param>
@@ -54,7 +55,7 @@ namespace EdjCase.JsonRpc.Client
 
 		/// <param name="id">Request id</param>
 		/// <param name="result">Response result object</param>
-		public RpcResponse(RpcId id, object result) : this(id)
+		public RpcResponse(RpcId id, object? result) : this(id)
 		{
 			this.Result = result;
 		}
@@ -67,12 +68,12 @@ namespace EdjCase.JsonRpc.Client
 		/// <summary>
 		/// Reponse result object (Required)
 		/// </summary>
-		public object Result { get; private set; }
+		public object? Result { get; private set; }
 
 		/// <summary>
 		/// Error from processing Rpc request (Required)
 		/// </summary>
-		public RpcError Error { get; private set; }
+		public RpcError? Error { get; private set; }
 
 		public bool HasError => this.Error != null;
 
@@ -80,7 +81,7 @@ namespace EdjCase.JsonRpc.Client
 		{
 			if (this.HasError)
 			{
-				throw this.Error.CreateException();
+				throw this.Error!.CreateException();
 			}
 		}
 	}

@@ -15,16 +15,16 @@ namespace EdjCase.JsonRpc.Client
 		/// <param name="response">Rpc response object</param>
 		/// <param name="returnDefaultIfNull">Returns the type's default value if the result is null. Otherwise throws parsing exception</param>
 		/// <returns>Result of response as type specified</returns>
-		public static T GetResult<T>(this RpcResponse response, bool returnDefaultIfNull = true, JsonSerializerSettings settings = null)
+		public static T GetResult<T>(this RpcResponse response, bool returnDefaultIfNull = true, JsonSerializerSettings? settings = null)
 		{
 			response.ThrowErrorIfExists();
 			if (response.Result == null)
 			{
-				if (!returnDefaultIfNull && default(T) != null)
+				if (!returnDefaultIfNull && default(T)! != null)
 				{
 					throw new RpcClientParseException($"Unable to convert the result (null) to type '{typeof(T)}'");
 				}
-				return default(T);
+				return default!;
 			}
 			try
 			{

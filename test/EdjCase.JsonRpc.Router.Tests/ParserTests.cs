@@ -66,12 +66,12 @@ namespace EdjCase.JsonRpc.Router.Tests
 		{
 			RpcPath basePath = RpcPath.Parse("/Base");
 			RpcPath fullPath = RpcPath.Parse("/Base/Test");
-			bool removed = fullPath.TryRemoveBasePath(basePath, out RpcPath path);
+			bool removed = fullPath.TryRemoveBasePath(basePath, out RpcPath? path);
 			Assert.True(removed);
 			Assert.Equal(RpcPath.Parse("Test"), path);
 
 			//Also check the Remove is the same
-			RpcPath path2 = fullPath.RemoveBasePath(basePath);
+			RpcPath? path2 = fullPath.RemoveBasePath(basePath);
 			Assert.Equal(path, path2);
 		}
 
@@ -80,12 +80,12 @@ namespace EdjCase.JsonRpc.Router.Tests
 		{
 			RpcPath basePath = RpcPath.Parse("/Base");
 			RpcPath fullPath = RpcPath.Parse("/Base/");
-			bool removed = fullPath.TryRemoveBasePath(basePath, out RpcPath path);
+			bool removed = fullPath.TryRemoveBasePath(basePath, out RpcPath? path);
 			Assert.True(removed);
 			Assert.Null(path);
 
 			//Also check the Remove is the same
-			RpcPath path2 = fullPath.RemoveBasePath(basePath);
+			RpcPath? path2 = fullPath.RemoveBasePath(basePath);
 			Assert.Equal(path, path2);
 		}
 

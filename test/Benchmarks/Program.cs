@@ -35,9 +35,8 @@ namespace Benchmarks
 		public void GlobalSetup()
 		{
 			var logger = new FakeLogger<DefaultRequestMatcher>();
-			var contextAccessor = new FakeContextAccessor();
 			var methodProvider = new FakeMethodProvider();
-			this.requestMatcher = new DefaultRequestMatcher(logger, contextAccessor, methodProvider);
+			this.requestMatcher = new DefaultRequestMatcher(logger, methodProvider);
 		}
 
 		private RpcRequestSignature requestsignature;
@@ -98,22 +97,19 @@ namespace Benchmarks
 		}
 
 
+#pragma warning disable IDE0060 // Remove unused parameter
 		internal class MethodClass
 		{
 			public void NoParamsNoReturn()
 			{
 
 			}
-#pragma warning disable IDE0060 // Remove unused parameter
 			public void ComplexParamNoReturn(ComplexParam complex)
-#pragma warning restore IDE0060 // Remove unused parameter
 			{
 
 			}
 
-#pragma warning disable IDE0060 // Remove unused parameter
 			public void SimpleParamsNoReturn(int a, bool b, string c)
-#pragma warning restore IDE0060 // Remove unused parameter
 			{
 
 			}
@@ -125,25 +121,17 @@ namespace Benchmarks
 				public ComplexParam C { get; set; }
 			}
 		}
+#pragma warning restore IDE0060 // Remove unused parameter
 	}
 
 	internal class FakeMethodProvider : IRpcMethodProvider
 	{
-		private List<MethodInfo> methods;
-		public FakeMethodProvider()
-		{
-			this.methods = typeof(RequestMatcherTester.MethodClass).GetTypeInfo().GetMethods().ToList();
-		}
+		private static List<MethodInfo> methods = typeof(RequestMatcherTester.MethodClass).GetTypeInfo().GetMethods().ToList();
 
 		public IReadOnlyList<MethodInfo> Get()
 		{
-			return this.methods;
+			return FakeMethodProvider.methods;
 		}
-	}
-
-	internal class FakeContextAccessor : IRpcContextAccessor
-	{
-		public IRpcContext Value { get; set; } = new FakeRpcContext();
 	}
 
 	internal class FakeRpcContext : IRpcContext

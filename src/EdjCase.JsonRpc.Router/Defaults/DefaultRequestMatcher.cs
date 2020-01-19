@@ -13,7 +13,7 @@ using Microsoft.Extensions.Options;
 
 namespace EdjCase.JsonRpc.Router.Defaults
 {
-	public class RpcEndpointInfo
+	internal class RpcEndpointInfo
 	{
 		public Dictionary<RpcPath, List<MethodInfo>> Routes { get; }
 
@@ -24,20 +24,17 @@ namespace EdjCase.JsonRpc.Router.Defaults
 	}
 
 
-	public class DefaultRequestMatcher : IRpcRequestMatcher
+	internal class DefaultRequestMatcher : IRpcRequestMatcher
 	{
 		private static ConcurrentDictionary<MethodInfo, RpcMethodInfo> compiledMethodCache { get; } = new ConcurrentDictionary<MethodInfo, RpcMethodInfo>();
 		private static ConcurrentDictionary<string, RpcMethodInfo[]> requestToMethodCache { get; } = new ConcurrentDictionary<string, RpcMethodInfo[]>();
 
 		private ILogger<DefaultRequestMatcher> logger { get; }
-		private IRpcContextAccessor routeContextAccessor { get; }
 		private IRpcMethodProvider methodProvider { get; }
 		public DefaultRequestMatcher(ILogger<DefaultRequestMatcher> logger,
-			IRpcContextAccessor routeContextAccessor,
 			IRpcMethodProvider methodProvider)
 		{
 			this.logger = logger;
-			this.routeContextAccessor = routeContextAccessor;
 			this.methodProvider = methodProvider;
 		}
 
@@ -46,8 +43,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			//TODo avoid .ToString() here
 			this.logger.AttemptingToMatchMethod(requestSignature.GetMethodName().ToString());
 
-			IRpcContext routeContext = this.routeContextAccessor.Value;
-			IReadOnlyList<MethodInfo> methods = this.methodProvider.Get();
+			IReadOnlyList<MethodInfo>? methods = this.methodProvider.Get();
 			if (methods == null || !methods.Any())
 			{
 				throw new RpcException(RpcErrorCode.MethodNotFound, $"No methods found for route");
@@ -113,7 +109,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 		}
 
-		public static RpcMethodInfo BuildMethodInfo(MethodInfo methodInfo)
+		internal static RpcMethodInfo BuildMethodInfo(MethodInfo methodInfo)
 		{
 			RpcParameterInfo[] parameters = methodInfo
 				.GetParameters()
@@ -234,7 +230,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		}
 
 
-		public bool ParametersMatch(RpcRequestSignature requestSignature, RpcParameterInfo[] parameters)
+		private bool ParametersMatch(RpcRequestSignature requestSignature, RpcParameterInfo[] parameters)
 		{
 			if (!requestSignature.HasParameters)
 			{
@@ -286,7 +282,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				}
 
 				
-				for (int i = parameterCount; i >= parameters.Length; i++)
+				for (int i = parameterCount; i < parameters.Length; i++)
 				{
 					//Only if the last parameters in the method are optional does the request match
 					//Will be skipped if they are equal length

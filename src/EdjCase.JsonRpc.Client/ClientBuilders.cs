@@ -11,8 +11,8 @@ namespace EdjCase.JsonRpc.Client
 {
 	public class HttpRpcClientBuilder : RpcClientBuilder
 	{
-		private IStreamCompressor streamCompressor { get; set; }
-		private IHttpAuthHeaderFactory httpAuthHeaderFactory { get; set; }
+		private IStreamCompressor? streamCompressor { get; set; }
+		private IHttpAuthHeaderFactory? httpAuthHeaderFactory { get; set; }
 		private HttpOptions options { get; } = new HttpOptions();
 
 
@@ -54,7 +54,7 @@ namespace EdjCase.JsonRpc.Client
 			return this;
 		}
 
-		public HttpRpcClientBuilder UsingAuthHeaderFactory(Func<Task<AuthenticationHeaderValue>> authHeaderFactory)
+		public HttpRpcClientBuilder UsingAuthHeaderFactory(Func<Task<AuthenticationHeaderValue?>> authHeaderFactory)
 		{
 			if (authHeaderFactory == null)
 			{
@@ -88,7 +88,7 @@ namespace EdjCase.JsonRpc.Client
 			return (HttpRpcClientBuilder)base.UsingRequestSerializer(requestSerializer);
 		}
 
-		public HttpRpcClientBuilder UsingDefaultJsonSerializer(JsonSerializerSettings settings = null, IErrorDataSerializer errorDataSerializer = null)
+		public HttpRpcClientBuilder UsingDefaultJsonSerializer(JsonSerializerSettings? settings = null, IErrorDataSerializer? errorDataSerializer = null)
 		{
 			return (HttpRpcClientBuilder)base.UsingRequestSerializer(new DefaultRequestJsonSerializer(jsonSerializerSettings: settings, errorDataSerializer: errorDataSerializer));
 		}
@@ -116,7 +116,7 @@ namespace EdjCase.JsonRpc.Client
 	public abstract class RpcClientBuilder
 	{
 		protected Uri BaseUrl { get; }
-		protected IRequestSerializer RequestSerializer { get; set; }
+		protected IRequestSerializer? RequestSerializer { get; set; }
 		protected RpcEvents Events { get; } = new RpcEvents();
 
 		public RpcClientBuilder(Uri baseUrl)

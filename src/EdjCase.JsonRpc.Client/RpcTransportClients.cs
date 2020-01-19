@@ -60,15 +60,30 @@ namespace EdjCase.JsonRpc.Client
 		/// <summary>
 		/// Factory to create authentication header for each request
 		/// </summary>
-		private IHttpAuthHeaderFactory httpAuthHeaderFactory { get; }
+		private IHttpAuthHeaderFactory? httpAuthHeaderFactory { get; }
 
 		private IHttpClientFactory httpClientFactory { get; set; }
 
-		public HttpRpcTransportClient(Func<Task<AuthenticationHeaderValue>> authHeaderValueFactory,
-			Encoding encoding = null,
-			string contentType = null,
-			IEnumerable<(string, string)> headers = null,
-			IStreamCompressor streamCompressor = null)
+		public HttpRpcTransportClient(AuthenticationHeaderValue? authHeaderValue,
+			Encoding? encoding = null,
+			string? contentType = null,
+			IEnumerable<(string, string)>? headers = null,
+			IStreamCompressor? streamCompressor = null)
+			: this(
+				encoding: encoding,
+				contentType: contentType,
+				headers: headers,
+				streamCompressor: streamCompressor,
+				httpAuthHeaderFactory: new DefaultHttpAuthHeaderFactory(authHeaderValue))
+		{
+
+		}
+
+		public HttpRpcTransportClient(Func<Task<AuthenticationHeaderValue?>>? authHeaderValueFactory,
+			Encoding? encoding = null,
+			string? contentType = null,
+			IEnumerable<(string, string)>? headers = null,
+			IStreamCompressor? streamCompressor = null)
 			: this(
 				encoding: encoding,
 				contentType: contentType,
@@ -81,12 +96,12 @@ namespace EdjCase.JsonRpc.Client
 
 
 		public HttpRpcTransportClient(
-			Encoding encoding = null,
-			string contentType = null,
-			IEnumerable<(string, string)> headers = null,
-			IStreamCompressor streamCompressor = null,
-			IHttpAuthHeaderFactory httpAuthHeaderFactory = null,
-			IHttpClientFactory httpClientFactory = null)
+			Encoding? encoding = null,
+			string? contentType = null,
+			IEnumerable<(string, string)>? headers = null,
+			IStreamCompressor? streamCompressor = null,
+			IHttpAuthHeaderFactory? httpAuthHeaderFactory = null,
+			IHttpClientFactory? httpClientFactory = null)
 		{
 			this.Encoding = encoding ?? Defaults.Encoding;
 			this.ContentType = contentType ?? Defaults.ContentType;
@@ -147,23 +162,23 @@ namespace EdjCase.JsonRpc.Client
 			return responseStream;
 		}
 
-		public static HttpRpcTransportClient CreateUnauthenticated(Encoding encoding = null, string contentType = null, IEnumerable<(string, string)> headers = null)
+		public static HttpRpcTransportClient CreateUnauthenticated(Encoding? encoding = null, string? contentType = null, IEnumerable<(string, string)>? headers = null)
 		{
-			return new HttpRpcTransportClient(authHeaderValueFactory: null, encoding: encoding, contentType: contentType, headers: headers);
+			return new HttpRpcTransportClient(encoding: encoding, contentType: contentType, headers: headers);
 		}
 
-		public static HttpRpcTransportClient CreateWithBearerAuth(Uri baseUrl, string bearerToken, Encoding encoding = null, string contentType = null, IEnumerable<(string, string)> headers = null)
+		public static HttpRpcTransportClient CreateWithBearerAuth(Uri baseUrl, string bearerToken, Encoding? encoding = null, string? contentType = null, IEnumerable<(string, string)>? headers = null)
 		{
 			var authHeaderValue = AuthenticationHeaderValue.Parse("Bearer " + bearerToken);
-			return new HttpRpcTransportClient(() => Task.FromResult(authHeaderValue), encoding: encoding, contentType: contentType, headers: headers);
+			return new HttpRpcTransportClient(authHeaderValue, encoding: encoding, contentType: contentType, headers: headers);
 		}
 
-		public static HttpRpcTransportClient CreateWithBasicAuth(Uri baseUrl, string username, string password, Encoding encoding = null, string contentType = null, IEnumerable<(string, string)> headers = null)
+		public static HttpRpcTransportClient CreateWithBasicAuth(Uri baseUrl, string username, string password, Encoding? encoding = null, string? contentType = null, IEnumerable<(string, string)>? headers = null)
 		{
 			byte[] headerBytes = Encoding.UTF8.GetBytes(username + ":" + password);
 			string value = Convert.ToBase64String(headerBytes);
 			var authHeaderValue = AuthenticationHeaderValue.Parse("Basic " + value);
-			return new HttpRpcTransportClient(() => Task.FromResult(authHeaderValue), encoding: encoding, contentType: contentType, headers: headers);
+			return new HttpRpcTransportClient(authHeaderValue, encoding: encoding, contentType: contentType, headers: headers);
 		}
 	}
 

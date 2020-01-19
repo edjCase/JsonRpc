@@ -7,8 +7,10 @@ using System.Text;
 
 namespace EdjCase.JsonRpc.Router
 {
-	public struct RpcRequestSignature : IDisposable
+	public class RpcRequestSignature : IDisposable
 	{
+		private const char arrayType = 'a';
+		private const char dictType = 'd';
 		private const char delimiter = ' ';
 		private const char numberType = 'n';
 		private const char stringType = 's';
@@ -16,15 +18,26 @@ namespace EdjCase.JsonRpc.Router
 		private const char objectType = 'o';
 		private const char nullType = '-';
 
-		private char[] Values { get; set; }
-		private int MethodEndIndex { get; set; }
-		private int? ParamStartIndex { get; set; }
-		private int EndIndex { get; set; }
+		private char[] Values { get; }
+		private int MethodEndIndex { get; }
+		private int? ParamStartIndex { get; }
+		private int EndIndex { get; }
+		public bool IsDictionary { get; }
+
+		private RpcRequestSignature(char[] values, int methodEndIndex, int? paramStartIndex, int endIndex, bool isDictionary)
+		{
+			this.Values = values;
+			this.MethodEndIndex = methodEndIndex;
+			this.ParamStartIndex = paramStartIndex;
+			this.EndIndex = endIndex;
+			this.IsDictionary = isDictionary;
+		}
+
+
 
 
 		public Memory<char> GetMethodName() => this.Values.AsMemory(0, this.MethodEndIndex + 1);
 		public bool HasParameters => this.ParamStartIndex != null;
-		public bool IsDictionary { get; set; }
 
 		public IEnumerable<(Memory<char>, RpcParameterType)> ParametersAsDict
 		{
@@ -46,8 +59,8 @@ namespace EdjCase.JsonRpc.Router
 							currentKeyLength++;
 							continue;
 						}
-						Memory<char> key = this.Values.AsMemory(i, currentKeyLength);
-						RpcParameterType type = RpcRequestSignature.GetTypeFromChar(this.Values[i + currentKeyLength]);
+						Memory<char> key = this.Values.AsMemory(i - currentKeyLength, currentKeyLength);
+						RpcParameterType type = RpcRequestSignature.GetTypeFromChar(this.Values[i + 1]);
 						yield return (key, type);
 						//reset key length, moving to next
 						currentKeyLength = 0;
@@ -89,10 +102,29 @@ namespace EdjCase.JsonRpc.Router
 
 		public static RpcRequestSignature Create(RpcRequest request)
 		{
+			if (request.Parameters == null || !request.Parameters.IsDictionary)
+			{
+				return RpcRequestSignature.Create(request.Method, request.Parameters?.AsArray.Select(p => p.Type));
+			}
+			return RpcRequestSignature.Create(request.Method, request.Parameters.AsDictionary.Select(p => new KeyValuePair<string, RpcParameterType>(p.Key, p.Value.Type)));
+		}
+
+		public static RpcRequestSignature Create(string methodName, IEnumerable<RpcParameterType>? parameters)
+		{
+			return RpcRequestSignature.CreateInternal(methodName, parameters);
+		}
+
+		public static RpcRequestSignature Create(string methodName, IEnumerable<KeyValuePair<string, RpcParameterType>>? parameters)
+		{
+			return RpcRequestSignature.CreateInternal(methodName, parameters);
+		}
+
+		private static RpcRequestSignature CreateInternal(string methodName, object? parameters)
+		{
 			//TODO size
 			int initialParamSize = 200;
-			int arraySize = request.Method.Length;
-			if (request.Parameters != null)
+			int arraySize = methodName.Length;
+			if (parameters != null)
 			{
 				arraySize += 3 + initialParamSize;
 			}
@@ -100,24 +132,23 @@ namespace EdjCase.JsonRpc.Router
 			char[] requestSignatureArray = ArrayPool<char>.Shared.Rent(arraySize);
 			int signatureLength = 0;
 			const int incrementSize = 30;
-			for (int a = 0; a < request.Method.Length; a++)
+			for (int a = 0; a < methodName.Length; a++)
 			{
-				requestSignatureArray[signatureLength++] = request.Method[a];
+				requestSignatureArray[signatureLength++] = methodName[a];
 			}
 			int methodEndIndex = signatureLength - 1;
 			int? parameterStartIndex = null;
 			bool isDictionary = false;
-			if (request.Parameters != null)
+			if (parameters != null)
 			{
 				requestSignatureArray[signatureLength++] = delimiter;
-				requestSignatureArray[signatureLength++] = request.Parameters.IsDictionary ? 'd' : 'a';
-				if (request.Parameters.Any())
+				switch (parameters)
 				{
-					parameterStartIndex = signatureLength + 1;
-					if (request.Parameters.IsDictionary)
-					{
+					case IEnumerable<KeyValuePair<string, RpcParameterType>> dictParam:
+						requestSignatureArray[signatureLength++] = RpcRequestSignature.dictType;
 						isDictionary = true;
-						foreach (KeyValuePair<string, IRpcParameter> parameter in request.Parameters.AsDictionary)
+						parameterStartIndex = signatureLength + 1;
+						foreach (KeyValuePair<string, RpcParameterType> parameter in dictParam)
 						{
 							int greatestIndex = signatureLength + parameter.Key.Length + 1;
 							if (greatestIndex >= requestSignatureArray.Length)
@@ -131,29 +162,38 @@ namespace EdjCase.JsonRpc.Router
 								requestSignatureArray[signatureLength++] = parameter.Key[i];
 							}
 							requestSignatureArray[signatureLength++] = delimiter;
-							requestSignatureArray[signatureLength++] = RpcRequestSignature.GetCharFromType(parameter.Value.Type);
+							requestSignatureArray[signatureLength++] = RpcRequestSignature.GetCharFromType(parameter.Value);
 						}
-					}
-					else
-					{
-						requestSignatureArray[signatureLength++] = delimiter;
-						IRpcParameter[] list = request.Parameters.AsArray;
-						for (int i = 0; i < list.Length; i++)
+						if(signatureLength + 1 == parameterStartIndex)
 						{
-							char c = RpcRequestSignature.GetCharFromType(list[i].Type);
-							requestSignatureArray[signatureLength++] = c;
+							//There were no parameters
+							parameterStartIndex = null;
 						}
-					}
+						break;
+					case IEnumerable<RpcParameterType> listParam:
+						requestSignatureArray[signatureLength++] = RpcRequestSignature.arrayType;
+							requestSignatureArray[signatureLength++] = delimiter;
+							parameterStartIndex = signatureLength;
+							foreach (RpcParameterType type in listParam)
+							{
+								char c = RpcRequestSignature.GetCharFromType(type);
+								requestSignatureArray[signatureLength++] = c;
+							}
+							if(parameterStartIndex == signatureLength)
+							{
+								//No parameters, remove the delimeter
+								signatureLength--;
+								parameterStartIndex = null;
+							}
+						break;
+					case null:
+						requestSignatureArray[signatureLength++] = RpcRequestSignature.arrayType;
+						break;
+					default:
+						throw new ArgumentOutOfRangeException(nameof(parameters));
 				}
 			}
-			return new RpcRequestSignature
-			{
-				Values = requestSignatureArray,
-				MethodEndIndex = methodEndIndex,
-				IsDictionary = isDictionary,
-				ParamStartIndex = parameterStartIndex,
-				EndIndex = signatureLength - 1
-			};
+			return new RpcRequestSignature(requestSignatureArray, methodEndIndex, parameterStartIndex, signatureLength, isDictionary);
 		}
 
 

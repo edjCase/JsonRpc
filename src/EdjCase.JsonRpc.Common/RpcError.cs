@@ -14,7 +14,7 @@ namespace EdjCase.JsonRpc.Common
 		{
 		}
 
-		public new T Data => (T)base.Data;
+		public new T Data => (T)base.Data!;
 	}
 
 	/// <summary>
@@ -26,7 +26,7 @@ namespace EdjCase.JsonRpc.Common
 		/// <param name="code">Rpc error code</param>
 		/// <param name="message">Error message</param>
 		/// <param name="data">Optional error data</param>
-		public RpcError(RpcErrorCode code, string message, object data = null)
+		public RpcError(RpcErrorCode code, string message, object? data = null)
 			: this((int)code, message, data)
 		{
 		}
@@ -34,7 +34,7 @@ namespace EdjCase.JsonRpc.Common
 		/// <param name="code">Rpc error code</param>
 		/// <param name="message">Error message</param>
 		/// <param name="data">Optional error data</param>
-		public RpcError(int code, string message, object data = null)
+		public RpcError(int code, string message, object? data = null)
 		{
 			if (string.IsNullOrWhiteSpace(message))
 			{
@@ -56,12 +56,12 @@ namespace EdjCase.JsonRpc.Common
 		/// <summary>
 		/// Error data (Optional)
 		/// </summary>
-		public object Data { get; }
+		public object? Data { get; }
 
 		/// <summary>
 		/// Type of the data object
 		/// </summary>
-		public Type DataType { get; }
+		public Type? DataType { get; }
 
 		public RpcException CreateException()
 		{

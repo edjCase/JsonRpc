@@ -16,7 +16,7 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 
 	public static class RpcRequestHandlerExtensions
 	{
-		public static async Task<string> HandleRequestAsync(this IRpcRequestHandler handler, string requestJson)
+		public static async Task<string?> HandleRequestAsync(this IRpcRequestHandler handler, string requestJson)
 		{
 			using (var requestStream = StreamUtil.GetStreamFromUtf8String(requestJson))
 			{

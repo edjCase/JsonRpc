@@ -23,7 +23,7 @@ namespace EdjCase.JsonRpc.Router
 			this.path = path;
 		}
 
-		public static bool operator ==(RpcPath path1, RpcPath path2)
+		public static bool operator ==(RpcPath? path1, RpcPath? path2)
 		{
 			if (object.ReferenceEquals(path1, null))
 			{
@@ -32,12 +32,12 @@ namespace EdjCase.JsonRpc.Router
 			return path1.Equals(path2);
 		}
 
-		public static bool operator !=(RpcPath path1, RpcPath path2)
+		public static bool operator !=(RpcPath? path1, RpcPath? path2)
 		{
 			return !(path1 == path2);
 		}
 
-		public bool StartsWith(RpcPath other)
+		public bool StartsWith(RpcPath? other)
 		{
 			if (other == null)
 			{
@@ -57,7 +57,7 @@ namespace EdjCase.JsonRpc.Router
 			return true;
 		}
 
-		public bool Equals(RpcPath other)
+		public bool Equals(RpcPath? other)
 		{
 			if (object.ReferenceEquals(other, null))
 			{
@@ -67,7 +67,7 @@ namespace EdjCase.JsonRpc.Router
 		}
 
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			if (obj is RpcPath path)
 			{
@@ -100,22 +100,22 @@ namespace EdjCase.JsonRpc.Router
 		/// <returns>Rpc path based on the path string</returns>
 		public static RpcPath Parse(ReadOnlySpan<char> path)
 		{
-			if (!RpcPath.TryParse(path, out RpcPath rpcPath))
+			if (!RpcPath.TryParse(path, out RpcPath? rpcPath))
 			{
 				throw new RpcException(RpcErrorCode.ParseError, $"Rpc path could not be parsed from '{new string(path.ToArray())}'.");
 			}
-			return rpcPath;
+			return rpcPath!;
 		}
 		/// <summary>
 		/// Creates a <see cref="RpcPath"/> based on the string form of the path
 		/// </summary>
 		/// <param name="path">Uri/route path</param>
 		/// <returns>True if the path parses, otherwise false</returns>
-		public static bool TryParse(ReadOnlySpan<char> path, out RpcPath rpcPath)
+		public static bool TryParse(ReadOnlySpan<char> path, out RpcPath? rpcPath)
 		{
 			if (path.IsEmpty)
 			{
-				rpcPath = default;
+				rpcPath = null;
 				return true;
 			}
 			else
@@ -180,9 +180,9 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		/// <param name="basePath">Base path to remove</param>
 		/// <returns>A new path that is the full path without the base path</returns>
-		public RpcPath RemoveBasePath(RpcPath basePath)
+		public RpcPath? RemoveBasePath(RpcPath basePath)
 		{
-			if (!this.TryRemoveBasePath(basePath, out RpcPath path))
+			if (!this.TryRemoveBasePath(basePath, out RpcPath? path))
 			{
 				throw new RpcException(RpcErrorCode.ParseError, $"Count not remove path '{basePath}' from path '{this}'.");
 			}
@@ -194,9 +194,9 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		/// <param name="basePath">Base path to remove</param>
 		/// <returns>True if removed the base path. Otherwise false</returns>
-		public bool TryRemoveBasePath(RpcPath basePath, out RpcPath path)
+		public bool TryRemoveBasePath(RpcPath? basePath, out RpcPath? path)
 		{
-			if (basePath == default)
+			if (basePath == null)
 			{
 				path = this.Clone();
 				return true;

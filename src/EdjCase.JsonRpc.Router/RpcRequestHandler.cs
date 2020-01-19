@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace EdjCase.JsonRpc.Router
 {
-	public class RpcRequestHandler : IRpcRequestHandler
+	internal class RpcRequestHandler : IRpcRequestHandler
 	{
 		/// <summary>
 		/// Configuration data for the server
@@ -69,7 +69,7 @@ namespace EdjCase.JsonRpc.Router
 					string batchLimitError = $"Request count exceeded batch request limit ({batchLimit}).";
 					responses = new List<RpcResponse>
 					{
-						new RpcResponse(null, new RpcError(RpcErrorCode.InvalidRequest, batchLimitError))
+						new RpcResponse(new RpcId(), new RpcError(RpcErrorCode.InvalidRequest, batchLimitError))
 					};
 					this.logger.LogError(batchLimitError + " Returning error response.");
 				}
@@ -112,7 +112,7 @@ namespace EdjCase.JsonRpc.Router
 			catch (RpcException ex)
 			{
 				this.logger.LogException(ex, "Error occurred when proccessing Rpc request. Sending Rpc error response");
-				var response = new RpcResponse(null, ex.ToRpcError(this.serverConfig.Value.ShowServerExceptions));
+				var response = new RpcResponse(new RpcId(), ex.ToRpcError(this.serverConfig.Value.ShowServerExceptions));
 				await this.responseSerializer.SerializeAsync(response, responseBody);
 			}
 			return true;

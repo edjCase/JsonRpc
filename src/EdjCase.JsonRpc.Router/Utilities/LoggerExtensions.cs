@@ -8,7 +8,7 @@ using System.Text;
 
 namespace EdjCase.JsonRpc.Router.Utilities
 {
-	public static class LoggerExtensions
+	internal static class LoggerExtensions
 	{
 		private static readonly Action<ILogger, string, Exception?> attemptingToMatchMethod;
 		private static readonly Action<ILogger, Exception?> requestMatchedMethod;
