@@ -60,9 +60,9 @@ namespace EdjCase.JsonRpc.Router
 			return this;
 		}
 
-		public IRpcMethodProvider Resolve()
+		internal StaticRpcMethodData Resolve()
 		{
-			return new StaticRpcMethodProvider(this.baseMethods, this.methods);
+			return new StaticRpcMethodData(this.baseMethods, this.methods);
 		}
 
 		private IEnumerable<MethodInfo> Extract(Type controllerType)

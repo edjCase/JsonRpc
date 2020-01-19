@@ -5,14 +5,19 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Security.Claims;
 
-public interface IRouteContext
+public interface IRpcContext
 {
 	IServiceProvider RequestServices { get; }
 	ClaimsPrincipal User { get; }
-	IRpcMethodProvider MethodProvider { get; }
+	RpcPath? Path { get; }
+}
+
+public interface IRpcContextAccessor
+{
+	IRpcContext Value { get; set; }
 }
 
 public interface IRpcMethodProvider
 {
-	bool TryGetByPath(RpcPath path, out IReadOnlyList<MethodInfo> methods);
+	IReadOnlyList<MethodInfo> Get();
 }

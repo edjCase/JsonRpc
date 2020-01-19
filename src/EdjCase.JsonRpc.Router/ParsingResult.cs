@@ -60,10 +60,10 @@ namespace EdjCase.JsonRpc.Router
 	internal class RpcRequestParseResult
 	{
 		public RpcId Id { get; }
-		public string Method { get; }
-		public RpcParameters Parameters { get; }
-		public RpcError Error { get; }
-		private RpcRequestParseResult(RpcId id, string method, RpcParameters parameters, RpcError error)
+		public string? Method { get; }
+		public RpcParameters? Parameters { get; }
+		public RpcError? Error { get; }
+		private RpcRequestParseResult(RpcId id, string? method, RpcParameters? parameters, RpcError? error)
 		{
 			this.Id = id;
 			this.Method = method;
@@ -78,7 +78,7 @@ namespace EdjCase.JsonRpc.Router
 
 		public static RpcRequestParseResult Fail(RpcId id, RpcError error)
 		{
-			return new RpcRequestParseResult(id, null, default, error);
+			return new RpcRequestParseResult(id, null, null, error);
 		}
 	}
 
@@ -86,8 +86,8 @@ namespace EdjCase.JsonRpc.Router
 	{
 		public RpcId Id { get; }
 		public string Method { get; }
-		public RpcParameters Parameters { get; }
-		public RpcRequest(RpcId id, string method, RpcParameters parameters = null)
+		public RpcParameters? Parameters { get; }
+		public RpcRequest(RpcId id, string method, RpcParameters? parameters = null)
 		{
 			this.Id = id;
 			this.Method = method;
@@ -106,15 +106,19 @@ namespace EdjCase.JsonRpc.Router
 			this.IsDictionary = true;
 		}
 
-		public RpcParameters(List<IRpcParameter> parameters)
+		public RpcParameters(IRpcParameter parameter)
 		{
-			this.Value = parameters ?? throw new ArgumentNullException(nameof(parameters));
+			if(parameter == null)
+			{
+				throw new ArgumentNullException(nameof(parameter));
+			}
+			this.Value = new IRpcParameter[1] { parameter };
 			this.IsDictionary = false;
 		}
 
 		public RpcParameters(params IRpcParameter[] parameters)
 		{
-			this.Value = parameters?.ToList() ?? throw new ArgumentNullException(nameof(parameters));
+			this.Value = parameters ?? throw new ArgumentNullException(nameof(parameters));
 			this.IsDictionary = false;
 		}
 
@@ -127,12 +131,12 @@ namespace EdjCase.JsonRpc.Router
 			}
 		}
 
-		public List<IRpcParameter> AsList
+		public IRpcParameter[] AsArray
 		{
 			get
 			{
 				this.CheckValue(isDictionary: false);
-				return (List<IRpcParameter>)this.Value;
+				return (IRpcParameter[])this.Value;
 			}
 		}
 
@@ -150,14 +154,27 @@ namespace EdjCase.JsonRpc.Router
 			{
 				return this.AsDictionary.Any();
 			}
-			return this.AsList.Any();
+			return this.AsArray.Any();
 		}
 	}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 	public interface IRpcParameter
 	{
 		RpcParameterType Type { get; }
-		bool TryGetValue(Type type, out object value);
+		bool TryGetValue(Type type, out object? value);
 	}
 
 	public enum RpcParameterType
@@ -173,7 +190,7 @@ namespace EdjCase.JsonRpc.Router
 	{
 		public static bool TryGetValue<T>(this IRpcParameter parameter, out T value)
 		{
-			bool parsed = parameter.TryGetValue(typeof(T), out object v);
+			bool parsed = parameter.TryGetValue(typeof(T), out object? v);
 			if (parsed)
 			{
 				value = (T)v;
@@ -269,7 +286,7 @@ namespace EdjCase.JsonRpc.Router
 			this.serializerOptions = serializerOptions;
 		}
 
-		public bool TryGetValue(Type type, out object value)
+		public bool TryGetValue(Type type, out object? value)
 		{
 			if (this.Type == RpcParameterType.Null)
 			{

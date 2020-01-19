@@ -125,7 +125,8 @@ namespace Microsoft.AspNetCore.Builder
 
 			var options = new RpcEndpointBuilder();
 			builder.Invoke(options);
-			return app.UseJsonRpc(options.Resolve());
+			StaticRpcMethodData data = options.Resolve();
+			return app.UseJsonRpc(data);
 		}
 
 		/// <summary>
@@ -134,22 +135,28 @@ namespace Microsoft.AspNetCore.Builder
 		/// <param name="app"><see cref="IApplicationBuilder"/> that is supplied by Asp.Net</param>
 		/// <param name="methodProvider">All the available methods to call</param>
 		/// <returns><see cref="IApplicationBuilder"/> that includes the Basic auth middleware</returns>
-		public static IApplicationBuilder UseJsonRpc(this IApplicationBuilder app, IRpcMethodProvider methodProvider)
+		internal static IApplicationBuilder UseJsonRpc(this IApplicationBuilder app, StaticRpcMethodData data)
 		{
 			if (app == null)
 			{
 				throw new ArgumentNullException(nameof(app));
 			}
-			if (methodProvider == null)
+			if (data == null)
 			{
-				throw new ArgumentNullException(nameof(methodProvider));
+				throw new ArgumentNullException(nameof(data));
 			}
 			if (app.ApplicationServices.GetService<RpcServicesMarker>() == null)
 			{
 				throw new InvalidOperationException("AddJsonRpc() needs to be called in the ConfigureServices method.");
 			}
-			var router = new RpcHttpRouter(methodProvider);
-			return app.UseRouter(router);
+			var router = new RpcHttpRouter();
+			return app
+				.Use((context, next) =>
+				{
+					context.RequestServices.GetRequiredService<StaticRpcMethodDataAccessor>().Value = data;
+					return next();
+				})
+				.UseRouter(router);
 		}
 
 	}
@@ -187,7 +194,7 @@ namespace Microsoft.AspNetCore.Builder
 
 		public static IRpcBuilder WithOptions(this IRpcBuilder builder, RpcServerConfiguration configuration)
 		{
-			builder.Services.AddSingleton<IOptions<RpcServerConfiguration>>(Options.Create(configuration));
+			builder.Services.AddSingleton(Options.Create(configuration));
 			return builder;
 		}
 

@@ -6,6 +6,8 @@
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <AssemblyName>EdjCase.JsonRpc.Router.Tests</AssemblyName>
     <PackageId>EdjCase.JsonRpc.Router.Tests</PackageId>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
 	<IsTestProject>true</IsTestProject>
   </PropertyGroup>
 

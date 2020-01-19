@@ -28,30 +28,29 @@ namespace PerformanceTests
 			var options = Options.Create(new RpcServerConfiguration());
 			const string methodName = "Ping";
 			MethodInfo methodInfo = typeof(Controllers.TestController).GetMethod(methodName);
-			var info = new RpcMethodInfo(methodInfo, parameters: new object[0]);
+			var info = new RpcMethodInfo(methodInfo, parameters: new RpcParameterInfo[0]);
 			var rpcRequestMatcher = new FakeRequestMatcher(info);
-			var invoker = new DefaultRpcInvoker(authorizationService, policyProvider, logger, options, rpcRequestMatcher);
-
-			var request = new RpcRequest(id: null, methodName);
-			RpcPath path = "Test";
+			var contextAccessor = new FakeContextAccessor();
 			var user = new ClaimsPrincipal();
 			IServiceProvider serviceProvider = null;
-			var methods = new FakeRpcMethodProvider(methodInfo, path);
-			var routeContext = new DefaultRouteContext(serviceProvider, user, methods);
+			contextAccessor.Value = new DefaultRpcContext(serviceProvider, user);
+			var invoker = new DefaultRpcInvoker(authorizationService, policyProvider, logger, options, rpcRequestMatcher, contextAccessor);
 
-            var stopwatch = Stopwatch.StartNew();
-            const int total = 1_000_000;
-            int onePercent = (int)(total * .01);
-            for (int i = 0; i < total; i++)
-            {
-                await invoker.InvokeRequestAsync(request, routeContext, path);
-                if (i % onePercent == 0)
-                {
-                    Console.WriteLine(i / onePercent);
-                }
-            }
-            stopwatch.Stop();
-            Console.WriteLine(stopwatch.Elapsed);
+			var request = new RpcRequest(id: null, methodName);
+
+			var stopwatch = Stopwatch.StartNew();
+			const int total = 1_000_000;
+			int onePercent = (int)(total * .01);
+			for (int i = 0; i < total; i++)
+			{
+				await invoker.InvokeRequestAsync(request);
+				if (i % onePercent == 0)
+				{
+					Console.WriteLine(i / onePercent);
+				}
+			}
+			stopwatch.Stop();
+			Console.WriteLine(stopwatch.Elapsed);
 		}
 
 		private class FakeAuthorizationService : IAuthorizationService
@@ -115,12 +114,12 @@ namespace PerformanceTests
 		private class FakeRequestMatcher : IRpcRequestMatcher
 		{
 			private RpcMethodInfo method { get; }
-			public FakeRequestMatcher(EdjCase.JsonRpc.Router.RpcMethodInfo method)
+			public FakeRequestMatcher(RpcMethodInfo method)
 			{
 				this.method = method;
 			}
 
-			public RpcMethodInfo GetMatchingMethod(RpcRequest request, IReadOnlyList<MethodInfo> methods)
+			public RpcMethodInfo GetMatchingMethod(RpcRequestSignature requestSignature)
 			{
 				return this.method;
 			}
@@ -137,23 +136,24 @@ namespace PerformanceTests
 		public class FakeRpcMethodProvider : IRpcMethodProvider
 		{
 			private List<MethodInfo> methods { get; }
-			private RpcPath path { get; }
-			public FakeRpcMethodProvider(MethodInfo info, RpcPath path = null)
+			public FakeRpcMethodProvider(MethodInfo info)
 			{
 				this.methods = new List<MethodInfo> { info };
-				this.path = path;
 			}
 
-			public bool TryGetByPath(RpcPath path, out IReadOnlyList<MethodInfo> methods)
+			public IReadOnlyList<MethodInfo> Get()
 			{
-				if (path != this.path)
-				{
-					methods = null;
-					return false;
-				}
-				methods = this.methods;
-				return true;
+				return this.methods;
 			}
 		}
+	}
+
+	internal class FakeContextAccessor : IRpcContextAccessor
+	{
+		public FakeContextAccessor()
+		{
+		}
+
+		public IRpcContext Value { get; set; }
 	}
 }

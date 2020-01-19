@@ -5,31 +5,44 @@ namespace EdjCase.JsonRpc.Router
 {
 	internal class StaticRpcMethodProvider : IRpcMethodProvider
 	{
-		private List<MethodInfo> baseMethods { get; }
-		private Dictionary<RpcPath, List<MethodInfo>> methods { get; }
+		private StaticRpcMethodDataAccessor dataAccessor { get; }
+		private IRpcContextAccessor contextAccessor { get; }
 
-		public StaticRpcMethodProvider(List<MethodInfo> baseMethods, Dictionary<RpcPath, List<MethodInfo>> methods)
+		public StaticRpcMethodProvider(StaticRpcMethodDataAccessor dataAccessor,
+			IRpcContextAccessor contextAccessor)
 		{
-			this.baseMethods = baseMethods;
-			this.methods = methods;
+			this.dataAccessor = dataAccessor;
+			this.contextAccessor = contextAccessor;
 		}
 
-		public bool TryGetByPath(RpcPath path, out IReadOnlyList<MethodInfo> methods)
+		public IReadOnlyList<MethodInfo> Get()
 		{
-			if (path == null)
+			IRpcContext context = this.contextAccessor.Value;
+			StaticRpcMethodData data = this.dataAccessor.Value;
+			if (context.Path == null)
 			{
-				methods = this.baseMethods;
-				return true;
+				return data.BaseMethods;
 			}
-			bool result = this.methods.TryGetValue(path, out List<MethodInfo> m);
+			bool result = data.Methods.TryGetValue(context.Path, out List<MethodInfo> m);
 
-			if (result)
-			{
-				methods = m;
-				return true;
-			}
-			methods = null;
-			return false;
+			return result ? m : null;
 		}
+	}
+
+	internal class StaticRpcMethodData
+	{
+		public List<MethodInfo> BaseMethods { get; }
+		public Dictionary<RpcPath, List<MethodInfo>> Methods { get; }
+
+		public StaticRpcMethodData(List<MethodInfo> baseMethods, Dictionary<RpcPath, List<MethodInfo>> methods)
+		{
+			this.BaseMethods = baseMethods;
+			this.Methods = methods;
+		}
+	}
+
+	internal class StaticRpcMethodDataAccessor
+	{
+		public StaticRpcMethodData Value { get; set;}
 	}
 }

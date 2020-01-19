@@ -10,28 +10,28 @@ namespace EdjCase.JsonRpc.Router.Utilities
 {
 	public static class LoggerExtensions
 	{
-		private static readonly Action<ILogger, string, Exception> attemptingToMatchMethod;
-		private static readonly Action<ILogger, Exception> requestMatchedMethod;
-		private static readonly Action<ILogger, string, Exception> methodsInRoute;
+		private static readonly Action<ILogger, string, Exception?> attemptingToMatchMethod;
+		private static readonly Action<ILogger, Exception?> requestMatchedMethod;
+		private static readonly Action<ILogger, string, Exception?> methodsInRoute;
 		private const LogLevel methodsInRouteLevel = LogLevel.Trace;
-		private static readonly Action<ILogger, int, Exception> invokingBatchRequests;
-		private static readonly Action<ILogger, Exception> batchRequestsComplete;
-		private static readonly Action<ILogger, RpcId, Exception> invokingRequest;
-		private static readonly Action<ILogger, string, Exception> invokeMethod;
-		private static readonly Action<ILogger, string, Exception> invokeMethodComplete;
-		private static readonly Action<ILogger, RpcId, Exception> finishedRequest;
-		private static readonly Action<ILogger, Exception> finishedRequestNoId;
-		private static readonly Action<ILogger, Exception> skippingAuth;
-		private static readonly Action<ILogger, Exception> runningAuth;
-		private static readonly Action<ILogger, Exception> authSuccessful;
-		private static readonly Action<ILogger, Exception> authFailed;
-		private static readonly Action<ILogger, Exception> noConfiguredAuth;
-		private static readonly Action<ILogger, Exception> parsingRequests;
-		private static readonly Action<ILogger, int, Exception> parsedRequests;
-		private static readonly Action<ILogger, int, Exception> processingRequests;
-		private static readonly Action<ILogger, int, string, Exception> responseFailedWithNoId;
-		private static readonly Action<ILogger, Exception> noResponses;
-		private static readonly Action<ILogger, int, Exception> responses;
+		private static readonly Action<ILogger, int, Exception?> invokingBatchRequests;
+		private static readonly Action<ILogger, Exception?> batchRequestsComplete;
+		private static readonly Action<ILogger, RpcId, Exception?> invokingRequest;
+		private static readonly Action<ILogger, string, Exception?> invokeMethod;
+		private static readonly Action<ILogger, string, Exception?> invokeMethodComplete;
+		private static readonly Action<ILogger, RpcId, Exception?> finishedRequest;
+		private static readonly Action<ILogger, Exception?> finishedRequestNoId;
+		private static readonly Action<ILogger, Exception?> skippingAuth;
+		private static readonly Action<ILogger, Exception?> runningAuth;
+		private static readonly Action<ILogger, Exception?> authSuccessful;
+		private static readonly Action<ILogger, Exception?> authFailed;
+		private static readonly Action<ILogger, Exception?> noConfiguredAuth;
+		private static readonly Action<ILogger, Exception?> parsingRequests;
+		private static readonly Action<ILogger, int, Exception?> parsedRequests;
+		private static readonly Action<ILogger, int, Exception?> processingRequests;
+		private static readonly Action<ILogger, int, string, Exception?> responseFailedWithNoId;
+		private static readonly Action<ILogger, Exception?> noResponses;
+		private static readonly Action<ILogger, int, Exception?> responses;
 
 		static LoggerExtensions()
 		{
@@ -141,7 +141,7 @@ namespace EdjCase.JsonRpc.Router.Utilities
 				"{Count} rpc response(s) created.");
 
 		}
-		public static void LogException(this ILogger logger, Exception ex, string message = null)
+		public static void LogException(this ILogger logger, Exception ex, string? message = null)
 		{
 			//Log error ignores the exception for some reason
 			if (message != null)

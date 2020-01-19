@@ -122,7 +122,7 @@ namespace EdjCase.JsonRpc.Router.Tests
             {
                 Assert.NotEqual(default(RpcParameters), jParameters);
                 Assert.False(jParameters.IsDictionary);
-                Assert.Equal(parameters.Length, jParameters.AsList.Count);
+                Assert.Equal(parameters.Length, jParameters.AsArray.Length);
                 //TODO compare types?
             }
             else

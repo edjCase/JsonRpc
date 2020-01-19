@@ -20,7 +20,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		{
 			const string expected = "Test";
 			JsonBytesRpcParameter param = this.BuildParam($"\"{expected}\"");
-			bool parsed = param.TryGetValue(out string actual);
+			bool parsed = param.TryGetValue(out string? actual);
 			Assert.True(parsed);
 			Assert.Equal(expected, actual);
 		}
@@ -30,7 +30,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		{
 			JsonBytesRpcParameter param = this.BuildParam("1");
 
-			bool parsed = param.TryGetValue(out int actual);
+			bool parsed = param.TryGetValue(out int? actual);
 			Assert.True(parsed);
 			Assert.Equal(1, actual);
 

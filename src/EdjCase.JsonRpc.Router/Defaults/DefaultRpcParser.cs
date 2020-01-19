@@ -174,7 +174,8 @@ namespace EdjCase.JsonRpc.Router.Defaults
 										IRpcParameter parameter = this.GetParameter(ref jsonReader, bytes);
 										list.Add(parameter);
 									}
-									ps = new RpcParameters(list);
+									//TODO array vs list?
+									ps = new RpcParameters(list.ToArray());
 									break;
 								case JsonTokenType.StartObject:
 									jsonReader.Read();

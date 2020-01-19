@@ -27,12 +27,6 @@ namespace EdjCase.JsonRpc.Router
 	{
 		private static readonly char[] encodingSeperators = new[] { ',', ' ' };
 
-		private IRpcMethodProvider methodProvider { get; }
-		public RpcHttpRouter(IRpcMethodProvider methodProvider)
-		{
-			this.methodProvider = methodProvider;
-		}
-
 		/// <summary>
 		/// Generates the virtual path data for the router
 		/// </summary>
@@ -72,14 +66,14 @@ namespace EdjCase.JsonRpc.Router
 
 
 				IRpcRequestHandler requestHandler = context.HttpContext.RequestServices.GetRequiredService<IRpcRequestHandler>();
-				var routeContext = DefaultRouteContext.FromHttpContext(context.HttpContext, this.methodProvider);
-
+				var routeContext = DefaultRpcContext.FromHttpContext(context.HttpContext, requestPath);
+				context.HttpContext.RequestServices.GetRequiredService<IRpcContextAccessor>().Value = routeContext;
 				Stream writableStream = this.BuildWritableResponseStream(context.HttpContext);
 				using (var requestBody = new MemoryStream())
 				{
 					await context.HttpContext.Request.Body.CopyToAsync(requestBody);
 					requestBody.Position = 0;
-					bool hasResponse = await requestHandler.HandleRequestAsync(requestPath, requestBody, routeContext, writableStream);
+					bool hasResponse = await requestHandler.HandleRequestAsync(requestBody, writableStream);
 					if (!hasResponse)
 					{
 						//No response required, but status code must be 204

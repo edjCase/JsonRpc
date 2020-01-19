@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Security.Claims;
 using BenchmarkDotNet.Analysers;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Configs;
@@ -29,29 +30,28 @@ namespace Benchmarks
 	public class RequestMatcherTester
 	{
 		private IRpcRequestMatcher requestMatcher;
-		private List<MethodInfo> methods;
 
 		[GlobalSetup]
 		public void GlobalSetup()
 		{
-			var config = new RpcServerConfiguration();
 			var logger = new FakeLogger<DefaultRequestMatcher>();
-			this.requestMatcher = new DefaultRequestMatcher(logger, Options.Create(config));
-			this.methods = typeof(MethodClass).GetTypeInfo().GetMethods().ToList();
+			var contextAccessor = new FakeContextAccessor();
+			var methodProvider = new FakeMethodProvider();
+			this.requestMatcher = new DefaultRequestMatcher(logger, contextAccessor, methodProvider);
 		}
 
-		private RpcRequest request;
+		private RpcRequestSignature requestsignature;
 
 		[IterationSetup(Target = nameof(NoParamsNoReturn))]
 		public void IterationSetup()
 		{
-			this.request = new RpcRequest(1, "NoParamsNoReturn");
+			this.requestsignature = RpcRequestSignature.Create(new RpcRequest(1, "NoParamsNoReturn"));
 		}
 
 		[Benchmark]
 		public void NoParamsNoReturn()
 		{
-			this.requestMatcher.GetMatchingMethod(request, this.methods);
+			this.requestMatcher.GetMatchingMethod(requestsignature);
 		}
 
 		[IterationSetup(Target = nameof(ComplexParamNoReturn))]
@@ -69,13 +69,13 @@ namespace Benchmarks
 				}
 			};
 			var param = new RawRpcParameter(RpcParameterType.Object, complexParam);
-			this.request = new RpcRequest(1, "ComplexParamNoReturn", new RpcParameters(param));
+			this.requestsignature = RpcRequestSignature.Create(new RpcRequest(1, "ComplexParamNoReturn", new RpcParameters(param)));
 		}
 
 		[Benchmark]
 		public void ComplexParamNoReturn()
 		{
-			this.requestMatcher.GetMatchingMethod(request, this.methods);
+			this.requestMatcher.GetMatchingMethod(requestsignature);
 		}
 
 
@@ -88,17 +88,17 @@ namespace Benchmarks
 				{"b",  new RawRpcParameter(RpcParameterType.Boolean, true) },
 				{"c",  new RawRpcParameter(RpcParameterType.String, "Test") }
 			};
-			this.request = new RpcRequest(1, "SimpleParamsNoReturn", new RpcParameters(parameters));
+			this.requestsignature = RpcRequestSignature.Create(new RpcRequest(1, "SimpleParamsNoReturn", new RpcParameters(parameters)));
 		}
 
 		[Benchmark]
 		public void SimpleParamsNoReturn()
 		{
-			this.requestMatcher.GetMatchingMethod(request, this.methods);
+			this.requestMatcher.GetMatchingMethod(requestsignature);
 		}
 
 
-		public class MethodClass
+		internal class MethodClass
 		{
 			public void NoParamsNoReturn()
 			{
@@ -125,6 +125,34 @@ namespace Benchmarks
 				public ComplexParam C { get; set; }
 			}
 		}
+	}
+
+	internal class FakeMethodProvider : IRpcMethodProvider
+	{
+		private List<MethodInfo> methods;
+		public FakeMethodProvider()
+		{
+			this.methods = typeof(RequestMatcherTester.MethodClass).GetTypeInfo().GetMethods().ToList();
+		}
+
+		public IReadOnlyList<MethodInfo> Get()
+		{
+			return this.methods;
+		}
+	}
+
+	internal class FakeContextAccessor : IRpcContextAccessor
+	{
+		public IRpcContext Value { get; set; } = new FakeRpcContext();
+	}
+
+	internal class FakeRpcContext : IRpcContext
+	{
+		public IServiceProvider RequestServices => throw new NotImplementedException();
+
+		public ClaimsPrincipal User => throw new NotImplementedException();
+
+		public RpcPath Path { get; } = null;
 	}
 
 	public class FakeLogger<T> : ILogger<T>

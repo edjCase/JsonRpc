@@ -55,7 +55,7 @@ namespace EdjCase.JsonRpc.Router
 			this.logger = logger;
 		}
 
-		public async Task<bool> HandleRequestAsync(RpcPath requestPath, Stream requestBody, IRouteContext routeContext, Stream responseBody)
+		public async Task<bool> HandleRequestAsync(Stream requestBody, Stream responseBody)
 		{
 			try
 			{
@@ -77,7 +77,7 @@ namespace EdjCase.JsonRpc.Router
 				{
 					if (result.Requests.Any())
 					{
-						responses = await this.invoker.InvokeBatchRequestAsync(result.Requests, routeContext, requestPath);
+						responses = await this.invoker.InvokeBatchRequestAsync(result.Requests);
 					}
 					else
 					{
