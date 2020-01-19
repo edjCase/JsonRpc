@@ -36,7 +36,7 @@ namespace EdjCase.JsonRpc.Router
 				}
 				if (this.HasParameters)
 				{
-					int i = this.ParamStartIndex.Value;
+					int i = this.ParamStartIndex!.Value;
 					int currentKeyLength = 0;
 					for (; i < this.EndIndex; i++)
 					{
@@ -68,7 +68,7 @@ namespace EdjCase.JsonRpc.Router
 				}
 				if (this.HasParameters)
 				{
-					for (int i = this.ParamStartIndex.Value; i < this.EndIndex; i++)
+					for (int i = this.ParamStartIndex!.Value; i < this.EndIndex; i++)
 					{
 						yield return RpcRequestSignature.GetTypeFromChar(this.Values[i]);
 					}

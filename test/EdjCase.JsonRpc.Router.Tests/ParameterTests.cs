@@ -95,7 +95,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 		private class TestObject
 		{
-			public string String { get; set; }
+			public string? String { get; set; }
 			public DateTime DateTime { get; set; }
 			public int Integer { get; set; }
 			public decimal Decimal { get; set; }

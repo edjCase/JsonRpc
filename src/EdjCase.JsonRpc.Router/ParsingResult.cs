@@ -48,7 +48,7 @@ namespace EdjCase.JsonRpc.Router
 				}
 				else
 				{
-					requests.Add(new RpcRequest(result.Id, result.Method, result.Parameters));
+					requests.Add(new RpcRequest(result.Id, result.Method!, result.Parameters));
 				}
 			}
 			//safety check
@@ -223,14 +223,14 @@ namespace EdjCase.JsonRpc.Router
 	public class RawRpcParameter : IRpcParameter
 	{
 		public RpcParameterType Type { get; }
-		public object Value { get; }
-		public RawRpcParameter(RpcParameterType type, object value)
+		public object? Value { get; }
+		public RawRpcParameter(RpcParameterType type, object? value)
 		{
 			this.Type = type;
 			this.Value = value;
 		}
 
-		public bool TryGetValue(Type type, out object value)
+		public bool TryGetValue(Type type, out object? value)
 		{
 			if (this.Type == RpcParameterType.Null)
 			{
@@ -261,9 +261,9 @@ namespace EdjCase.JsonRpc.Router
 			TypeConverter parameterTypeConverter = TypeDescriptor.GetConverter(parameterType);
 			if (parameterTypeConverter != null)
 			{
-				if (typeConverter.CanConvertTo(type))
+				if (parameterTypeConverter.CanConvertTo(type))
 				{
-					value = typeConverter.ConvertTo(this.Value, type);
+					value = parameterTypeConverter.ConvertTo(this.Value, type);
 					return true;
 				}
 			}
@@ -277,9 +277,9 @@ namespace EdjCase.JsonRpc.Router
 	{
 		public RpcParameterType Type { get; }
 		private Memory<byte> bytes { get; }
-		private JsonSerializerOptions serializerOptions { get; }
+		private JsonSerializerOptions? serializerOptions { get; }
 
-		public JsonBytesRpcParameter(RpcParameterType type, Memory<byte> bytes, JsonSerializerOptions serializerOptions = null)
+		public JsonBytesRpcParameter(RpcParameterType type, Memory<byte> bytes, JsonSerializerOptions? serializerOptions = null)
 		{
 			this.Type = type;
 			this.bytes = bytes;

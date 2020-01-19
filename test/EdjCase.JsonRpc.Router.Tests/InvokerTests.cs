@@ -332,7 +332,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			return a;
 		}
 
-		public string Optional(string? test = null)
+		public string? Optional(string? test = null)
 		{
 			return test;
 		}
@@ -350,7 +350,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 	public class TestComplexParam
 	{
-		public string A { get; set; }
+		public string? A { get; set; }
 		public int B { get; set; }
 	}
 
