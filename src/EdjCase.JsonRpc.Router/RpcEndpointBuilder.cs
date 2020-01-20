@@ -62,7 +62,7 @@ namespace EdjCase.JsonRpc.Router
 
 		internal StaticRpcMethodData Resolve()
 		{
-			return new StaticRpcMethodData(this.baseMethods, this.methods);
+			return new StaticRpcMethodData(this.baseMethods.ToArray(), this.methods.ToDictionary(m => m.Key, m => m.Value.ToArray()));
 		}
 
 		private IEnumerable<MethodInfo> Extract(Type controllerType)

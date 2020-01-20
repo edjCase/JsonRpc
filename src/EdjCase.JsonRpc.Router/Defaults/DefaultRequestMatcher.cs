@@ -43,18 +43,18 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			//TODo avoid .ToString() here
 			this.logger.AttemptingToMatchMethod(requestSignature.GetMethodName().ToString());
 
-			IReadOnlyList<MethodInfo>? methods = this.methodProvider.Get();
+			MethodInfo[] methods = this.methodProvider.Get();
 			if (methods == null || !methods.Any())
 			{
 				throw new RpcException(RpcErrorCode.MethodNotFound, $"No methods found for route");
 			}
 
-			RpcMethodInfo[] compiledMethods = ArrayPool<RpcMethodInfo>.Shared.Rent(methods.Count);
+			RpcMethodInfo[] compiledMethods = ArrayPool<RpcMethodInfo>.Shared.Rent(methods.Length);
 			Span<RpcMethodInfo> matches;
 			try
 			{
 				this.FillRpcMethodInfos(methods, compiledMethods);
-				matches = this.FilterAndBuildMethodInfoByRequest(compiledMethods.AsMemory(0, methods.Count), requestSignature);
+				matches = this.FilterAndBuildMethodInfoByRequest(compiledMethods.AsMemory(0, methods.Length), requestSignature);
 			}
 			finally
 			{
@@ -120,14 +120,14 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			RpcParameterInfo ExtractParam(ParameterInfo parameterInfo)
 			{
 				Type parameterType = parameterInfo.ParameterType;
-				if (parameterType.IsGenericType)
-				{
-					Type realType = Nullable.GetUnderlyingType(parameterType);
-					if (realType != null)
-					{
-						parameterType = realType;
-					}
-				}
+				//if (parameterType.IsGenericType)
+				//{
+				//	Type realType = Nullable.GetUnderlyingType(parameterType);
+				//	if (realType != null)
+				//	{
+				//		parameterType = realType;
+				//	}
+				//}
 				RpcParameterType type;
 				if (parameterType == typeof(short)
 					|| parameterType == typeof(ushort)
@@ -241,12 +241,14 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			{
 				foreach ((Memory<char> name, RpcParameterType type) in requestSignature.ParametersAsDict)
 				{
+					bool found = false;
 					//TODO use a better matching system?
-					foreach (RpcParameterInfo parameter in parameters)
+					for (int paramIndex = 0; paramIndex < parameters.Length; paramIndex++)
 					{
-						if(parameter.Name.Length != name.Length)
+						RpcParameterInfo parameter = parameters[paramIndex];
+						if (parameter.Name.Length != name.Length)
 						{
-							return false;
+							continue;
 						}
 						for (int i = 0; i < name.Length; i++)
 						{
@@ -255,13 +257,19 @@ namespace EdjCase.JsonRpc.Router.Defaults
 								|| name.Span[i] != parameter.Name[i])
 							{
 								//Name doesnt match
-								return false;
+								continue;
 							}
 						}
 						if (!RpcParameterUtil.TypesCompatible(type, parameter.Type))
 						{
-							return false;
+							continue;
 						}
+						found = true;
+						break;
+					}
+					if (!found)
+					{
+						return false;
 					}
 					parameterCount++;
 				}
@@ -270,18 +278,20 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			{
 				foreach (RpcParameterType parameterType in requestSignature.ParametersAsList)
 				{
-					//TODO use a better matching system?
-					foreach (RpcParameterInfo parameter in parameters)
+					if (parameters.Length <= parameterCount)
 					{
-						if (!RpcParameterUtil.TypesCompatible(parameterType, parameter.Type))
-						{
-							return false;
-						}
+						return false;
 					}
+					RpcParameterInfo info = parameters[parameterCount];
+					if (!RpcParameterUtil.TypesCompatible(parameterType, info.Type))
+					{
+						return false;
+					}
+
 					parameterCount++;
 				}
 
-				
+
 				for (int i = parameterCount; i < parameters.Length; i++)
 				{
 					//Only if the last parameters in the method are optional does the request match

@@ -50,6 +50,10 @@ namespace Microsoft.AspNetCore.Builder
 				.TryAddScoped<IRpcResponseSerializer, DefaultRpcResponseSerializer>();
 			serviceCollection
 				.TryAddScoped<IRpcRequestMatcher, DefaultRequestMatcher>();
+			serviceCollection
+				.TryAddScoped<IRpcContextAccessor, DefaultContextAccessor>();
+			serviceCollection
+				.TryAddScoped<IRpcAuthorizationHandler, DefaultAuthorizationHandler>();
 
 			serviceCollection
 				.AddRouting()

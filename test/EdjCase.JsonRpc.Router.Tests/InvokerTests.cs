@@ -34,12 +34,10 @@ namespace EdjCase.JsonRpc.Router.Tests
 		private DefaultRpcInvoker GetInvoker(MethodInfo? methodInfo, RpcPath? path = null)
 
 		{
-			var authorizationService = new Mock<IAuthorizationService>();
-			var policyProvider = new Mock<IAuthorizationPolicyProvider>();
-			var logger = new Mock<ILogger<DefaultRpcInvoker>>();
-			var options = new Mock<IOptions<RpcServerConfiguration>>();
-			var matcher = new Mock<IRpcRequestMatcher>();
-			var accessor = new Mock<IRpcContextAccessor>();
+			var logger = new Mock<ILogger<DefaultRpcInvoker>>(MockBehavior.Loose);
+			var options = new Mock<IOptions<RpcServerConfiguration>>(MockBehavior.Strict);
+			var matcher = new Mock<IRpcRequestMatcher>(MockBehavior.Strict);
+			var accessor = new Mock<IRpcContextAccessor>(MockBehavior.Strict);
 			IRpcContext requestContext = this.GetRouteContext(path);
 			accessor
 				.SetupGet(a => a.Value)
@@ -61,8 +59,12 @@ namespace EdjCase.JsonRpc.Router.Tests
 			options
 				.SetupGet(o => o.Value)
 				.Returns(config);
+			var authHandler = new Mock<IRpcAuthorizationHandler>(MockBehavior.Strict);
+			authHandler
+				.Setup(h => h.IsAuthorizedAsync(It.IsAny<RpcMethodInfo>()))
+				.Returns(Task.FromResult(true));
 
-			return new DefaultRpcInvoker(authorizationService.Object, policyProvider.Object, logger.Object, options.Object, matcher.Object, accessor.Object);
+			return new DefaultRpcInvoker(logger.Object, options.Object, matcher.Object, accessor.Object, authHandler.Object);
 		}
 
 		private IServiceProvider GetServiceProvider()

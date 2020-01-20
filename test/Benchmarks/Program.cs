@@ -44,7 +44,7 @@ namespace Benchmarks
 		[IterationSetup(Target = nameof(NoParamsNoReturn))]
 		public void IterationSetup()
 		{
-			this.requestsignature = RpcRequestSignature.Create(new RpcRequest(1, "NoParamsNoReturn"));
+			this.requestsignature = RpcRequestSignature.Create(nameof(MethodClass.NoParamsNoReturn));
 		}
 
 		[Benchmark]
@@ -56,19 +56,7 @@ namespace Benchmarks
 		[IterationSetup(Target = nameof(ComplexParamNoReturn))]
 		public void ComplexIterationSetup()
 		{
-			var complexParam = new MethodClass.ComplexParam
-			{
-				A = "Test",
-				B = true,
-				C = new MethodClass.ComplexParam
-				{
-					A = "Test2",
-					B = false,
-					C = null
-				}
-			};
-			var param = new RawRpcParameter(RpcParameterType.Object, complexParam);
-			this.requestsignature = RpcRequestSignature.Create(new RpcRequest(1, "ComplexParamNoReturn", new RpcParameters(param)));
+			this.requestsignature = RpcRequestSignature.Create(nameof(MethodClass.ComplexParamNoReturn), new[] { RpcParameterType.Object });
 		}
 
 		[Benchmark]
@@ -81,13 +69,13 @@ namespace Benchmarks
 		[IterationSetup(Target = nameof(SimpleParamsNoReturn))]
 		public void SimpleIterationSetup()
 		{
-			var parameters = new Dictionary<string, IRpcParameter>
+			var parameters = new Dictionary<string, RpcParameterType>
 			{
-				{"a",  new RawRpcParameter(RpcParameterType.Number, 1) },
-				{"b",  new RawRpcParameter(RpcParameterType.Boolean, true) },
-				{"c",  new RawRpcParameter(RpcParameterType.String, "Test") }
+				{"a", RpcParameterType.Number },
+				{"b", RpcParameterType.Boolean },
+				{"c", RpcParameterType.String }
 			};
-			this.requestsignature = RpcRequestSignature.Create(new RpcRequest(1, "SimpleParamsNoReturn", new RpcParameters(parameters)));
+			this.requestsignature = RpcRequestSignature.Create(nameof(MethodClass.SimpleParamsNoReturn), parameters);
 		}
 
 		[Benchmark]
@@ -126,21 +114,12 @@ namespace Benchmarks
 
 	internal class FakeMethodProvider : IRpcMethodProvider
 	{
-		private static List<MethodInfo> methods = typeof(RequestMatcherTester.MethodClass).GetTypeInfo().GetMethods().ToList();
+		private static MethodInfo[] methods = typeof(RequestMatcherTester.MethodClass).GetTypeInfo().GetMethods().ToArray();
 
-		public IReadOnlyList<MethodInfo> Get()
+		public MethodInfo[] Get()
 		{
 			return FakeMethodProvider.methods;
 		}
-	}
-
-	internal class FakeRpcContext : IRpcContext
-	{
-		public IServiceProvider RequestServices => throw new NotImplementedException();
-
-		public ClaimsPrincipal User => throw new NotImplementedException();
-
-		public RpcPath Path { get; } = null;
 	}
 
 	public class FakeLogger<T> : ILogger<T>

@@ -51,7 +51,7 @@ namespace EdjCase.JsonRpc.Router
 				{
 					int i = this.ParamStartIndex!.Value;
 					int currentKeyLength = 0;
-					for (; i < this.EndIndex; i++)
+					for (; i <= this.EndIndex; i++)
 					{
 						if (this.Values[i] != RpcRequestSignature.delimiter)
 						{
@@ -81,7 +81,7 @@ namespace EdjCase.JsonRpc.Router
 				}
 				if (this.HasParameters)
 				{
-					for (int i = this.ParamStartIndex!.Value; i < this.EndIndex; i++)
+					for (int i = this.ParamStartIndex!.Value; i <= this.EndIndex; i++)
 					{
 						yield return RpcRequestSignature.GetTypeFromChar(this.Values[i]);
 					}
@@ -109,7 +109,7 @@ namespace EdjCase.JsonRpc.Router
 			return RpcRequestSignature.Create(request.Method, request.Parameters.AsDictionary.Select(p => new KeyValuePair<string, RpcParameterType>(p.Key, p.Value.Type)));
 		}
 
-		public static RpcRequestSignature Create(string methodName, IEnumerable<RpcParameterType>? parameters)
+		public static RpcRequestSignature Create(string methodName, IEnumerable<RpcParameterType>? parameters = null)
 		{
 			return RpcRequestSignature.CreateInternal(methodName, parameters);
 		}
@@ -193,7 +193,7 @@ namespace EdjCase.JsonRpc.Router
 						throw new ArgumentOutOfRangeException(nameof(parameters));
 				}
 			}
-			return new RpcRequestSignature(requestSignatureArray, methodEndIndex, parameterStartIndex, signatureLength, isDictionary);
+			return new RpcRequestSignature(requestSignatureArray, methodEndIndex, parameterStartIndex, signatureLength - 1, isDictionary);
 		}
 
 

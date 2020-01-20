@@ -30,15 +30,6 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		private ILogger<DefaultRpcInvoker> logger { get; }
 
 		/// <summary>
-		/// AspNet service to authorize requests
-		/// </summary>
-		private IAuthorizationService authorizationService { get; }
-		/// <summary>
-		/// Provides authorization policies for the authroziation service
-		/// </summary>
-		private IAuthorizationPolicyProvider policyProvider { get; }
-
-		/// <summary>
 		/// Configuration data for the server
 		/// </summary>
 		private IOptions<RpcServerConfiguration> serverConfig { get; }
@@ -48,27 +39,26 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// </summary>
 		private IRpcRequestMatcher rpcRequestMatcher { get; }
 		private IRpcContextAccessor contextAccessor { get; }
+		private IRpcAuthorizationHandler authorizationHandler { get; }
 
 		private ConcurrentDictionary<Type, ObjectFactory> objectFactoryCache { get; } = new ConcurrentDictionary<Type, ObjectFactory>();
-		private ConcurrentDictionary<Type, (List<IAuthorizeData>, bool)> classAttributeCache { get; } = new ConcurrentDictionary<Type, (List<IAuthorizeData>, bool)>();
-		private ConcurrentDictionary<RpcMethodInfo, (List<IAuthorizeData>, bool)> methodAttributeCache { get; } = new ConcurrentDictionary<RpcMethodInfo, (List<IAuthorizeData>, bool)>();
-
 
 		/// <param name="authorizationService">Service that authorizes each method for use if configured</param>
 		/// <param name="policyProvider">Provides authorization policies for the authroziation service</param>
 		/// <param name="logger">Optional logger for logging Rpc invocation</param>
 		/// <param name="serverConfig">Configuration data for the server</param>
 		/// <param name="rpcRequestMatcher">Matches the route method name and parameters to the correct method to execute</param>
-		public DefaultRpcInvoker(IAuthorizationService authorizationService, IAuthorizationPolicyProvider policyProvider,
-			ILogger<DefaultRpcInvoker> logger, IOptions<RpcServerConfiguration> serverConfig,
-			IRpcRequestMatcher rpcRequestMatcher, IRpcContextAccessor contextAccessor)
+		public DefaultRpcInvoker(ILogger<DefaultRpcInvoker> logger,
+			IOptions<RpcServerConfiguration> serverConfig,
+			IRpcRequestMatcher rpcRequestMatcher,
+			IRpcContextAccessor contextAccessor,
+			IRpcAuthorizationHandler authorizationHandler)
 		{
-			this.authorizationService = authorizationService;
-			this.policyProvider = policyProvider;
 			this.logger = logger;
 			this.serverConfig = serverConfig;
 			this.rpcRequestMatcher = rpcRequestMatcher;
 			this.contextAccessor = contextAccessor;
+			this.authorizationHandler = authorizationHandler;
 		}
 
 
@@ -129,14 +119,14 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					rpcMethod = this.rpcRequestMatcher.GetMatchingMethod(requestSignature);
 				}
 
-				IRpcContext routeContext = this.contextAccessor.Value;
-				bool isAuthorized = await this.IsAuthorizedAsync(rpcMethod, routeContext);
+				bool isAuthorized = await this.authorizationHandler.IsAuthorizedAsync(rpcMethod);
 
 				if (isAuthorized)
 				{
 					object[] realParameters = this.ParseParameters(request.Parameters, rpcMethod.Parameters);
 
 					this.logger.InvokeMethod(request.Method);
+					IRpcContext routeContext = this.contextAccessor.Value!;
 					object? result = await this.InvokeAsync(rpcMethod.MethodInfo, realParameters, routeContext);
 					this.logger.InvokeMethodComplete(request.Method);
 
@@ -282,84 +272,6 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 			return true;
 		}
-
-
-		private async Task<bool> IsAuthorizedAsync(RpcMethodInfo methodInfo, IRpcContext routeContext)
-		{
-			(List<IAuthorizeData> authorizeDataListClass, bool allowAnonymousOnClass) = this.classAttributeCache.GetOrAdd(methodInfo.MethodInfo.DeclaringType, GetClassAttributeInfo);
-			(List<IAuthorizeData> authorizeDataListMethod, bool allowAnonymousOnMethod) = this.methodAttributeCache.GetOrAdd(methodInfo, GetMethodAttributeInfo);
-
-			if (authorizeDataListClass.Any() || authorizeDataListMethod.Any())
-			{
-				if (allowAnonymousOnClass || allowAnonymousOnMethod)
-				{
-					this.logger.SkippingAuth();
-				}
-				else
-				{
-					this.logger.RunningAuth();
-					AuthorizationResult authResult = await this.CheckAuthorize(authorizeDataListClass, routeContext);
-					if (authResult.Succeeded)
-					{
-						//Have to pass both controller and method authorize
-						authResult = await this.CheckAuthorize(authorizeDataListMethod, routeContext);
-					}
-					if (authResult.Succeeded)
-					{
-						this.logger.AuthSuccessful();
-					}
-					else
-					{
-						this.logger.AuthFailed();
-						return false;
-					}
-				}
-			}
-			else
-			{
-				this.logger.NoConfiguredAuth();
-			}
-			return true;
-
-			//functions
-			(List<IAuthorizeData> Data, bool allowAnonymous) GetClassAttributeInfo(Type type)
-			{
-				return GetAttributeInfo(type.GetCustomAttributes());
-			}
-
-			(List<IAuthorizeData> Data, bool allowAnonymous) GetMethodAttributeInfo(RpcMethodInfo info)
-			{
-				return GetAttributeInfo(info.MethodInfo.GetCustomAttributes());
-			}
-			(List<IAuthorizeData> Data, bool allowAnonymous) GetAttributeInfo(IEnumerable<Attribute> attributes)
-			{
-				bool allowAnonymous = false;
-				var dataList = new List<IAuthorizeData>(10);
-				foreach (Attribute attribute in attributes)
-				{
-					if (attribute is IAuthorizeData data)
-					{
-						dataList.Add(data);
-					}
-					if (!allowAnonymous && attribute is IAllowAnonymous)
-					{
-						allowAnonymous = true;
-					}
-				}
-				return (dataList, allowAnonymous);
-			}
-		}
-
-		private async Task<AuthorizationResult> CheckAuthorize(List<IAuthorizeData> authorizeDataList, IRpcContext routeContext)
-		{
-			if (!authorizeDataList.Any())
-			{
-				return AuthorizationResult.Success();
-			}
-			AuthorizationPolicy policy = await AuthorizationPolicy.CombineAsync(this.policyProvider, authorizeDataList);
-			return await this.authorizationService.AuthorizeAsync(routeContext.User, policy);
-		}
-
 
 
 

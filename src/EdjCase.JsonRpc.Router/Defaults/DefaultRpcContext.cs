@@ -29,4 +29,9 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			return new DefaultRpcContext(httpContext.RequestServices, httpContext.User, path);
 		}
 	}
+
+	internal class DefaultContextAccessor : IRpcContextAccessor
+	{
+		public IRpcContext? Value { get; set; }
+	}
 }
