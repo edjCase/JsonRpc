@@ -105,7 +105,7 @@ namespace Microsoft.AspNetCore.Builder
 
 				foreach (Type type in controllers)
 				{
-					builder.AddControllerWithDefaultPath(type);
+					builder.AddController(type);
 				}
 			});
 		}
@@ -199,34 +199,6 @@ namespace Microsoft.AspNetCore.Builder
 		public static IRpcBuilder WithOptions(this IRpcBuilder builder, RpcServerConfiguration configuration)
 		{
 			builder.Services.AddSingleton(Options.Create(configuration));
-			return builder;
-		}
-
-		public static IRpcBuilder WithParser<T>(this IRpcBuilder builder)
-			where T : class, IRpcParser
-		{
-			builder.Services.AddScoped<IRpcParser, T>();
-			return builder;
-		}
-
-		public static IRpcBuilder WithCompressor<T>(this IRpcBuilder builder)
-			where T : class, IStreamCompressor
-		{
-			builder.Services.AddScoped<IStreamCompressor, T>();
-			return builder;
-		}
-
-		public static IRpcBuilder WithReponseSerializer<T>(this IRpcBuilder builder)
-			where T : class, IRpcResponseSerializer
-		{
-			builder.Services.AddScoped<IRpcResponseSerializer, T>();
-			return builder;
-		}
-
-		public static IRpcBuilder WithRequestMatcher<T>(this IRpcBuilder builder)
-			where T : class, IRpcRequestMatcher
-		{
-			builder.Services.AddScoped<IRpcRequestMatcher, T>();
 			return builder;
 		}
 	}

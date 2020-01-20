@@ -7,7 +7,7 @@ using EdjCase.JsonRpc.Common;
 
 namespace EdjCase.JsonRpc.Router.Abstractions
 {
-	public interface IRpcResponseSerializer
+	internal interface IRpcResponseSerializer
 	{
 		Task SerializeAsync(RpcResponse response, Stream stream);
 		Task SerializeBulkAsync(IEnumerable<RpcResponse> responses, Stream stream);

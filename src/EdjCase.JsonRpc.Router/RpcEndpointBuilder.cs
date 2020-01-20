@@ -11,18 +11,18 @@ namespace EdjCase.JsonRpc.Router
 		private List<MethodInfo> baseMethods { get; } = new List<MethodInfo>();
 		private Dictionary<RpcPath, List<MethodInfo>> methods { get; } = new Dictionary<RpcPath, List<MethodInfo>>();
 
-		public RpcEndpointBuilder AddMethod(RpcPath path, MethodInfo methodInfo)
+		public RpcEndpointBuilder AddMethod(MethodInfo methodInfo, RpcPath? path = null)
 		{
 			this.Add(path, methodInfo);
 			return this;
 		}
 
-		public RpcEndpointBuilder AddControllerWithDefaultPath<T>()
+		public RpcEndpointBuilder AddController<T>()
 		{
 			Type controllerType = typeof(T);
-			return this.AddControllerWithDefaultPath(controllerType);
+			return this.AddController(controllerType);
 		}
-		public RpcEndpointBuilder AddControllerWithDefaultPath(Type controllerType)
+		public RpcEndpointBuilder AddController(Type controllerType)
 		{
 			var attribute = controllerType.GetCustomAttribute<RpcRouteAttribute>(true);
 			ReadOnlySpan<char> routePathString;
@@ -42,15 +42,15 @@ namespace EdjCase.JsonRpc.Router
 				routePathString = attribute.RouteName.AsSpan();
 			}
 			RpcPath routePath = RpcPath.Parse(routePathString);
-			return this.AddController(controllerType, routePath);
+			return this.AddControllerWithCustomPath(controllerType, routePath);
 		}
 
-		public RpcEndpointBuilder AddController<T>(RpcPath? path = null)
+		public RpcEndpointBuilder AddControllerWithCustomPath<T>(RpcPath? path = null)
 		{
 			Type controllerType = typeof(T);
-			return this.AddController(controllerType, path);
+			return this.AddControllerWithCustomPath(controllerType, path);
 		}
-		public RpcEndpointBuilder AddController(Type type, RpcPath? path = null)
+		public RpcEndpointBuilder AddControllerWithCustomPath(Type type, RpcPath? path = null)
 		{
 			IEnumerable<MethodInfo> methods = RpcEndpointBuilder.Extract(type);
 			foreach (MethodInfo method in methods)

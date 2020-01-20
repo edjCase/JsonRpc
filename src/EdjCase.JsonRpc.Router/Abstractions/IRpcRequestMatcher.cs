@@ -6,7 +6,7 @@ using EdjCase.JsonRpc.Common;
 
 namespace EdjCase.JsonRpc.Router.Abstractions
 {
-	public interface IRpcRequestMatcher
+	internal interface IRpcRequestMatcher
 	{
 		/// <summary>
 		/// Finds the matching Rpc method for the current request

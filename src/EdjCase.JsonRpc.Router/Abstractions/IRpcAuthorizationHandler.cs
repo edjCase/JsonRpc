@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace EdjCase.JsonRpc.Router.Abstractions
 {
-	public interface IRpcAuthorizationHandler
+	internal interface IRpcAuthorizationHandler
 	{
 		Task<bool> IsAuthorizedAsync(RpcMethodInfo methodInfo);
 	}

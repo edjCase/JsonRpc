@@ -1,24 +1,29 @@
-
+﻿using EdjCase.JsonRpc.Common;
+using EdjCase.JsonRpc.Common.Tools;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
-using EdjCase.JsonRpc.Common.Tools;
-using Newtonsoft.Json;
 
 namespace EdjCase.JsonRpc.Client
 {
-	public class HttpRpcClientBuilder : RpcClientBuilder
+	public class HttpRpcClientBuilder
 	{
-		private IStreamCompressor? streamCompressor { get; set; }
 		private IHttpAuthHeaderFactory? httpAuthHeaderFactory { get; set; }
 		private HttpOptions options { get; } = new HttpOptions();
 
+		private Uri BaseUrl { get; }
+		private RpcEvents Events { get; } = new RpcEvents();
+		private JsonSerializerSettings jsonSerializerSettings { get; } = new JsonSerializerSettings();
+		private Dictionary<int, Type> errorTypes { get; } = new Dictionary<int, Type>();
+
+
 
 		public HttpRpcClientBuilder(Uri baseUrl)
-		: base(baseUrl)
 		{
+			this.BaseUrl = baseUrl;
 		}
 
 		public HttpRpcClientBuilder ConfigureHttp(Action<HttpOptions> configure)
@@ -68,41 +73,46 @@ namespace EdjCase.JsonRpc.Client
 			return this;
 		}
 
-		public HttpRpcClientBuilder UsingStreamCompressor(IStreamCompressor streamCompressor)
+		public HttpRpcClientBuilder ConfigureEvents(Action<RpcEvents> configure)
 		{
-			if (this.streamCompressor != null)
-			{
-				throw new InvalidOperationException("Stream compressor has already been configured.");
-			}
-			this.streamCompressor = streamCompressor;
+			configure(this.Events);
 			return this;
 		}
 
-		public new HttpRpcClientBuilder ConfigureEvents(Action<RpcEvents> configure)
+		public HttpRpcClientBuilder ConfigureSerializerSettings(Action<JsonSerializerSettings> configure)
 		{
-			return (HttpRpcClientBuilder)base.ConfigureEvents(configure);
+			configure(this.jsonSerializerSettings);
+			return this;
 		}
 
-		public new HttpRpcClientBuilder UsingRequestSerializer(IRequestSerializer requestSerializer)
+		public HttpRpcClientBuilder DeserializeErrorDataAs<T>(RpcErrorCode errorCode)
 		{
-			return (HttpRpcClientBuilder)base.UsingRequestSerializer(requestSerializer);
+			return this.DeserializeErrorDataAs<T>((int)errorCode);
+		}
+		public HttpRpcClientBuilder DeserializeErrorDataAs<T>(int errorCode)
+		{
+			return this.DeserializeErrorDataAs(errorCode, typeof(T));
+		}
+		public HttpRpcClientBuilder DeserializeErrorDataAs(int errorCode, Type type)
+		{
+			this.errorTypes.Add(errorCode, type);
+			return this;
 		}
 
-		public HttpRpcClientBuilder UsingDefaultJsonSerializer(JsonSerializerSettings? settings = null, IErrorDataSerializer? errorDataSerializer = null)
-		{
-			return (HttpRpcClientBuilder)base.UsingRequestSerializer(new DefaultRequestJsonSerializer(jsonSerializerSettings: settings, errorDataSerializer: errorDataSerializer));
-		}
 
-		public override RpcClient Build()
+		public RpcClient Build()
 		{
-			var requestSerializer = this.RequestSerializer ?? new DefaultRequestJsonSerializer();
+			var streamCompressor = new DefaultStreamCompressor();
+			var httpClientFactory = new DefaultHttpClientFactory();
 			var transportClient = new HttpRpcTransportClient(
+				streamCompressor,
+				httpClientFactory,
 				encoding: this.options.Encoding,
 				contentType: this.options.ContentType,
 				headers: this.options.Headers,
-				streamCompressor: this.streamCompressor,
 				httpAuthHeaderFactory: this.httpAuthHeaderFactory);
-			return new RpcClient(this.BaseUrl, requestSerializer, transportClient, this.Events);
+			var requestSerializer = new DefaultRequestJsonSerializer(this.jsonSerializerSettings);
+			return new RpcClient(this.BaseUrl, transportClient, requestSerializer, this.Events);
 		}
 
 		public class HttpOptions
@@ -113,37 +123,4 @@ namespace EdjCase.JsonRpc.Client
 		}
 	}
 
-	public abstract class RpcClientBuilder
-	{
-		protected Uri BaseUrl { get; }
-		protected IRequestSerializer? RequestSerializer { get; set; }
-		protected RpcEvents Events { get; } = new RpcEvents();
-
-		public RpcClientBuilder(Uri baseUrl)
-		{
-			this.BaseUrl = baseUrl;
-		}
-
-		public RpcClientBuilder ConfigureEvents(Action<RpcEvents> configure)
-		{
-			configure(this.Events);
-			return this;
-		}
-
-		public RpcClientBuilder UsingRequestSerializer(IRequestSerializer requestSerializer)
-		{
-			if (requestSerializer == null)
-			{
-				throw new ArgumentNullException(nameof(requestSerializer));
-			}
-			if (this.RequestSerializer != null)
-			{
-				throw new InvalidOperationException("Request serializer has already been configured.");
-			}
-			this.RequestSerializer = requestSerializer;
-			return this;
-		}
-
-		public abstract RpcClient Build();
-	}
 }

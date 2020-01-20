@@ -9,7 +9,7 @@ using EdjCase.JsonRpc.Router.Utilities;
 
 namespace EdjCase.JsonRpc.Router.Abstractions
 {
-	public interface IRpcRequestHandler
+	internal interface IRpcRequestHandler
 	{
 		Task<bool> HandleRequestAsync(Stream requestBody, Stream responseBody);
 
@@ -25,7 +25,10 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 						return null;
 					}
 					responseStream.Position = 0;
-					return await new StreamReader(responseStream).ReadToEndAsync();
+					using (var stream = new StreamReader(responseStream))
+					{
+						return await stream.ReadToEndAsync();
+					}
 				}
 			}
 		}

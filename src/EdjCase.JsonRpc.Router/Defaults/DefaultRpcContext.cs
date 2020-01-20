@@ -21,9 +21,9 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			this.Path = path;
 		}
 
-		public static IRpcContext FromHttpContext(HttpContext httpContext, RpcPath? path = null)
+		public static IRpcContext Build(IServiceProvider serviceProvider, RpcPath? path = null)
 		{
-			return new DefaultRpcContext(httpContext.RequestServices, path);
+			return new DefaultRpcContext(serviceProvider, path);
 		}
 	}
 

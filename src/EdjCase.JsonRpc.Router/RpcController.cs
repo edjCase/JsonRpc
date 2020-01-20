@@ -35,7 +35,20 @@ namespace EdjCase.JsonRpc.Router
 
 	public abstract class RpcErrorFilterAttribute : Attribute
 	{
-		public abstract OnExceptionResult OnException(IRpcContext context, Exception ex);
+		public abstract OnExceptionResult OnException(ExceptionContext context);
+
+	}
+	public class ExceptionContext
+	{
+		public RpcRequest Request { get; }
+		public IServiceProvider ServiceProvider { get; }
+		public Exception Exception { get; }
+		public ExceptionContext(RpcRequest request, IServiceProvider serviceProvider, Exception exception)
+		{
+			this.Request = request;
+			this.ServiceProvider = serviceProvider;
+			this.Exception = exception;
+		}
 	}
 
 	public class OnExceptionResult

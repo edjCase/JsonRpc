@@ -36,14 +36,12 @@ namespace EdjCase.JsonRpc.Client
 
 	public class ResponseEventContext
 	{
-		public TimeSpan Duration { get; }
 		public string ResponseJson { get; }
 		public List<RpcResponse>? Responses { get; }
 		public Exception? ClientError { get; }
 
-		public ResponseEventContext(TimeSpan duration, string responseJson, List<RpcResponse>? responses, Exception? clientError = null)
+		public ResponseEventContext(string responseJson, List<RpcResponse>? responses, Exception? clientError = null)
 		{
-			this.Duration = duration;
 			this.ResponseJson = responseJson;
 			this.Responses = responses;
 			this.ClientError = clientError;

@@ -6,13 +6,13 @@ using System.Text;
 
 namespace EdjCase.JsonRpc.Common.Tools
 {
-	public interface IStreamCompressor
+	internal interface IStreamCompressor
 	{
 		bool TryGetCompressionStream(Stream uncompressedStream, string encoding, CompressionMode mode, out Stream compressedStream);
 
 	}
 
-	public class DefaultStreamCompressor : IStreamCompressor
+	internal class DefaultStreamCompressor : IStreamCompressor
 	{
 
 		/// <summary>

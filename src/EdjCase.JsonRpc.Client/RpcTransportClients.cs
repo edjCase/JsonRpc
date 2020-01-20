@@ -18,12 +18,12 @@ using Microsoft.Extensions.Options;
 
 namespace EdjCase.JsonRpc.Client
 {
-	public interface IRpcTransportClient
+	internal interface IRpcTransportClient
 	{
 		Task<Stream> SendRequestAsync(Uri uri, Stream requestStream, CancellationToken cancellationToken = default);
 	}
 
-	public static class RpcTransportExtensions
+	internal static class RpcTransportExtensions
 	{
 		public static async Task<string> SendRequestAsync(this IRpcTransportClient client, Uri uri, string requestJson, CancellationToken cancellationToken = default)
 		{
@@ -40,7 +40,7 @@ namespace EdjCase.JsonRpc.Client
 		}
 	}
 
-	public class HttpRpcTransportClient : IRpcTransportClient
+	internal class HttpRpcTransportClient : IRpcTransportClient
 	{
 		/// <summary>
 		/// Request encoding type for json content. If null, will default to UTF-8 
@@ -64,51 +64,21 @@ namespace EdjCase.JsonRpc.Client
 
 		private IHttpClientFactory httpClientFactory { get; set; }
 
-		public HttpRpcTransportClient(AuthenticationHeaderValue? authHeaderValue,
-			Encoding? encoding = null,
-			string? contentType = null,
-			IEnumerable<(string, string)>? headers = null,
-			IStreamCompressor? streamCompressor = null)
-			: this(
-				encoding: encoding,
-				contentType: contentType,
-				headers: headers,
-				streamCompressor: streamCompressor,
-				httpAuthHeaderFactory: new DefaultHttpAuthHeaderFactory(authHeaderValue))
-		{
-
-		}
-
-		public HttpRpcTransportClient(Func<Task<AuthenticationHeaderValue?>>? authHeaderValueFactory,
-			Encoding? encoding = null,
-			string? contentType = null,
-			IEnumerable<(string, string)>? headers = null,
-			IStreamCompressor? streamCompressor = null)
-			: this(
-				encoding: encoding,
-				contentType: contentType,
-				headers: headers,
-				streamCompressor: streamCompressor,
-				httpAuthHeaderFactory: new DefaultHttpAuthHeaderFactory(authHeaderValueFactory))
-		{
-
-		}
-
 
 		public HttpRpcTransportClient(
+			IStreamCompressor streamCompressor,
+			IHttpClientFactory httpClientFactory,
 			Encoding? encoding = null,
 			string? contentType = null,
 			IEnumerable<(string, string)>? headers = null,
-			IStreamCompressor? streamCompressor = null,
-			IHttpAuthHeaderFactory? httpAuthHeaderFactory = null,
-			IHttpClientFactory? httpClientFactory = null)
+			IHttpAuthHeaderFactory? httpAuthHeaderFactory = null)
 		{
 			this.Encoding = encoding ?? Defaults.Encoding;
 			this.ContentType = contentType ?? Defaults.ContentType;
 			this.Headers = headers?.ToList() ?? Defaults.GetHeaders();
-			this.streamCompressor = streamCompressor ?? new DefaultStreamCompressor();
+			this.streamCompressor = streamCompressor ?? throw new ArgumentNullException(nameof(streamCompressor));
 			this.httpAuthHeaderFactory = httpAuthHeaderFactory;
-			this.httpClientFactory = httpClientFactory ?? new DefaultHttpClientFactory();
+			this.httpClientFactory = httpClientFactory;
 		}
 
 		public async Task<Stream> SendRequestAsync(Uri uri, Stream requestStream, CancellationToken cancellationToken = default)
@@ -161,127 +131,5 @@ namespace EdjCase.JsonRpc.Client
 			// uncompressed, standard response
 			return responseStream;
 		}
-
-		public static HttpRpcTransportClient CreateUnauthenticated(Encoding? encoding = null, string? contentType = null, IEnumerable<(string, string)>? headers = null)
-		{
-			return new HttpRpcTransportClient(encoding: encoding, contentType: contentType, headers: headers);
-		}
-
-		public static HttpRpcTransportClient CreateWithBearerAuth(Uri baseUrl, string bearerToken, Encoding? encoding = null, string? contentType = null, IEnumerable<(string, string)>? headers = null)
-		{
-			var authHeaderValue = AuthenticationHeaderValue.Parse("Bearer " + bearerToken);
-			return new HttpRpcTransportClient(authHeaderValue, encoding: encoding, contentType: contentType, headers: headers);
-		}
-
-		public static HttpRpcTransportClient CreateWithBasicAuth(Uri baseUrl, string username, string password, Encoding? encoding = null, string? contentType = null, IEnumerable<(string, string)>? headers = null)
-		{
-			byte[] headerBytes = Encoding.UTF8.GetBytes(username + ":" + password);
-			string value = Convert.ToBase64String(headerBytes);
-			var authHeaderValue = AuthenticationHeaderValue.Parse("Basic " + value);
-			return new HttpRpcTransportClient(authHeaderValue, encoding: encoding, contentType: contentType, headers: headers);
-		}
 	}
-
-#if !NETSTANDARD1_1
-	public class WebSocketRpcTransportClientOptions
-	{
-		public int MaxBufferSize { get; set; } = 1_000_000;
-	}
-
-	public class WebSocketRpcTransportClient : IRpcTransportClient
-	{
-		private WebSocketRpcTransportClientOptions options { get; }
-		public WebSocketRpcTransportClient(IOptions<WebSocketRpcTransportClientOptions> options)
-		{
-			this.options = options.Value ?? new WebSocketRpcTransportClientOptions();
-		}
-
-		public async Task<Stream> SendRequestAsync(Uri uri, Stream requestStream, CancellationToken cancellationToken = default)
-		{
-			var webSocketClient = new ClientWebSocket();
-			await webSocketClient.ConnectAsync(uri, cancellationToken);
-
-			StreamReader streamReader = new StreamReader(requestStream);
-			var buffer = new byte[this.options.MaxBufferSize];
-			int offset = 0;
-			while (true)
-			{
-				int nextSize = await requestStream.ReadAsync(buffer, offset, this.options.MaxBufferSize, cancellationToken);
-				bool endOfMessage = nextSize != this.options.MaxBufferSize;
-				await webSocketClient.SendAsync(new ArraySegment<byte>(buffer, 0, nextSize), WebSocketMessageType.Text, endOfMessage, cancellationToken);
-				if (endOfMessage)
-				{
-					break;
-				}
-				offset += this.options.MaxBufferSize;
-			}
-			await webSocketClient.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Request finished", cancellationToken);
-			return new WebSocketStream(webSocketClient);
-		}
-	}
-
-	public class WebSocketStream : Stream
-	{
-		private ClientWebSocket client { get; }
-		private bool complete { get; set; }
-
-		public WebSocketStream(ClientWebSocket client)
-		{
-			this.client = client;
-		}
-
-		public override bool CanRead => true;
-
-		public override bool CanSeek => false;
-
-		public override bool CanWrite => false;
-
-		public override long Length => throw new NotImplementedException();
-
-		public override long Position { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
-
-		public override void Flush()
-		{
-			throw new NotImplementedException();
-		}
-
-		public override int Read(byte[] buffer, int offset, int count)
-		{
-			throw new NotImplementedException();
-		}
-
-		public override long Seek(long offset, SeekOrigin origin)
-		{
-			throw new NotImplementedException();
-		}
-
-		public override void SetLength(long value)
-		{
-			throw new NotImplementedException();
-		}
-
-		public override void Write(byte[] buffer, int offset, int count)
-		{
-			throw new NotImplementedException();
-		}
-
-		public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
-		{
-			if (this.complete)
-			{
-				return 0;
-			}
-			WebSocketReceiveResult result = await this.client.ReceiveAsync(new ArraySegment<byte>(buffer, offset, count), cancellationToken);
-			if (result.MessageType == WebSocketMessageType.Close)
-			{
-				throw new RpcClientUnknownException("Websocket connection to the server ended prematurely.");
-			}
-			if (result.EndOfMessage)
-			{
-				this.complete = true;
-			}
-			return result.Count;
-		}
-	}
-#endif
 }

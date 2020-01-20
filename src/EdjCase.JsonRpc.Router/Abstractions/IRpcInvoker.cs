@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 namespace EdjCase.JsonRpc.Router.Abstractions
 {
-	public interface IRpcInvoker
+	internal interface IRpcInvoker
 	{
 		/// <summary>
 		/// Call the incoming Rpc request method and gives the appropriate response

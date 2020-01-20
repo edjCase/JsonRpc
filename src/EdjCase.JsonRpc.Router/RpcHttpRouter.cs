@@ -66,7 +66,7 @@ namespace EdjCase.JsonRpc.Router
 
 
 				IRpcRequestHandler requestHandler = context.HttpContext.RequestServices.GetRequiredService<IRpcRequestHandler>();
-				var routeContext = DefaultRpcContext.FromHttpContext(context.HttpContext, requestPath);
+				var routeContext = DefaultRpcContext.Build(context.HttpContext.RequestServices, requestPath);
 				context.HttpContext.RequestServices.GetRequiredService<IRpcContextAccessor>().Value = routeContext;
 				Stream writableStream = this.BuildWritableResponseStream(context.HttpContext);
 				using (var requestBody = new MemoryStream())

@@ -7,13 +7,13 @@ using System.Security.Claims;
 
 namespace EdjCase.JsonRpc.Router.Abstractions
 {
-	public interface IRpcContext
+	internal interface IRpcContext
 	{
 		IServiceProvider RequestServices { get; }
 		RpcPath? Path { get; }
 	}
 
-	public interface IRpcContextAccessor
+	internal interface IRpcContextAccessor
 	{
 		IRpcContext? Value { get; set; }
 	}

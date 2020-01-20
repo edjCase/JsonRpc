@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using EdjCase.JsonRpc.Router.Sample.RpcRoutes;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,112 +20,75 @@ using System.Threading;
 using EdjCase.JsonRpc.Router.Defaults;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore;
+using System.Reflection;
 
 namespace EdjCase.JsonRpc.Router.Sample
 {
 	public class Startup
 	{
-		public Startup()
-		{
-
-		}
-
 		// This method gets called by a runtime.
 		// Use this method to add services to the container
 		public void ConfigureServices(IServiceCollection services)
 		{
 			services
-				.AddAuthentication("Basic")
-				.AddBasicAuth(options =>
-				{
-					options.AuthenticateCredential = authInfo =>
-					{
-						if (authInfo.Credential.Username == "Gekctek" && authInfo.Credential.Password == "Welc0me!")
-						{
-							var claims = new List<Claim>
-							{
-								new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())
-							};
-							var identity = new ClaimsIdentity(claims, "Basic");
-							var principal = new ClaimsPrincipal(identity);
-							var properties = new AuthenticationProperties();
-							return Task.FromResult(new AuthenticationTicket(principal, properties, "Basic"));
-						}
-						return Task.FromResult<AuthenticationTicket>(null);
-					};
-
-				});
-			services
 				.AddJsonRpc()
 				.WithOptions(config =>
 				{
-					config.ShowServerExceptions = true;
-					config.BatchRequestLimit = null;
+					//(Optional) Hard cap on batch size, will block requests will larger sizes, defaults to no limit
+					config.BatchRequestLimit = 5;
+					//(Optional) If true returns full error messages in response, defaults to false
+					config.ShowServerExceptions = false;
+					//(Optional) Configure how the router serializes requests
+					config.JsonSerializerSettings = new System.Text.Json.JsonSerializerOptions
+					{
+						//Example json config
+						IgnoreNullValues = false,
+						WriteIndented = true
+					};
 				});
 		}
 
 		// Configure is called after ConfigureServices is called.
-		public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
+		public void Configure(IApplicationBuilder app)
 		{
-			//loggerFactory
-			//	.AddDebug(LogLevel.Debug)
-			//	.AddConsole(LogLevel.Debug);
-
-			//app.UseAuthentication();
-
 			app
-                //.Use(this.LogBody)
-                .Map("/Manual", b =>
-                {
-                    b.UseJsonRpc(options =>
-                    {
-                        options
-                        .AddControllerWithDefaultPath<RpcMath>()
-                        .AddController<RpcCommands>();
-                    });
-                })
-                .Map("/Auto", b =>
-                {
-                    b.UseJsonRpcWithBaseController<ControllerBase>();
-                });
-
-        }
-
-		public async Task LogBody(HttpContext context, Func<Task> next)
-		{
-			ILogger<Startup> logger = context.RequestServices.GetRequiredService<ILogger<Startup>>();
-			using (MemoryStream newRequestStream = new MemoryStream())
-			{
-				Stream requestStream = context.Request.Body;
-				context.Request.Body.CopyTo(newRequestStream);
-				newRequestStream.Seek(0, SeekOrigin.Begin);
-				string requestBody = new StreamReader(newRequestStream).ReadToEnd();
-				logger.LogInformation(requestBody);
-
-				newRequestStream.Seek(0, SeekOrigin.Begin);
-				context.Request.Body = newRequestStream;
-
-				using (MemoryStream newBodyStream = new MemoryStream())
+				.Map("/BaseController", b =>
 				{
-					Stream bodyStream = context.Response.Body;
-					context.Response.Body = newBodyStream;
+					//Will make all controllers that derived from `ControllerBase` available
+					//Each dervied controller will use their name as the route, unless overridden by RpcRouteAttribute
+					b.UseJsonRpcWithBaseController<ControllerBase>();
+				})
+				.Map("/Controllers", b =>
+				{
+					b.UseJsonRpc(options =>
+					{
+						options
+							//Will make controller methods available for path '/First', unless overridden by RpcRouteAttribute
+							//Not that any class will work here, not just a class derived from `RpcController`
+							.AddController<NonRpcController>()
+							//Will make `CustomController` methods available for custom path '/CustomPath'
+							.AddControllerWithCustomPath<CustomController>("CustomPath");
+					});
+				})
+				.Map("/Methods", b =>
+				{
+					b.UseJsonRpc(options =>
+					{
+						MethodInfo customControllerMethod1 = typeof(CustomController).GetMethod("Method1");
+						MethodInfo otherControllerMethod1 = typeof(OtherController).GetMethod("Method1");
+						options
+							//Will make the `Method1` method in `CustomController` available with route '/'
+							//Note that since that method has `RpcRouteAttribute("Method")`, that will change the method name
+							//from `Method1` to `Method` in the router
+							.AddMethod(customControllerMethod1)
+							//Will make the `Method1` method in `OtherController` available with route '/CustomMethods'
+							.AddMethod(otherControllerMethod1, "CustomMethods");
+					});
 
-					await next();
+				})
+				//Will make all public classes deriving from `RpcController` available to the rpc router
+				.UseJsonRpc();
 
-                    if (newBodyStream.CanSeek)
-                    {
-                        newBodyStream.Seek(0, SeekOrigin.Begin);
-
-                        StreamReader reader = new StreamReader(newBodyStream);
-                        string body = reader.ReadToEnd();
-                        logger.LogInformation(body);
-
-                        newBodyStream.Seek(0, SeekOrigin.Begin);
-                        newBodyStream.CopyTo(bodyStream);
-                    }
-					context.Response.Body = bodyStream;
-				}
-			}
 		}
 	}
 

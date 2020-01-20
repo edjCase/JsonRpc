@@ -127,7 +127,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 					this.logger.InvokeMethod(request.Method);
 					IRpcContext routeContext = this.contextAccessor.Value!;
-					object? result = await this.InvokeAsync(rpcMethod.MethodInfo, realParameters, routeContext);
+					object? result = await this.InvokeAsync(rpcMethod.MethodInfo, realParameters, request, routeContext.RequestServices);
 					this.logger.InvokeMethodComplete(request.Method);
 
 					if (result is IRpcMethodResult methodResult)
@@ -281,11 +281,11 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <exception cref="RpcInvalidParametersException">Thrown when conversion of parameters fails or when invoking the method is not compatible with the parameters</exception>
 		/// <param name="parameters">List of parameters to invoke the method with</param>
 		/// <returns>The result of the invoked method</returns>
-		private async Task<object?> InvokeAsync(MethodInfo methodInfo, object[] parameters, IRpcContext rpcContext)
+		private async Task<object?> InvokeAsync(MethodInfo methodInfo, object[] parameters, RpcRequest request, IServiceProvider serviceProvider)
 		{
 			//Use service provider to create instance
 			ObjectFactory objectFactory = DefaultRpcInvoker.objectFactoryCache.GetOrAdd(methodInfo.DeclaringType, (t) => ActivatorUtilities.CreateFactory(t, Array.Empty<Type>()));
-			object obj = objectFactory(rpcContext.RequestServices, null);
+			object obj = objectFactory(serviceProvider, null);
 			if (obj == null)
 			{
 				//Use reflection to create instance if service provider failed or is null
@@ -305,7 +305,8 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				RpcErrorFilterAttribute errorFilter = methodInfo.DeclaringType.GetTypeInfo().GetCustomAttribute<RpcErrorFilterAttribute>();
 				if (errorFilter != null)
 				{
-					OnExceptionResult result = errorFilter.OnException(rpcContext, ex.InnerException);
+					var context = new ExceptionContext(request, serviceProvider, ex.InnerException);
+					OnExceptionResult result = errorFilter.OnException(context);
 					if (!result.ThrowException)
 					{
 						return result.ResponseObject!;

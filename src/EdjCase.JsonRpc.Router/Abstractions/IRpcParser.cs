@@ -9,7 +9,7 @@ using EdjCase.JsonRpc.Router.Utilities;
 
 namespace EdjCase.JsonRpc.Router.Abstractions
 {
-	public interface IRpcParser
+	internal interface IRpcParser
 	{
 		/// <summary>
 		/// Parses all the requests from the json in the request

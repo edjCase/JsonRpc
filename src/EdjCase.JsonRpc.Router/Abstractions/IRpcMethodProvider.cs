@@ -5,7 +5,7 @@ using System.Text;
 
 namespace EdjCase.JsonRpc.Router.Abstractions
 {
-	public interface IRpcMethodProvider
+	internal interface IRpcMethodProvider
 	{
 		IReadOnlyList<MethodInfo> Get();
 	}

@@ -49,15 +49,11 @@ namespace EdjCase.JsonRpc.Client.Sample
 
 		private static async Task Test1()
 		{
-			// var options = new WebSocketRpcTransportClientOptions();
-			// string url = "ws://localhost:5000/WebSocket";
-			//IRpcTransportClient transportClient = new WebSocketRpcTransportClient(Options.Create(options));
-
-
-			IRpcTransportClient transportClient = new HttpRpcTransportClient(() => Task.FromResult(IntegrationTestRunner.authHeaderValue));
-			RpcClient client = new RpcClient(new Uri(url), transportClient: transportClient);
+			RpcClient client = RpcClient.Builder(new Uri(url))
+				.UsingAuthHeader(IntegrationTestRunner.authHeaderValue)
+				.Build();
 			RpcRequest request = RpcRequest.WithParameterList("CharacterCount", new[] { "Test" }, "Id1");
-			RpcResponse<TestObject> response = await client.SendRequestAsync<TestObject>(request);
+			RpcResponse<TestObject> response = await client.SendAsync<TestObject>(request);
 
 			if (response.Result.Test != 4)
 			{
@@ -67,17 +63,19 @@ namespace EdjCase.JsonRpc.Client.Sample
 
 		private static async Task Test2()
 		{
-			IRpcTransportClient transportClient = new HttpRpcTransportClient(() => Task.FromResult(IntegrationTestRunner.authHeaderValue));
-			RpcClient client = new RpcClient(new Uri(url), transportClient: transportClient);
-			List<RpcRequest> requests = new List<RpcRequest>
+			RpcClient client = RpcClient.Builder(new Uri(url))
+				.UsingAuthHeader(IntegrationTestRunner.authHeaderValue)
+				.Build();
+			var requests = new List<(RpcRequest, Type)>
 			{
-				RpcRequest.WithParameterList("CharacterCount", new[] { "Test" }, "Id1"),
-				RpcRequest.WithParameterList("CharacterCount", new[] { "Test2" }, "Id2"),
-				RpcRequest.WithParameterList("CharacterCount", new[] { "Test23" }, "Id3")
+				(RpcRequest.WithParameterList("CharacterCount", new[] { "Test" }, "Id1"), typeof(int)),
+				(RpcRequest.WithParameterList("CharacterCount", new[] { "Test2" }, "Id2"), typeof(int)),
+				(RpcRequest.WithParameterList("CharacterCount", new[] { "Test23" }, "Id3"), typeof(int))
 			};
-			List<RpcResponse<TestObject>> bulkResponse = await client.SendBulkRequestAsync<TestObject>(requests);
+			RpcBulkRequest bulkRequest = new RpcBulkRequest(requests);
+			RpcBulkResponse bulkResponse = await client.SendAsync(bulkRequest);
 
-			foreach (RpcResponse<TestObject> r in bulkResponse)
+			foreach (RpcResponse<TestObject> r in bulkResponse.GetResponses<TestObject>())
 			{
 				switch (r.Id.StringValue)
 				{
@@ -123,10 +121,11 @@ namespace EdjCase.JsonRpc.Client.Sample
 		private static async Task Test4()
 		{
 
-			IRpcTransportClient transportClient = new HttpRpcTransportClient(() => Task.FromResult(IntegrationTestRunner.authHeaderValue));
-			RpcClient client = new RpcClient(new Uri(url), transportClient: transportClient);
+			RpcClient client = RpcClient.Builder(new Uri(url))
+				.UsingAuthHeader(IntegrationTestRunner.authHeaderValue)
+				.Build();
 			RpcRequest request = RpcRequest.WithParameterList("CharacterCount", new[] { "Test" }, "Id1");
-			RpcResponse<TestObject> response = await client.SendRequestAsync<TestObject>(request);
+			RpcResponse<TestObject> response = await client.SendAsync<TestObject>(request);
 
 			if (response.Result.Test != 4)
 			{
