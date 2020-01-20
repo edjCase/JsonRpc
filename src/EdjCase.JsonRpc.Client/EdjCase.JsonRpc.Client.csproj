@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Version>4.0.0-beta.1</Version>
+    <Version>4.0.0-beta.2</Version>
     <Description>A .Net Core Client implementation for Json Rpc v2 requests.</Description>
     <Authors>Gekctek</Authors>
     <TargetFrameworks>netstandard2.0;netstandard1.1</TargetFrameworks>
