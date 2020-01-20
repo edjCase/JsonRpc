@@ -17,15 +17,12 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 		/// <param name="jsonStream">Json stream to parse from</param>
 		/// <returns>Result of the parsing. Includes all the parsed requests and any errors</returns>
 		ParsingResult ParseRequests(Stream jsonStream);
-	}
 
-	public static class RpcParserExtensions
-	{
-		public static ParsingResult ParseRequests(this IRpcParser parser, string json)
+		public virtual ParsingResult ParseRequests(string json)
 		{
 			using (var stream = StreamUtil.GetStreamFromUtf8String(json ?? string.Empty))
 			{
-				return parser.ParseRequests(stream);
+				return this.ParseRequests(stream);
 			}
 		}
 	}

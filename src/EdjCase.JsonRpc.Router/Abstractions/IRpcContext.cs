@@ -10,7 +10,6 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 	public interface IRpcContext
 	{
 		IServiceProvider RequestServices { get; }
-		ClaimsPrincipal User { get; }
 		RpcPath? Path { get; }
 	}
 

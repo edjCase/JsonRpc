@@ -127,13 +127,13 @@ namespace Benchmarks
 
 	internal class FakeMethodProvider : IRpcMethodProvider
 	{
-		private static readonly MethodInfo[] methods = typeof(RequestMatcherTester.MethodClass)
+		private static readonly List<MethodInfo> methods = typeof(RequestMatcherTester.MethodClass)
 			.GetTypeInfo()
 			.GetMethods(BindingFlags.Public | BindingFlags.Instance)
 			.Where(m => m.DeclaringType != typeof(object))
-			.ToArray();
+			.ToList();
 
-		public MethodInfo[] Get()
+		public IReadOnlyList<MethodInfo> Get()
 		{
 			return FakeMethodProvider.methods;
 		}

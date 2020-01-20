@@ -11,22 +11,19 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 	{
 		Task SerializeAsync(RpcResponse response, Stream stream);
 		Task SerializeBulkAsync(IEnumerable<RpcResponse> responses, Stream stream);
-	}
 
-	public static class RpcResponseSerializerExtensions
-	{
-		public static async Task<string> SerializeAsync(this IRpcResponseSerializer serializer, RpcResponse response)
+		public virtual async Task<string> SerializeAsync(RpcResponse response)
 		{
 			using var stream = new MemoryStream();
-			await serializer.SerializeAsync(response, stream);
-			return await RpcResponseSerializerExtensions.GetStringAsync(stream);
+			await this.SerializeAsync(response, stream);
+			return await IRpcResponseSerializer.GetStringAsync(stream);
 		}
 
-		public static async Task<string> SerializeBulkAsync(this IRpcResponseSerializer serializer, IEnumerable<RpcResponse> responses)
+		public virtual async Task<string> SerializeBulkAsync(IEnumerable<RpcResponse> responses)
 		{
 			using var stream = new MemoryStream();
-			await serializer.SerializeBulkAsync(responses, stream);
-			return await RpcResponseSerializerExtensions.GetStringAsync(stream);
+			await this.SerializeBulkAsync(responses, stream);
+			return await IRpcResponseSerializer.GetStringAsync(stream);
 		}
 
 		private static Task<string> GetStringAsync(MemoryStream stream)

@@ -7,6 +7,6 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 {
 	public interface IRpcMethodProvider
 	{
-		MethodInfo[] Get();
+		IReadOnlyList<MethodInfo> Get();
 	}
 }

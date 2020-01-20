@@ -17,7 +17,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public async Task ValidResponseSerialization()
 		{
 			var config = new RpcServerConfiguration();
-			var serializer = new DefaultRpcResponseSerializer(Options.Create(config));
+			IRpcResponseSerializer serializer = new DefaultRpcResponseSerializer(Options.Create(config));
 
 			const string expectedResponseString = "{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"result\"}";
 			var response = new RpcResponse(1, "result");
@@ -31,7 +31,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public async Task ValidErrorResponseSerialization()
 		{
 			var config = new RpcServerConfiguration();
-			var serializer = new DefaultRpcResponseSerializer(Options.Create(config));
+			IRpcResponseSerializer serializer = new DefaultRpcResponseSerializer(Options.Create(config));
 
 			const string expectedResponseString = "{\"id\":2,\"jsonrpc\":\"2.0\",\"error\":{\"code\":2,\"message\":\"error\",\"data\":\"data\"}}";
 			var response = new RpcResponse(2, new RpcError(2, "error", "data"));
@@ -45,7 +45,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public async Task ValidBulkResponseSerialization()
 		{
 			var config = new RpcServerConfiguration();
-			var serializer = new DefaultRpcResponseSerializer(Options.Create(config));
+			IRpcResponseSerializer serializer = new DefaultRpcResponseSerializer(Options.Create(config));
 
 			const string expectedResponseString = "[{\"id\":1,\"jsonrpc\":\"2.0\",\"result\":\"result\"},{\"id\":2,\"jsonrpc\":\"2.0\",\"error\":{\"code\":2,\"message\":\"error\",\"data\":\"data\"}},{\"id\":3,\"jsonrpc\":\"2.0\",\"result\":\"result3\"}]";
 			var response = new RpcResponse(1, "result");

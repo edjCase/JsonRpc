@@ -96,18 +96,18 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		{
 			this.logger.AttemptingToMatchMethod(new string(requestSignature.GetMethodName().Span));
 
-			MethodInfo[] methods = this.methodProvider.Get();
+			IReadOnlyList<MethodInfo> methods = this.methodProvider.Get();
 			if (methods == null || !methods.Any())
 			{
 				throw new RpcException(RpcErrorCode.MethodNotFound, $"No methods found for route");
 			}
 
-			RpcMethodInfo[] compiledMethods = ArrayPool<RpcMethodInfo>.Shared.Rent(methods.Length);
+			RpcMethodInfo[] compiledMethods = ArrayPool<RpcMethodInfo>.Shared.Rent(methods.Count);
 			Span<RpcMethodInfo> matches;
 			try
 			{
 				this.FillRpcMethodInfos(methods, compiledMethods);
-				matches = this.FilterAndBuildMethodInfoByRequest(compiledMethods.AsMemory(0, methods.Length), requestSignature);
+				matches = this.FilterAndBuildMethodInfoByRequest(compiledMethods.AsMemory(0, methods.Count), requestSignature);
 			}
 			finally
 			{

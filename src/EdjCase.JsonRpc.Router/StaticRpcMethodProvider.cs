@@ -18,7 +18,7 @@ namespace EdjCase.JsonRpc.Router
 			this.contextAccessor = contextAccessor;
 		}
 
-		public MethodInfo[] Get()
+		public IReadOnlyList<MethodInfo> Get()
 		{
 			IRpcContext context = this.contextAccessor.Value!;
 			StaticRpcMethodData? data = this.dataAccessor.Value;
@@ -30,18 +30,18 @@ namespace EdjCase.JsonRpc.Router
 			{
 				return data.BaseMethods;
 			}
-			bool result = data.Methods.TryGetValue(context.Path, out MethodInfo[]? m);
+			bool result = data.Methods.TryGetValue(context.Path, out List<MethodInfo>? m);
 
-			return result ? m! : Array.Empty<MethodInfo>();
+			return result ? m! : (IReadOnlyList<MethodInfo>)Array.Empty<MethodInfo>();
 		}
 	}
 
 	internal class StaticRpcMethodData
 	{
-		public MethodInfo[] BaseMethods { get; }
-		public Dictionary<RpcPath, MethodInfo[]> Methods { get; }
+		public List<MethodInfo> BaseMethods { get; }
+		public Dictionary<RpcPath, List<MethodInfo>> Methods { get; }
 
-		public StaticRpcMethodData(MethodInfo[] baseMethods, Dictionary<RpcPath, MethodInfo[]> methods)
+		public StaticRpcMethodData(List<MethodInfo> baseMethods, Dictionary<RpcPath, List<MethodInfo>> methods)
 		{
 			this.BaseMethods = baseMethods;
 			this.Methods = methods;

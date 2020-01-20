@@ -103,7 +103,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		[InlineData("{\"jsonrpc\": \"2.0\", \"method\": \"subtract2\", \"params\": [\"42\", \"23\"], \"id\": \"4\"}", "4", "subtract2", new object[] { "42", "23" })]
 		public void ParseRequests_Valid(string json, object id, string method, object[] parameters)
 		{
-			DefaultRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
+			IRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
 
 			ParsingResult result = parser.ParseRequests(json);
 
@@ -136,7 +136,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		{
 			const string json = "{\"jsonrpc\": \"2.0\", \"method\": \"datetime\", \"params\": [\"2000-12-15T22:11:03\"], \"id\": 1}";
 			DateTime dateTime = DateTime.Parse("2000-12-15T22:11:03");
-			DefaultRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
+			IRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
 
 			ParsingResult result = parser.ParseRequests(json);
 
@@ -155,7 +155,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		{
 			const string json = "[{\"jsonrpc\": \"2.0\", \"method\": \"one\", \"params\": [\"1\"], \"id\": \"1\"}, {\"jsonrpc\": \"2.0\", \"method\": \"two\", \"params\": [\"2\"], \"id\": \"2\"}]";
 
-			DefaultRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
+			IRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
 
 			ParsingResult result = parser.ParseRequests(json);
 
@@ -180,7 +180,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		{
 			const string json = "[{\"jsonrpc\": \"2.0\", \"method\": \"one\", \"params\": [\"1\"], \"id\": \"1\"}, {\"jsonrpc\": \"2.0\", \"method\": \"two\", \"params\": [\"2\"], \"id\": \"1\"}]";
 
-			DefaultRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
+			IRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
 
 			var ex = Assert.Throws<RpcException>(() => parser.ParseRequests(json));
 			Assert.Equal((int)RpcErrorCode.InvalidRequest, ex.ErrorCode);
@@ -192,7 +192,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		{
 			const string json = "[{\"jsonrpc\": \"2.0\", \"method\": \"one\", \"params\": [\"1\"], \"id\": \"1\"}]";
 
-			DefaultRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
+			IRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
 
 			ParsingResult result = parser.ParseRequests(json);
 
@@ -209,7 +209,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public void ParseRequests_NullRequest_InvalidRequestException()
 		{
 			const string? json = null;
-			DefaultRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
+			IRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
 
 #pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
 			var ex = Assert.Throws<RpcException>(() => parser.ParseRequests(json));
@@ -221,7 +221,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public void ParseRequests_EmptyObjectRequest_InvalidRequestException()
 		{
 			const string json = "{}";
-			DefaultRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
+			IRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
 
 			ParsingResult result = parser.ParseRequests(json);
 
@@ -238,7 +238,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public void ParseRequests_MissingVersion_InvalidRequestException()
 		{
 			const string json = "{\"method\": \"datetime\", \"params\": [\"2000-12-15T22:11:03\"], \"id\": \"1\"}";
-			DefaultRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
+			IRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
 
 			ParsingResult result = parser.ParseRequests(json);
 
@@ -255,7 +255,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public void ParseRequests_MissingMethod_InvalidRequestException()
 		{
 			const string json = "{\"jsonrpc\": \"2.0\", \"params\": [\"2000-12-15T22:11:03\"], \"id\": \"1\"}";
-			DefaultRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
+			IRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
 
 			ParsingResult result = parser.ParseRequests(json);
 
@@ -272,7 +272,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public void ParseRequests_MissingId_NoException()
 		{
 			const string json = "{\"method\": \"datetime\", \"jsonrpc\": \"2.0\", \"params\": [\"2000-12-15T22:11:03\"]}";
-			DefaultRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
+			IRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
 
 			ParsingResult result = parser.ParseRequests(json);
 
@@ -289,7 +289,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public void ParseRequests_MissingParams_NoException()
 		{
 			const string json = "{\"method\": \"datetime\",\"jsonrpc\": \"2.0\", \"id\": \"1\"}";
-			DefaultRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
+			IRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
 
 			ParsingResult result = parser.ParseRequests(json);
 			Assert.NotNull(result);
@@ -305,7 +305,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public void ParseRequests_ObjectParam_NoException()
 		{
 			const string json = "{\"method\": \"obj\", \"jsonrpc\": \"2.0\", \"params\": [{\"test\":1}], \"id\": \"1\"}";
-			DefaultRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
+			IRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
 
 			ParsingResult result = parser.ParseRequests(json);
 

@@ -85,9 +85,6 @@ namespace EdjCase.JsonRpc.Router.Tests
 			routeContext
 				.SetupGet(rc => rc.RequestServices)
 				.Returns(serviceProvider);
-			routeContext
-				.SetupGet(rc => rc.User)
-				.Returns(new System.Security.Claims.ClaimsPrincipal());
 			return routeContext.Object;
 		}
 

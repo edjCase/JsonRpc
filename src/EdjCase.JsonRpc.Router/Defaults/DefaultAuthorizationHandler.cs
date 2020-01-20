@@ -1,12 +1,14 @@
 using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Utilities;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -22,6 +24,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// </summary>
 		private IAuthorizationPolicyProvider policyProvider { get; }
 		private IRpcContextAccessor contextAccessor { get; }
+		private IHttpContextAccessor httpContextAccessor { get; }
 
 		/// <summary>
 		/// AspNet service to authorize requests
@@ -30,12 +33,14 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		public DefaultAuthorizationHandler(ILogger<DefaultAuthorizationHandler> logger,
 			IAuthorizationPolicyProvider policyProvider,
 			IRpcContextAccessor contextAccessor,
-			IAuthorizationService authorizationService)
+			IAuthorizationService authorizationService,
+			IHttpContextAccessor httpContextAccessor)
 		{
 			this.logger = logger;
 			this.policyProvider = policyProvider;
 			this.contextAccessor = contextAccessor;
 			this.authorizationService = authorizationService;
+			this.httpContextAccessor = httpContextAccessor;
 		}
 		public async Task<bool> IsAuthorizedAsync(RpcMethodInfo methodInfo)
 		{
@@ -52,11 +57,11 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				{
 					this.logger.RunningAuth();
 					IRpcContext context = this.contextAccessor.Value!;
-					AuthorizationResult authResult = await this.CheckAuthorize(authorizeDataListClass, context);
+					AuthorizationResult authResult = await this.CheckAuthorize(authorizeDataListClass);
 					if (authResult.Succeeded)
 					{
 						//Have to pass both controller and method authorize
-						authResult = await this.CheckAuthorize(authorizeDataListMethod, context);
+						authResult = await this.CheckAuthorize(authorizeDataListMethod);
 					}
 					if (authResult.Succeeded)
 					{
@@ -105,14 +110,15 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 		}
 
-		private async Task<AuthorizationResult> CheckAuthorize(List<IAuthorizeData> authorizeDataList, IRpcContext routeContext)
+		private async Task<AuthorizationResult> CheckAuthorize(List<IAuthorizeData> authorizeDataList)
 		{
 			if (!authorizeDataList.Any())
 			{
 				return AuthorizationResult.Success();
 			}
 			AuthorizationPolicy policy = await AuthorizationPolicy.CombineAsync(this.policyProvider, authorizeDataList);
-			return await this.authorizationService.AuthorizeAsync(routeContext.User, policy);
+			ClaimsPrincipal claimsPrincipal = this.httpContextAccessor.HttpContext.User;
+			return await this.authorizationService.AuthorizeAsync(claimsPrincipal, policy);
 		}
 
 
