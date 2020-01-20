@@ -41,7 +41,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		private IRpcContextAccessor contextAccessor { get; }
 		private IRpcAuthorizationHandler authorizationHandler { get; }
 
-		private ConcurrentDictionary<Type, ObjectFactory> objectFactoryCache { get; } = new ConcurrentDictionary<Type, ObjectFactory>();
+		private static ConcurrentDictionary<Type, ObjectFactory> objectFactoryCache { get; } = new ConcurrentDictionary<Type, ObjectFactory>();
 
 		/// <param name="authorizationService">Service that authorizes each method for use if configured</param>
 		/// <param name="policyProvider">Provides authorization policies for the authroziation service</param>
@@ -182,8 +182,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					IRpcParameter[] parameterList;
 					if (requestParameters.IsDictionary)
 					{
-						IRpcParameter[]? pList;
-						if(!this.TryParseParameterList(methodParameters, requestParameters.AsDictionary, out pList))
+						if(!this.TryParseParameterList(methodParameters, requestParameters.AsDictionary, out IRpcParameter[]? pList))
 						{
 							string message = "Unable to parse the ";
 							throw new RpcException(RpcErrorCode.InternalError, message);
@@ -285,7 +284,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		private async Task<object?> InvokeAsync(MethodInfo methodInfo, object[] parameters, IRpcContext rpcContext)
 		{
 			//Use service provider to create instance
-			ObjectFactory objectFactory = this.objectFactoryCache.GetOrAdd(methodInfo.DeclaringType, (t) => ActivatorUtilities.CreateFactory(t, new Type[0]));
+			ObjectFactory objectFactory = DefaultRpcInvoker.objectFactoryCache.GetOrAdd(methodInfo.DeclaringType, (t) => ActivatorUtilities.CreateFactory(t, Array.Empty<Type>()));
 			object obj = objectFactory(rpcContext.RequestServices, null);
 			if (obj == null)
 			{

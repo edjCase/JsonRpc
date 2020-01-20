@@ -81,16 +81,12 @@ namespace EdjCase.JsonRpc.Common
 			{
 				return false;
 			}
-			switch (this.Type)
+			return this.Type switch
 			{
-				case RpcIdType.Number:
-					return this.NumberValue == other.NumberValue;
-				case RpcIdType.String:
-					return this.StringValue == other.StringValue;
-				default:
-					throw new ArgumentOutOfRangeException(nameof(this.Type));
-			}
-
+				RpcIdType.Number => this.NumberValue == other.NumberValue,
+				RpcIdType.String => this.StringValue == other.StringValue,
+				_ => throw new ArgumentOutOfRangeException(nameof(this.Type)),
+			};
 		}
 
 		public override bool Equals(object obj)
@@ -117,15 +113,12 @@ namespace EdjCase.JsonRpc.Common
 			{
 				return string.Empty;
 			}
-			switch (this.Type)
+			return this.Type switch
 			{
-				case RpcIdType.Number:
-					return this.Value!.ToString();
-				case RpcIdType.String:
-					return "'" + (string)this.Value! + "'";
-				default:
-					throw new ArgumentOutOfRangeException(nameof(this.Type));
-			}
+				RpcIdType.Number => this.Value!.ToString(),
+				RpcIdType.String => "'" + (string)this.Value! + "'",
+				_ => throw new ArgumentOutOfRangeException(nameof(this.Type)),
+			};
 		}
 
 		public static implicit operator RpcId(long id)
@@ -133,7 +126,17 @@ namespace EdjCase.JsonRpc.Common
 			return new RpcId(id);
 		}
 
+		public static RpcId FromInt64(long id)
+		{
+			return new RpcId(id);
+		}
+
 		public static implicit operator RpcId(string id)
+		{
+			return new RpcId(id);
+		}
+
+		public static RpcId FromString(string id)
 		{
 			return new RpcId(id);
 		}

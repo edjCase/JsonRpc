@@ -12,10 +12,10 @@ using Xunit;
 
 namespace EdjCase.JsonRpc.Router.Tests
 {
-	public class MethanMatcherTests
+	public class MethodMatcherTests
 	{
 		private MethodInfo[] methods;
-		public MethanMatcherTests()
+		public MethodMatcherTests()
 		{
 			this.methods = typeof(MethodMatcherController).GetMethods();
 		}

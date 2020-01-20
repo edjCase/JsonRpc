@@ -10,6 +10,7 @@ using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Utilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace EdjCase.JsonRpc.Router.Defaults
 {
@@ -23,11 +24,64 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		}
 	}
 
+	internal class MethodInfoEqualityComparer : IEqualityComparer<MethodInfo>
+	{
+		public static MethodInfoEqualityComparer Instance = new MethodInfoEqualityComparer();
+		public bool Equals(MethodInfo x, MethodInfo y)
+		{
+			if(object.ReferenceEquals(x, y))
+			{
+				return true;
+			}
+			if(x.Name != y.Name)
+			{
+				return false;
+			}
+			if(x.DeclaringType != y.DeclaringType)
+			{
+				return false;
+			}
+			ParameterInfo[] xParameters = x.GetParameters();
+			ParameterInfo[] yParameters = y.GetParameters();
+			if (!xParameters.SequenceEqual(yParameters, ParameterInfoEqualityComparer.Instance))
+			{
+				return false;
+			}
+			return true;
+		}
+
+		public int GetHashCode(MethodInfo obj)
+		{
+			return obj.Name.GetHashCode();
+		}
+	}
+
+	public class ParameterInfoEqualityComparer : IEqualityComparer<ParameterInfo>
+	{
+		public static ParameterInfoEqualityComparer Instance = new ParameterInfoEqualityComparer();
+		public bool Equals(ParameterInfo x, ParameterInfo y)
+		{
+			if (x.ParameterType != y.ParameterType)
+			{
+				return false;
+			}
+			if (x.Name != y.Name)
+			{
+				return false;
+			}
+			return true;
+		}
+
+		public int GetHashCode(ParameterInfo obj)
+		{
+			return obj.Name.GetHashCode();
+		}
+	}
 
 	internal class DefaultRequestMatcher : IRpcRequestMatcher
 	{
-		private static ConcurrentDictionary<MethodInfo, RpcMethodInfo> compiledMethodCache { get; } = new ConcurrentDictionary<MethodInfo, RpcMethodInfo>();
-		private static ConcurrentDictionary<string, RpcMethodInfo[]> requestToMethodCache { get; } = new ConcurrentDictionary<string, RpcMethodInfo[]>();
+		private static ConcurrentDictionary<MethodInfo, RpcMethodInfo> compiledMethodCache { get; } = new ConcurrentDictionary<MethodInfo, RpcMethodInfo>(MethodInfoEqualityComparer.Instance);
+		private static ConcurrentDictionary<RpcRequestSignature, RpcMethodInfo[]> requestToMethodCache { get; } = new ConcurrentDictionary<RpcRequestSignature, RpcMethodInfo[]>();
 
 		private ILogger<DefaultRequestMatcher> logger { get; }
 		private IRpcMethodProvider methodProvider { get; }
@@ -40,8 +94,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 		public RpcMethodInfo GetMatchingMethod(RpcRequestSignature requestSignature)
 		{
-			//TODo avoid .ToString() here
-			this.logger.AttemptingToMatchMethod(requestSignature.GetMethodName().ToString());
+			this.logger.AttemptingToMatchMethod(new string(requestSignature.GetMethodName().Span));
 
 			MethodInfo[] methods = this.methodProvider.Get();
 			if (methods == null || !methods.Any())
@@ -101,11 +154,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			for (int i = 0; i < methods.Count; i++)
 			{
 				MethodInfo methodInfo = methods[i];
-				if (!DefaultRequestMatcher.compiledMethodCache.TryGetValue(methodInfo, out RpcMethodInfo info))
-				{
-					info = DefaultRequestMatcher.BuildMethodInfo(methodInfo);
-				}
-				compiledMethods[i] = info;
+				compiledMethods[i] = DefaultRequestMatcher.compiledMethodCache.GetOrAdd(methodInfo, BuildMethodInfo);
 			}
 		}
 
@@ -117,17 +166,9 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				.ToArray();
 			return new RpcMethodInfo(methodInfo, parameters);
 
-			RpcParameterInfo ExtractParam(ParameterInfo parameterInfo)
+			static RpcParameterInfo ExtractParam(ParameterInfo parameterInfo)
 			{
 				Type parameterType = parameterInfo.ParameterType;
-				//if (parameterType.IsGenericType)
-				//{
-				//	Type realType = Nullable.GetUnderlyingType(parameterType);
-				//	if (realType != null)
-				//	{
-				//		parameterType = realType;
-				//	}
-				//}
 				RpcParameterType type;
 				if (parameterType == typeof(short)
 					|| parameterType == typeof(ushort)
@@ -162,11 +203,11 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			//If the request signature is found, it means we have the methods cached already
 			//TODO make a cache that uses spans/char array and not strings
 			//TODO does the entire method info need to be cached?
-			return DefaultRequestMatcher.requestToMethodCache.GetOrAdd(requestSignature.AsString(), BuildCache);
+			return DefaultRequestMatcher.requestToMethodCache.GetOrAdd(requestSignature, BuildCache);
 
-			RpcMethodInfo[] BuildCache(string s)
+			RpcMethodInfo[] BuildCache(RpcRequestSignature s)
 			{
-				return this.BuildMethodInfos(requestSignature, methods.Span);
+				return this.BuildMethodInfos(s, methods.Span);
 			}
 		}
 

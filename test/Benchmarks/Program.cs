@@ -16,11 +16,24 @@ using Microsoft.Extensions.Options;
 
 namespace Benchmarks
 {
-	public static class Program
+	public class Program
 	{
 		public static void Main()
 		{
-			BenchmarkDotNet.Reports.Summary summary = BenchmarkRunner.Run<RequestMatcherTester>();
+			//var tester = new RequestMatcherTester();
+			//tester.GlobalSetup();
+			//tester.SimpleIterationSetup();
+			//Type type = typeof(Program);
+			//for (int i = 0; i < 100_000; i++)
+			//{
+			//	tester.SimpleParamsNoReturn();
+			//}
+			_ = BenchmarkRunner.Run<RequestMatcherTester>();
+		}
+
+		public void Test()
+		{
+
 		}
 	}
 
@@ -114,7 +127,11 @@ namespace Benchmarks
 
 	internal class FakeMethodProvider : IRpcMethodProvider
 	{
-		private static MethodInfo[] methods = typeof(RequestMatcherTester.MethodClass).GetTypeInfo().GetMethods().ToArray();
+		private static readonly MethodInfo[] methods = typeof(RequestMatcherTester.MethodClass)
+			.GetTypeInfo()
+			.GetMethods(BindingFlags.Public | BindingFlags.Instance)
+			.Where(m => m.DeclaringType != typeof(object))
+			.ToArray();
 
 		public MethodInfo[] Get()
 		{

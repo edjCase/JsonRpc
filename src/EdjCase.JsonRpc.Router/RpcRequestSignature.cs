@@ -1,6 +1,7 @@
 ﻿using EdjCase.JsonRpc.Common;
 using System;
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,26 +19,23 @@ namespace EdjCase.JsonRpc.Router
 		private const char objectType = 'o';
 		private const char nullType = '-';
 
-		private char[] Values { get; }
-		private int MethodEndIndex { get; }
-		private int? ParamStartIndex { get; }
-		private int EndIndex { get; }
+		private readonly char[] values;
+		private readonly int methodEndIndex;
+		private readonly int? paramStartIndex;
+		private readonly int endIndex;
 		public bool IsDictionary { get; }
 
 		private RpcRequestSignature(char[] values, int methodEndIndex, int? paramStartIndex, int endIndex, bool isDictionary)
 		{
-			this.Values = values;
-			this.MethodEndIndex = methodEndIndex;
-			this.ParamStartIndex = paramStartIndex;
-			this.EndIndex = endIndex;
+			this.values = values;
+			this.methodEndIndex = methodEndIndex;
+			this.paramStartIndex = paramStartIndex;
+			this.endIndex = endIndex;
 			this.IsDictionary = isDictionary;
 		}
 
-
-
-
-		public Memory<char> GetMethodName() => this.Values.AsMemory(0, this.MethodEndIndex + 1);
-		public bool HasParameters => this.ParamStartIndex != null;
+		public Memory<char> GetMethodName() => this.values.AsMemory(0, this.methodEndIndex + 1);
+		public bool HasParameters => this.paramStartIndex != null;
 
 		public IEnumerable<(Memory<char>, RpcParameterType)> ParametersAsDict
 		{
@@ -49,18 +47,18 @@ namespace EdjCase.JsonRpc.Router
 				}
 				if (this.HasParameters)
 				{
-					int i = this.ParamStartIndex!.Value;
+					int i = this.paramStartIndex!.Value;
 					int currentKeyLength = 0;
-					for (; i <= this.EndIndex; i++)
+					for (; i <= this.endIndex; i++)
 					{
-						if (this.Values[i] != RpcRequestSignature.delimiter)
+						if (this.values[i] != RpcRequestSignature.delimiter)
 						{
 							//Key finished
 							currentKeyLength++;
 							continue;
 						}
-						Memory<char> key = this.Values.AsMemory(i - currentKeyLength, currentKeyLength);
-						RpcParameterType type = RpcRequestSignature.GetTypeFromChar(this.Values[i + 1]);
+						Memory<char> key = this.values.AsMemory(i - currentKeyLength, currentKeyLength);
+						RpcParameterType type = RpcRequestSignature.GetTypeFromChar(this.values[i + 1]);
 						yield return (key, type);
 						//reset key length, moving to next
 						currentKeyLength = 0;
@@ -81,9 +79,9 @@ namespace EdjCase.JsonRpc.Router
 				}
 				if (this.HasParameters)
 				{
-					for (int i = this.ParamStartIndex!.Value; i <= this.EndIndex; i++)
+					for (int i = this.paramStartIndex!.Value; i <= this.endIndex; i++)
 					{
-						yield return RpcRequestSignature.GetTypeFromChar(this.Values[i]);
+						yield return RpcRequestSignature.GetTypeFromChar(this.values[i]);
 					}
 				}
 			}
@@ -91,12 +89,41 @@ namespace EdjCase.JsonRpc.Router
 
 		public void Dispose()
 		{
-			ArrayPool<char>.Shared.Return(this.Values);
+			ArrayPool<char>.Shared.Return(this.values);
+		}
+
+		public override int GetHashCode()
+		{
+			return new string(this.values).GetHashCode();
+		}
+
+		public override bool Equals(object obj)
+		{
+			if(obj is null)
+			{
+				return false;
+			}
+			if(!(obj is RpcRequestSignature other))
+			{
+				return false;
+			}
+			if(this.values.Length != other.values.Length)
+			{
+				return false;
+			}
+			for (int i = 0; i < this.values.Length; i++)
+			{
+				if(this.values[i] != other.values[i])
+				{
+					return false;
+				}
+			}
+			return true;
 		}
 
 		internal string AsString()
 		{
-			return new string(this.Values, 0, this.EndIndex + 1);
+			return new string(this.values, 0, this.endIndex + 1);
 		}
 
 
@@ -199,42 +226,28 @@ namespace EdjCase.JsonRpc.Router
 
 		private static char GetCharFromType(RpcParameterType type)
 		{
-			switch (type)
+			return type switch
 			{
-				case RpcParameterType.String:
-					return RpcRequestSignature.stringType;
-				case RpcParameterType.Boolean:
-					return RpcRequestSignature.booleanType;
-				case RpcParameterType.Object:
-					return RpcRequestSignature.objectType;
-				case RpcParameterType.Number:
-					return RpcRequestSignature.numberType;
-				case RpcParameterType.Null:
-					return RpcRequestSignature.nullType;
-				default:
-					throw new InvalidOperationException($"Unimplemented parameter type '{type}'");
-
-			}
+				RpcParameterType.String => RpcRequestSignature.stringType,
+				RpcParameterType.Boolean => RpcRequestSignature.booleanType,
+				RpcParameterType.Object => RpcRequestSignature.objectType,
+				RpcParameterType.Number => RpcRequestSignature.numberType,
+				RpcParameterType.Null => RpcRequestSignature.nullType,
+				_ => throw new InvalidOperationException($"Unimplemented parameter type '{type}'"),
+			};
 		}
 
 		private static RpcParameterType GetTypeFromChar(char type)
 		{
-			switch (type)
+			return type switch
 			{
-				case RpcRequestSignature.stringType:
-					return RpcParameterType.String;
-				case RpcRequestSignature.booleanType:
-					return RpcParameterType.Boolean;
-				case RpcRequestSignature.objectType:
-					return RpcParameterType.Object;
-				case RpcRequestSignature.numberType:
-					return RpcParameterType.Number;
-				case RpcRequestSignature.nullType:
-					return RpcParameterType.Null;
-				default:
-					throw new InvalidOperationException($"Unimplemented parameter type '{type}'");
-
-			}
+				RpcRequestSignature.stringType => RpcParameterType.String,
+				RpcRequestSignature.booleanType => RpcParameterType.Boolean,
+				RpcRequestSignature.objectType => RpcParameterType.Object,
+				RpcRequestSignature.numberType => RpcParameterType.Number,
+				RpcRequestSignature.nullType => RpcParameterType.Null,
+				_ => throw new InvalidOperationException($"Unimplemented parameter type '{type}'"),
+			};
 		}
 	}
 

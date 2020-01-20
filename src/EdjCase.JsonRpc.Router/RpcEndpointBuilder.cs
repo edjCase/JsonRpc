@@ -52,7 +52,7 @@ namespace EdjCase.JsonRpc.Router
 		}
 		public RpcEndpointBuilder AddController(Type type, RpcPath? path = null)
 		{
-			IEnumerable<MethodInfo> methods = this.Extract(type);
+			IEnumerable<MethodInfo> methods = RpcEndpointBuilder.Extract(type);
 			foreach (MethodInfo method in methods)
 			{
 				this.Add(path, method);
@@ -65,7 +65,7 @@ namespace EdjCase.JsonRpc.Router
 			return new StaticRpcMethodData(this.baseMethods.ToArray(), this.methods.ToDictionary(m => m.Key, m => m.Value.ToArray()));
 		}
 
-		private IEnumerable<MethodInfo> Extract(Type controllerType)
+		private static IEnumerable<MethodInfo> Extract(Type controllerType)
 		{
 			return controllerType.Assembly.GetTypes()
 				.Where(t => t == controllerType)

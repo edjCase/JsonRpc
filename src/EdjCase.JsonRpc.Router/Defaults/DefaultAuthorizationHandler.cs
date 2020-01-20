@@ -1,4 +1,4 @@
-﻿using EdjCase.JsonRpc.Router.Abstractions;
+using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Utilities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
@@ -15,7 +15,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 	internal class DefaultAuthorizationHandler : IRpcAuthorizationHandler
 	{
 		private static ConcurrentDictionary<Type, (List<IAuthorizeData>, bool)> classAttributeCache { get; } = new ConcurrentDictionary<Type, (List<IAuthorizeData>, bool)>();
-		private static ConcurrentDictionary<RpcMethodInfo, (List<IAuthorizeData>, bool)> methodAttributeCache { get; } = new ConcurrentDictionary<RpcMethodInfo, (List<IAuthorizeData>, bool)>();
+		private static ConcurrentDictionary<MethodInfo, (List<IAuthorizeData>, bool)> methodAttributeCache { get; } = new ConcurrentDictionary<MethodInfo, (List<IAuthorizeData>, bool)>(MethodInfoEqualityComparer.Instance);
 		private ILogger<DefaultAuthorizationHandler> logger { get; }
 		/// <summary>
 		/// Provides authorization policies for the authroziation service
@@ -40,7 +40,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		public async Task<bool> IsAuthorizedAsync(RpcMethodInfo methodInfo)
 		{
 			(List<IAuthorizeData> authorizeDataListClass, bool allowAnonymousOnClass) = DefaultAuthorizationHandler.classAttributeCache.GetOrAdd(methodInfo.MethodInfo.DeclaringType, GetClassAttributeInfo);
-			(List<IAuthorizeData> authorizeDataListMethod, bool allowAnonymousOnMethod) = DefaultAuthorizationHandler.methodAttributeCache.GetOrAdd(methodInfo, GetMethodAttributeInfo);
+			(List<IAuthorizeData> authorizeDataListMethod, bool allowAnonymousOnMethod) = DefaultAuthorizationHandler.methodAttributeCache.GetOrAdd(methodInfo.MethodInfo, GetMethodAttributeInfo);
 
 			if (authorizeDataListClass.Any() || authorizeDataListMethod.Any())
 			{
@@ -76,16 +76,17 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			return true;
 
 			//functions
-			(List<IAuthorizeData> Data, bool allowAnonymous) GetClassAttributeInfo(Type type)
+			static (List<IAuthorizeData> Data, bool allowAnonymous) GetClassAttributeInfo(Type type)
 			{
 				return GetAttributeInfo(type.GetCustomAttributes());
 			}
 
-			(List<IAuthorizeData> Data, bool allowAnonymous) GetMethodAttributeInfo(RpcMethodInfo info)
+			static (List<IAuthorizeData> Data, bool allowAnonymous) GetMethodAttributeInfo(MethodInfo info)
 			{
-				return GetAttributeInfo(info.MethodInfo.GetCustomAttributes());
+				return GetAttributeInfo(info.GetCustomAttributes());
 			}
-			(List<IAuthorizeData> Data, bool allowAnonymous) GetAttributeInfo(IEnumerable<Attribute> attributes)
+
+			static (List<IAuthorizeData> Data, bool allowAnonymous) GetAttributeInfo(IEnumerable<Attribute> attributes)
 			{
 				bool allowAnonymous = false;
 				var dataList = new List<IAuthorizeData>(10);
