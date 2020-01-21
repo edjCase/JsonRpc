@@ -119,7 +119,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					rpcMethod = this.rpcRequestMatcher.GetMatchingMethod(requestSignature);
 				}
 
-				bool isAuthorized = await this.authorizationHandler.IsAuthorizedAsync(rpcMethod);
+				bool isAuthorized = await this.authorizationHandler.IsAuthorizedAsync(rpcMethod.MethodInfo);
 
 				if (isAuthorized)
 				{
@@ -302,11 +302,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			catch (TargetInvocationException ex)
 			{
 				//Controller error handling
-				RpcErrorFilterAttribute errorFilter = methodInfo.DeclaringType.GetTypeInfo().GetCustomAttribute<RpcErrorFilterAttribute>();
-				if (errorFilter != null)
+				if (this.serverConfig.Value.OnInvokeExcpetion != null)
 				{
 					var context = new ExceptionContext(request, serviceProvider, ex.InnerException);
-					OnExceptionResult result = errorFilter.OnException(context);
+					OnExceptionResult result = this.serverConfig.Value.OnInvokeExcpetion(context);
 					if (!result.ThrowException)
 					{
 						return result.ResponseObject!;

@@ -29,8 +29,22 @@ namespace Microsoft.AspNetCore.Builder
 		/// Extension method to add the JsonRpc router services to the IoC container
 		/// </summary>
 		/// <param name="serviceCollection">IoC serivce container to register JsonRpc dependencies</param>
+		/// <param name="configureOptions">Configuration action for server wide rpc configuration</param>
 		/// <returns>IoC service container</returns>
-		public static IRpcBuilder AddJsonRpc(this IServiceCollection serviceCollection)
+		public static IServiceCollection AddJsonRpc(this IServiceCollection serviceCollection, Action<RpcServerConfiguration> configureOptions)
+		{
+			var configuration = new RpcServerConfiguration();
+			configureOptions?.Invoke(configuration);
+			return serviceCollection.AddJsonRpc(configuration);
+		}
+
+		/// <summary>
+		/// Extension method to add the JsonRpc router services to the IoC container
+		/// </summary>
+		/// <param name="serviceCollection">IoC serivce container to register JsonRpc dependencies</param>
+		/// <param name="configuration">(Optional) Server wide rpc configuration</param>
+		/// <returns>IoC service container</returns>
+		public static IServiceCollection AddJsonRpc(this IServiceCollection serviceCollection, RpcServerConfiguration? configuration = null)
 		{
 			if (serviceCollection == null)
 			{
@@ -55,11 +69,10 @@ namespace Microsoft.AspNetCore.Builder
 			serviceCollection
 				.TryAddScoped<IRpcAuthorizationHandler, DefaultAuthorizationHandler>();
 
-			serviceCollection
+			return serviceCollection
+				.AddSingleton(Options.Create(configuration))
 				.AddRouting()
 				.AddAuthorizationCore();
-
-			return new RpcBuilder(serviceCollection);
 		}
 
 
@@ -165,41 +178,8 @@ namespace Microsoft.AspNetCore.Builder
 
 	}
 
-	public interface IRpcBuilder
-	{
-		IServiceCollection Services { get; }
-	}
-
-	internal class RpcBuilder : IRpcBuilder
-	{
-		public IServiceCollection Services { get; }
-
-		public RpcBuilder(IServiceCollection services)
-		{
-			this.Services = services;
-		}
-	}
-
 	internal class RpcServicesMarker
 	{
 
-	}
-
-
-	public static class RpcBuilderExtensions
-	{
-		public static IRpcBuilder WithOptions(this IRpcBuilder builder, Action<RpcServerConfiguration> configureOptions)
-		{
-			var configuration = new RpcServerConfiguration();
-			configureOptions?.Invoke(configuration);
-			builder.Services.Configure(configureOptions);
-			return builder;
-		}
-
-		public static IRpcBuilder WithOptions(this IRpcBuilder builder, RpcServerConfiguration configuration)
-		{
-			builder.Services.AddSingleton(Options.Create(configuration));
-			return builder;
-		}
 	}
 }

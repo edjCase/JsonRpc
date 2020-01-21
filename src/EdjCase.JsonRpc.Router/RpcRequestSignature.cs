@@ -8,7 +8,7 @@ using System.Text;
 
 namespace EdjCase.JsonRpc.Router
 {
-	public class RpcRequestSignature : IDisposable
+	internal class RpcRequestSignature : IDisposable
 	{
 		private const char arrayType = 'a';
 		private const char dictType = 'd';

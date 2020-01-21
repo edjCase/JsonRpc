@@ -56,7 +56,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		}
 	}
 
-	public class ParameterInfoEqualityComparer : IEqualityComparer<ParameterInfo>
+	internal class ParameterInfoEqualityComparer : IEqualityComparer<ParameterInfo>
 	{
 		public static ParameterInfoEqualityComparer Instance = new ParameterInfoEqualityComparer();
 		public bool Equals(ParameterInfo x, ParameterInfo y)

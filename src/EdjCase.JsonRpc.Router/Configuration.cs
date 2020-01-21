@@ -26,5 +26,52 @@ namespace EdjCase.JsonRpc.Router
 		/// greater than the limit
 		/// </summary>
 		public int? BatchRequestLimit { get; set; }
+
+		public Func<ExceptionContext, OnExceptionResult>? OnInvokeExcpetion { get; set; }
+	}
+
+	public class ExceptionContext
+	{
+		public RpcRequest Request { get; }
+		public IServiceProvider ServiceProvider { get; }
+		public Exception Exception { get; }
+		public ExceptionContext(RpcRequest request, IServiceProvider serviceProvider, Exception exception)
+		{
+			this.Request = request;
+			this.ServiceProvider = serviceProvider;
+			this.Exception = exception;
+		}
+	}
+
+	public class OnExceptionResult
+	{
+		public bool ThrowException { get; }
+		public object? ResponseObject { get; }
+
+		private OnExceptionResult(bool throwException, object? responseObject)
+		{
+			this.ThrowException = throwException;
+			this.ResponseObject = responseObject;
+		}
+
+		public static OnExceptionResult UseObjectResponse(object responseObject)
+		{
+			return new OnExceptionResult(false, responseObject);
+		}
+
+		public static OnExceptionResult UseMethodResultResponse(IRpcMethodResult result)
+		{
+			return new OnExceptionResult(false, result);
+		}
+
+		public static OnExceptionResult UseExceptionResponse(Exception ex)
+		{
+			return new OnExceptionResult(true, ex);
+		}
+
+		public static OnExceptionResult DontHandle()
+		{
+			return new OnExceptionResult(true, null);
+		}
 	}
 }

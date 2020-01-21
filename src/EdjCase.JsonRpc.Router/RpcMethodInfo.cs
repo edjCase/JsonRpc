@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace EdjCase.JsonRpc.Router
 {
-	public class RpcMethodInfo
+	internal class RpcMethodInfo
 	{
 		public MethodInfo MethodInfo { get; }
 		public RpcParameterInfo[] Parameters { get; }
@@ -22,7 +22,7 @@ namespace EdjCase.JsonRpc.Router
 		}
 	}
 
-	public class RpcParameterInfo
+	internal class RpcParameterInfo
 	{
 		public string Name { get; }
 		public RpcParameterType Type { get; }

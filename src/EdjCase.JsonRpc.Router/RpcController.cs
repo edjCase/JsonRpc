@@ -33,56 +33,6 @@ namespace EdjCase.JsonRpc.Router
 		}
 	}
 
-	public abstract class RpcErrorFilterAttribute : Attribute
-	{
-		public abstract OnExceptionResult OnException(ExceptionContext context);
-
-	}
-	public class ExceptionContext
-	{
-		public RpcRequest Request { get; }
-		public IServiceProvider ServiceProvider { get; }
-		public Exception Exception { get; }
-		public ExceptionContext(RpcRequest request, IServiceProvider serviceProvider, Exception exception)
-		{
-			this.Request = request;
-			this.ServiceProvider = serviceProvider;
-			this.Exception = exception;
-		}
-	}
-
-	public class OnExceptionResult
-	{
-		public bool ThrowException { get; }
-		public object? ResponseObject { get; }
-
-		private OnExceptionResult(bool throwException, object? responseObject)
-		{
-			this.ThrowException = throwException;
-			this.ResponseObject = responseObject;
-		}
-
-		public static OnExceptionResult UseObjectResponse(object responseObject)
-		{
-			return new OnExceptionResult(false, responseObject);
-		}
-
-		public static OnExceptionResult UseMethodResultResponse(IRpcMethodResult result)
-		{
-			return new OnExceptionResult(false, result);
-		}
-
-		public static OnExceptionResult UseExceptionResponse(Exception ex)
-		{
-			return new OnExceptionResult(true, ex);
-		}
-
-		public static OnExceptionResult DontHandle()
-		{
-			return new OnExceptionResult(true, null);
-		}
-	}
-
 #if !NETSTANDARD1_3
 	/// <summary>
 	/// Attribute to decorate a derived <see cref="RpcController"/> class
@@ -98,10 +48,9 @@ namespace EdjCase.JsonRpc.Router
 		/// 
 		/// </summary>
 		/// <param name="routeName">(Optional) Name of the route to be used in the router. If unspecified, will use controller name.</param>
-		/// <param name="routeGroup">(Optional) Name of the group the route is in to allow route filtering per request.</param>
-		public RpcRouteAttribute(string? routeName = null)
+		public RpcRouteAttribute(string? routeName)
 		{
-			this.RouteName = routeName?.Trim();
+			this.RouteName = routeName;
 		}
 	}
 #endif

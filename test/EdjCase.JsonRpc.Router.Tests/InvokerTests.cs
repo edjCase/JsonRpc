@@ -61,7 +61,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 				.Returns(config);
 			var authHandler = new Mock<IRpcAuthorizationHandler>(MockBehavior.Strict);
 			authHandler
-				.Setup(h => h.IsAuthorizedAsync(It.IsAny<RpcMethodInfo>()))
+				.Setup(h => h.IsAuthorizedAsync(It.IsAny<MethodInfo>()))
 				.Returns(Task.FromResult(true));
 
 			return new DefaultRpcInvoker(logger.Object, options.Object, matcher.Object, accessor.Object, authHandler.Object);

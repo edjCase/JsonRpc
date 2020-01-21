@@ -1,5 +1,6 @@
+
 # JsonRpc.Router
-A .NetStandard 2.0 IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing.
+A .NetStandard 2.1 IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing.
 
 The requirements/specifications are all based off of the [Json Rpc 2.0 Specification](http://www.jsonrpc.org/specification)
 
@@ -42,12 +43,12 @@ public class ItemsController : RpcController
 {
 	public Item Get(int id)
 	{
-		//Gets item with id
+		//Code here...
 	}
 	
 	public void Add(Item item)
 	{
-		//Adds item
+		//Code here...
 	}
 }
 ```
@@ -62,140 +63,98 @@ Add the dependency injected services in the `ConfigureServices` method:
 ```cs
 public void ConfigureServices(IServiceCollection services)
 {
- 	services.AddJsonRpc(options =>
-	{
-		//(Optional) Hard cap on batch size, will block requests will larger sizes, defaults to no limit
-		options.BatchRequestLimit = 5;
-		//(Optional) If true returns full error messages in response, defaults to false
-		options.ShowServerExceptions = false;
-		//(Optional) Configure how the router serializes requests
-		options.JsonSerializerSettings = new Newtonsoft.Json.JsonSerializerSettings
+	services
+		.AddJsonRpc(config =>
 		{
-			//Example json config
-			NullValueHandling = Newtonsoft.Json.NullValueHandling.Include,
-			Formatting = Newtonsoft.Json.Formatting.Indented,
-			DefaultValueHandling = Newtonsoft.Json.DefaultValueHandling.Include
-		};
-	});	
-}
-```
-There are currently 3 methods for adding JSONRpc middleware in the `Configure` method
-1. Auto Detection (default)
-
-```cs
-public void Configure(IApplicationBuilder app)
-{
-	app
-		//(Optional) Adding authentication (need to add AddAuthentication() in the `ConfigureServices` method)
-		.UseAuthentication()
-		.UseJsonRpc(options =>
-		{
-			//(Optional) Overriding base class for all rpc controllers to be detected from, defaults to `RpcController`
-			options.BaseControllerType = typeof(MyCustomControllerBase);
-			//(Optional) Overring base url, defaults to "/" ("/Items" would now be "/api/Items")
-			options.BaseRequestPath = "/api";
+			//(Optional) Hard cap on batch size, will block requests will larger sizes, defaults to no limit
+			config.BatchRequestLimit = 5;
+			//(Optional) If true returns full error messages in response, defaults to false
+			config.ShowServerExceptions = false;
+			//(Optional) Configure how the router serializes requests
+			config.JsonSerializerSettings = new System.Text.Json.JsonSerializerOptions
+			{
+				//Example json config
+				IgnoreNullValues = false,
+				WriteIndented = true
+			};
+			//(Optional) Configure custom exception handling for exceptions during invocation of the method
+			config.OnInvokeExcpetion = (context) =>
+			{
+				if (context.Exception is InvalidOperationException)
+				{
+					//Handle a certain type of exception and return a custom response instead
+					//of an internal server error
+					int customErrorCode = 1;
+					var customData = new
+					{
+						Field = "Value"
+					};
+					var response = new RpcMethodErrorResult(customErrorCode, "Custom message", customData);
+					return OnExceptionResult.UseObjectResponse(response);
+				}
+				//Continue to throw the exception
+				return OnExceptionResult.DontHandle();
+			};
+		});
 		});
 }
 ```
-2. Manual mapping (no auto detection)
+There are multiple ways to add JSONRpc middleware in the `Configure` method
+1. Full Auto Detection
 
 ```cs
 public void Configure(IApplicationBuilder app)
 {
-	app
-		//(Optional) Adding authentication (need to add AddAuthentication() in the `ConfigureServices` method)
-		.UseAuthentication()
-		.UseManualJsonRpc(builder =>
-		{
-			//Maps `Class1` and its public methods to '/' route
-			builder.RegisterController<Class1>();
-			//Also maps `Class2` and its public methods to '/' route, along side with `Class1` (methods will collide)
-			builder.RegisterController<Class2>();
-			//Maps `Class3` and its public methods to '/Items' route
-			builder.RegisterController<Class3>("Items");
-			//Maps `Class1` and its public methods to '/Items/Books' route
-			builder.RegisterController<Class4>("Items/Books");
-		});
+    //This will register all the classes that derive from `RpcController` and their public instance methods
+	app.UseJsonRpc();
 }
 ```
-3. Manual implementation
+2. Derived Controllers Auto Detection
 
 ```cs
 public void Configure(IApplicationBuilder app)
 {
-	//Custom route provider (specified below)
-	IRpcRouteProvider routeProvider = new MyRouteProvider();
-	app
-		//(Optional) Adding authentication (need to add AddAuthentication() in the `ConfigureServices` method)
-		.UseAuthentication()
-		//Specify custom route provider
-		.UseJsonRpc(routeProvider);
+    //This will register all the classes that derive from `ControllerBase` and their public instance methods
+    //E.g. `ControllerBase` has 3 child classes/controllers (CustomController, OtherController, Commands) so by default 
+	//three routes would be `Custom`, `Other` and `Commands` respectively, but since CustomController is decorated with RpcRouteAttribute("Main"),
+	//its route will be `Main` instead of `Custom`
+	app.UseJsonRpcWithBaseController<ControllerBase>();
 }
 ```
-Custom Route Provider:
+3. Manual controller registration
+
 ```cs
-
-public class MyRouteProvider : IRpcRouteProvider
+public void Configure(IApplicationBuilder app)
 {
-	//Base url route
-	public RpcPath BaseRequestPath { get; } = "/api";
-
-	//Return method providers per url route (does not include base route)
-	public List<IRpcMethodProvider> GetMethodsByPath(RpcPath path)
-	{
-		if (path == "/Items")
-		{
-			return new List<IRpcMethodProvider>
-			{
-				new ItemsMethodProvider()
-			};
-		}
-		else if(path == "/Things")
-		{
-			return new List<IRpcMethodProvider>
-			{
-				new ThingsMethodProvider()
-			};
-		}
-		else
-		{
-			return new List<IRpcMethodProvider>();
-		}
-	}
-
-	//Set of all possible routes
-	public HashSet<RpcPath> GetRoutes()
-	{
-		return new HashSet<RpcPath>
-		{
-			"/Items",
-			"/Things"
-		};
-	}
+	app.UseJsonRpc(options =>
+    {
+    	options
+    		//Will make controller methods available for path '/First', unless overridden by RpcRouteAttribute
+    		//Note that any class will work here, not just a class derived from `RpcController`
+    		.AddController<NonRpcController>()
+    		//Will make controller methods available for custom path '/CustomPath'
+    		//Note that the same controller can be available under multiple routes
+    		.AddControllerWithCustomPath<NonRpcController>("CustomPath");
+    });
 }
+```
+4. Manual method registration
 
-//Method provider for items controller
-public class ItemsMethodProvider : IRpcMethodProvider
+```cs
+public void Configure(IApplicationBuilder app)
 {
-	public List<MethodInfo> GetRouteMethods()
-	{
-		//Reflection to get all public and instanced methods
-		return typeof(ItemsController).GetTypeInfo()
-			.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-			.ToList();
-	}
-}
-
-//Method provider for things controller
-public class ThingsMethodProvider : IRpcMethodProvider
-{
-	public List<MethodInfo> GetRouteMethods()
-	{
-		//Reflection to get all public and instanced methods
-		return typeof(ThingsController).GetTypeInfo()
-			.GetMethods(BindingFlags.Public | BindingFlags.Instance)
-			.ToList();
-	}
+	app.UseJsonRpc(options =>
+    {
+		MethodInfo customControllerMethod1 = typeof(CustomController).GetMethod("Method1");
+		MethodInfo otherControllerMethod1 = typeof(OtherController).GetMethod("Method1");
+		options
+			//Will make the `Method1` method in `CustomController` available with route '/'
+			//Note that since that method has `RpcRouteAttribute("Method")`, that will change the method name
+			//from `Method1` to `Method` in the router
+			.AddMethod(customControllerMethod1)
+			//Will make the `Method1` method in `OtherController` available with route '/CustomMethods'
+			.AddMethod(otherControllerMethod1, "CustomMethods");
+    });
 }
 ```
 

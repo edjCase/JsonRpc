@@ -31,8 +31,7 @@ namespace EdjCase.JsonRpc.Router.Sample
 		public void ConfigureServices(IServiceCollection services)
 		{
 			services
-				.AddJsonRpc()
-				.WithOptions(config =>
+				.AddJsonRpc(config =>
 				{
 					//(Optional) Hard cap on batch size, will block requests will larger sizes, defaults to no limit
 					config.BatchRequestLimit = 5;
@@ -44,6 +43,24 @@ namespace EdjCase.JsonRpc.Router.Sample
 						//Example json config
 						IgnoreNullValues = false,
 						WriteIndented = true
+					};
+					//(Optional) Configure custom exception handling for exceptions during invocation of the method
+					config.OnInvokeExcpetion = (context) =>
+					{
+						if (context.Exception is InvalidOperationException)
+						{
+							//Handle a certain type of exception and return a custom response instead
+							//of an internal server error
+							int customErrorCode = 1;
+							var customData = new
+							{
+								Field = "Value"
+							};
+							var response = new RpcMethodErrorResult(customErrorCode, "Custom message", customData);
+							return OnExceptionResult.UseObjectResponse(response);
+						}
+						//Continue to throw the exception
+						return OnExceptionResult.DontHandle();
 					};
 				});
 		}

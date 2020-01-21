@@ -42,10 +42,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			this.authorizationService = authorizationService;
 			this.httpContextAccessor = httpContextAccessor;
 		}
-		public async Task<bool> IsAuthorizedAsync(RpcMethodInfo methodInfo)
+		public async Task<bool> IsAuthorizedAsync(MethodInfo methodInfo)
 		{
-			(List<IAuthorizeData> authorizeDataListClass, bool allowAnonymousOnClass) = DefaultAuthorizationHandler.classAttributeCache.GetOrAdd(methodInfo.MethodInfo.DeclaringType, GetClassAttributeInfo);
-			(List<IAuthorizeData> authorizeDataListMethod, bool allowAnonymousOnMethod) = DefaultAuthorizationHandler.methodAttributeCache.GetOrAdd(methodInfo.MethodInfo, GetMethodAttributeInfo);
+			(List<IAuthorizeData> authorizeDataListClass, bool allowAnonymousOnClass) = DefaultAuthorizationHandler.classAttributeCache.GetOrAdd(methodInfo.DeclaringType, GetClassAttributeInfo);
+			(List<IAuthorizeData> authorizeDataListMethod, bool allowAnonymousOnMethod) = DefaultAuthorizationHandler.methodAttributeCache.GetOrAdd(methodInfo, GetMethodAttributeInfo);
 
 			if (authorizeDataListClass.Any() || authorizeDataListMethod.Any())
 			{
