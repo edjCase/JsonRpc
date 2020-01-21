@@ -24,12 +24,23 @@
 			"problemMatcher": "$msCompile"
 		},
 		{
+			"label": "Build Performance Tests",
+			"command": "dotnet",
+			"type": "process",
+			"args": [
+				"build",
+				"${workspaceFolder}/test/PerformanceTests/PerformanceTests.csproj",
+				"/property:GenerateFullPaths=true"
+			],
+			"problemMatcher": "$msCompile"
+		},
+		{
 			"label": "Build All",
 			"command": "dotnet",
 			"type": "process",
 			"args": [
 				"build",
-				"${workspaceFolder}/Edjcase.JsonRpc.sln",
+				"${workspaceFolder}/EdjCase.JsonRpc.sln",
 				"/property:GenerateFullPaths=true"
 			],
 			"problemMatcher": "$msCompile",

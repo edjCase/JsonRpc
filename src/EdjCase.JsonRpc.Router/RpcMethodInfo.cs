@@ -1,6 +1,6 @@
-﻿using EdjCase.JsonRpc.Core.Utilities;
+using EdjCase.JsonRpc.Router;
+using EdjCase.JsonRpc.Common.Utilities;
 using EdjCase.JsonRpc.Router.Utilities;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,39 +10,31 @@ using System.Threading.Tasks;
 
 namespace EdjCase.JsonRpc.Router
 {
-	public class RpcMethodInfo
+	internal class RpcMethodInfo
 	{
-		public MethodInfo Method { get; }
-		public object[] ConvertedParameters { get; }
-		public object[] RawParameters { get; }
+		public MethodInfo MethodInfo { get; }
+		public RpcParameterInfo[] Parameters { get; }
 
-		public RpcMethodInfo(MethodInfo method, object[] convertedParameters, object[] rawParameters)
+		public RpcMethodInfo(MethodInfo methodInfo, RpcParameterInfo[] parameters)
 		{
-			this.Method = method;
-			this.ConvertedParameters = convertedParameters;
-			this.RawParameters = rawParameters;
+			this.MethodInfo = methodInfo;
+			this.Parameters = parameters;
 		}
+	}
 
-		public bool HasExactParameterMatch()
+	internal class RpcParameterInfo
+	{
+		public string Name { get; }
+		public RpcParameterType Type { get; }
+		public Type RawType { get; }
+		public bool IsOptional { get; }
+
+		public RpcParameterInfo(string name, RpcParameterType type, Type rawType, bool isOptional)
 		{
-			try
-			{
-				ParameterInfo[] parameters = this.Method.GetParameters();
-				for (int i = 0; i < this.RawParameters.Length; i++)
-				{
-					object original = this.RawParameters[i];
-					ParameterInfo parameter = parameters[i];
-					if (!RpcUtil.TypesMatch(original, parameter.ParameterType))
-					{
-						return false;
-					}
-				}
-				return true;
-			}
-			catch
-			{
-				return false;
-			}
+			this.Name = name;
+			this.Type = type;
+			this.RawType = rawType;
+			this.IsOptional = isOptional;
 		}
 	}
 }

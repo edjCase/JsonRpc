@@ -1,25 +1,15 @@
-using EdjCase.JsonRpc.Core;
-using EdjCase.JsonRpc.Core.Tools;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
-using System.IO.Compression;
-using System.Linq;
 using System.Net.Http;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace EdjCase.JsonRpc.Client
 {
 #if NETSTANDARD1_1
-	public interface IHttpClientFactory
+	internal interface IHttpClientFactory
 	{
 		HttpClient CreateClient(string name);
 	}
-	public static class HttpClientFactoryExtensions
+	internal static class HttpClientFactoryExtensions
 	{		
 		public static HttpClient CreateClient(this IHttpClientFactory factory)
 		{
@@ -28,12 +18,12 @@ namespace EdjCase.JsonRpc.Client
 	}
 #endif
 
-	public class DefaultHttpClientFactory : IHttpClientFactory, IDisposable
+	internal class DefaultHttpClientFactory : IHttpClientFactory, IDisposable
 	{
 		public ConcurrentDictionary<string, HttpClient> Clients { get; } = new ConcurrentDictionary<string, HttpClient>();
 
-		public HttpMessageHandler MessageHandler { get; }
-		public DefaultHttpClientFactory(HttpMessageHandler handler = null)
+		public HttpMessageHandler? MessageHandler { get; }
+		public DefaultHttpClientFactory(HttpMessageHandler? handler = null)
 		{
 			this.MessageHandler = handler;
 		}

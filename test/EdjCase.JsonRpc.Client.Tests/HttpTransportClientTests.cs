@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Net;
 using System.Linq;
 using Microsoft.Extensions.Options;
+using EdjCase.JsonRpc.Common.Tools;
 
 namespace EdjCase.JsonRpc.Client.Tests
 {
@@ -23,11 +24,16 @@ namespace EdjCase.JsonRpc.Client.Tests
 				responseMessage.Content = new StringContent("Bad");
 				var fakeHandler = new FakeResponseHandler();
 				fakeHandler.AddFakeResponse(uri, responseMessage);
-				var factory = new Mock<IHttpClientFactory>();
+				var factory = new Mock<IHttpClientFactory>(MockBehavior.Strict);
 				factory
 				.Setup(f => f.CreateClient(Options.DefaultName))
 				.Returns(new HttpClient(fakeHandler));
-				var client = new HttpRpcTransportClient(httpClientFactory: factory.Object);
+				var streamCompressor = new Mock<IStreamCompressor>(MockBehavior.Strict);
+				System.IO.Stream stream;
+				streamCompressor
+					.Setup(c => c.TryGetCompressionStream(It.IsAny<System.IO.Stream>(), It.IsAny<string>(), It.IsAny<System.IO.Compression.CompressionMode>(), out stream))
+					.Returns(false);
+				var client = new HttpRpcTransportClient(streamCompressor.Object, httpClientFactory: factory.Object);
 				Func<Task> func = () => client.SendRequestAsync(uri, "{}");
 				if (!responseMessage.IsSuccessStatusCode)
 				{

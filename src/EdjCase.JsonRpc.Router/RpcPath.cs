@@ -1,4 +1,4 @@
-﻿using EdjCase.JsonRpc.Core;
+﻿using EdjCase.JsonRpc.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,56 +8,48 @@ namespace EdjCase.JsonRpc.Router
 	/// <summary>
 	/// Represents the url path for Rpc routing purposes
 	/// </summary>
-	public struct RpcPath : IEquatable<RpcPath>
+	public class RpcPath : IEquatable<RpcPath>
 	{
-		/// <summary>
-		/// Default/Empty path
-		/// </summary>
-		public static RpcPath Default => new RpcPath();
-
-		/// <summary>
-		/// Path components split on forward slashes
-		/// </summary>
-		private readonly string[] componentsValue;
+		private char[] path;
 
 		private int? hashCodeCache;
 
-		/// <param name="components">Uri components for the path</param>
-		private RpcPath(string[] components = null)
+		private RpcPath(char[] path)
 		{
-			this.componentsValue = components ?? new string[0];
-			this.hashCodeCache = null;
+			if (path == null || path.Length < 1)
+			{
+				throw new ArgumentNullException(nameof(path));
+			}
+			this.path = path;
 		}
 
-		public static bool operator ==(RpcPath path1, RpcPath path2)
+		public static bool operator ==(RpcPath? path1, RpcPath? path2)
 		{
+			if (object.ReferenceEquals(path1, null))
+			{
+				return object.ReferenceEquals(path2, null);
+			}
 			return path1.Equals(path2);
 		}
 
-		public static bool operator !=(RpcPath path1, RpcPath path2)
+		public static bool operator !=(RpcPath? path1, RpcPath? path2)
 		{
-			return !path1.Equals(path2);
+			return !(path1 == path2);
 		}
 
-		public bool StartsWith(RpcPath other)
+		public bool StartsWith(RpcPath? other)
 		{
-			if ((other.componentsValue?.Length ?? 0) == 0)
+			if (other == null)
 			{
 				return true;
 			}
-			if ((this.componentsValue?.Length ?? 0) == 0)
+			if (other.path.Length > this.path.Length)
 			{
 				return false;
 			}
-			if (other.componentsValue.Length > this.componentsValue.Length)
+			for (int i = 0; i < other.path.Length; i++)
 			{
-				return false;
-			}
-			for (int i = 0; i < other.componentsValue.Length; i++)
-			{
-				string component = this.componentsValue[i];
-				string otherComponent = other.componentsValue[i];
-				if (!string.Equals(component, otherComponent))
+				if (other.path[i] != this.path[i])
 				{
 					return false;
 				}
@@ -65,13 +57,17 @@ namespace EdjCase.JsonRpc.Router
 			return true;
 		}
 
-		public bool Equals(RpcPath other)
+		public bool Equals(RpcPath? other)
 		{
+			if (object.ReferenceEquals(other, null))
+			{
+				return false;
+			}
 			return this.GetHashCode() == other.GetHashCode();
 		}
-		
 
-		public override bool Equals(object obj)
+
+		public override bool Equals(object? obj)
 		{
 			if (obj is RpcPath path)
 			{
@@ -86,19 +82,12 @@ namespace EdjCase.JsonRpc.Router
 			//TODO best way to optimize gethashcode? multithread?
 			if (this.hashCodeCache == null)
 			{
-				int hash;
-				if (this.componentsValue == null || this.componentsValue.Length == 0)
+				int hash = 1337;
+				foreach (char component in this.path)
 				{
-					hash = 0;
+					hash = (hash * 7) + component.GetHashCode();
 				}
-				else
-				{
-					hash = 1337;
-					foreach (string component in this.componentsValue)
-					{
-						hash = (hash * 7) + component.GetHashCode();
-					}
-				}
+
 				this.hashCodeCache = hash;
 			}
 			return this.hashCodeCache.Value;
@@ -109,34 +98,69 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		/// <param name="path">Uri/route path</param>
 		/// <returns>Rpc path based on the path string</returns>
-		public static RpcPath Parse(string path)
+		public static RpcPath Parse(ReadOnlySpan<char> path)
 		{
-			if (!RpcPath.TryParse(path, out RpcPath rpcPath))
+			if (!RpcPath.TryParse(path, out RpcPath? rpcPath))
 			{
-				throw new RpcException(RpcErrorCode.ParseError, $"Rpc path could not be parsed from '{path}'.");
+				throw new RpcException(RpcErrorCode.ParseError, $"Rpc path could not be parsed from '{new string(path.ToArray())}'.");
 			}
-			return rpcPath;
+			return rpcPath!;
 		}
 		/// <summary>
 		/// Creates a <see cref="RpcPath"/> based on the string form of the path
 		/// </summary>
 		/// <param name="path">Uri/route path</param>
 		/// <returns>True if the path parses, otherwise false</returns>
-		public static bool TryParse(string path, out RpcPath rpcPath)
+		public static bool TryParse(ReadOnlySpan<char> path, out RpcPath? rpcPath)
 		{
-			if (string.IsNullOrWhiteSpace(path))
+			if (path.IsEmpty)
 			{
-				rpcPath = new RpcPath();
+				rpcPath = null;
 				return true;
 			}
 			else
 			{
 				try
 				{
-					string[] pathComponents = path
-						.ToLowerInvariant()
-						.Split(new[] { '/', '\\' }, StringSplitOptions.RemoveEmptyEntries);
-					rpcPath = new RpcPath(pathComponents);
+					int start = IsSlash(path[0]) ? 1 : 0;
+					if (path.Length <= start)
+					{
+						rpcPath = default;
+						return true;
+					}
+					int length = IsSlash(path[path.Length - 1]) ? path.Length - 1 : path.Length;
+					if (start >= length - 1)
+					{
+						rpcPath = default;
+						return true;
+					}
+
+
+					var charArray = new char[length - start];
+
+					int j = 0;
+					for (int i = start; i < length; i++)
+					{
+						char c;
+						if (char.IsWhiteSpace(path[i]))
+						{
+							rpcPath = default;
+							return false;
+						}
+						else if (IsSlash(path[i]))
+						{
+							//make all the slashes the same
+							c = '/';
+						}
+						else
+						{
+							c = char.ToLowerInvariant(path[i]);
+						}
+
+						charArray[j] = c;
+						j++;
+					}
+					rpcPath = new RpcPath(charArray);
 					return true;
 				}
 				catch
@@ -145,6 +169,10 @@ namespace EdjCase.JsonRpc.Router
 					return false;
 				}
 			}
+			bool IsSlash(char c)
+			{
+				return c == '/' || c == '\\';
+			}
 		}
 
 		/// <summary>
@@ -152,9 +180,9 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		/// <param name="basePath">Base path to remove</param>
 		/// <returns>A new path that is the full path without the base path</returns>
-		public RpcPath RemoveBasePath(RpcPath basePath)
+		public RpcPath? RemoveBasePath(RpcPath basePath)
 		{
-			if (!this.TryRemoveBasePath(basePath, out RpcPath path))
+			if (!this.TryRemoveBasePath(basePath, out RpcPath? path))
 			{
 				throw new RpcException(RpcErrorCode.ParseError, $"Count not remove path '{basePath}' from path '{this}'.");
 			}
@@ -166,9 +194,9 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		/// <param name="basePath">Base path to remove</param>
 		/// <returns>True if removed the base path. Otherwise false</returns>
-		public bool TryRemoveBasePath(RpcPath basePath, out RpcPath path)
+		public bool TryRemoveBasePath(RpcPath? basePath, out RpcPath? path)
 		{
-			if (basePath == default)
+			if (basePath == null)
 			{
 				path = this.Clone();
 				return true;
@@ -178,11 +206,15 @@ namespace EdjCase.JsonRpc.Router
 				path = default;
 				return false;
 			}
-			var newComponents = new string[this.componentsValue.Length - basePath.componentsValue.Length];
-			if (newComponents.Length > 0)
+			int size = this.path.Length - basePath.path.Length;
+			if (size < 1)
 			{
-				Array.Copy(this.componentsValue, basePath.componentsValue.Length, newComponents, 0, newComponents.Length);
+				path = default;
+				return true;
 			}
+			//Removes the / as well
+			var newComponents = new char[size - 1];
+			this.path.AsSpan(basePath.path.Length + 1).CopyTo(newComponents);
 			path = new RpcPath(newComponents);
 			return true;
 		}
@@ -194,39 +226,26 @@ namespace EdjCase.JsonRpc.Router
 		/// <returns>A new path that is the combination of the two paths</returns>
 		public RpcPath Add(RpcPath other)
 		{
-			if (other.componentsValue == null)
+			if (other == null)
 			{
 				return this.Clone();
 			}
-			if (this.componentsValue == null)
-			{
-				return other.Clone();
-			}
-			int componentCount = this.componentsValue.Length + other.componentsValue.Length;
-			string[] newComponents = new string[componentCount];
-			this.componentsValue.CopyTo(newComponents, 0);
-			other.componentsValue.CopyTo(newComponents, this.componentsValue.Length);
+			char[] newComponents = new char[this.path.Length + other.path.Length + 1];
+			this.path.CopyTo(newComponents, 0);
+			newComponents[this.path.Length] = '/';
+			other.path.CopyTo(newComponents, this.path.Length + 1);
 			return new RpcPath(newComponents);
 		}
 
 		public override string ToString()
 		{
-			if (this.componentsValue == null)
-			{
-				return "/";
-			}
-			return "/" + string.Join("/", this.componentsValue);
+			return new string(this.path);
 		}
 
 		public RpcPath Clone()
 		{
-			if (this.componentsValue == null || this.componentsValue.Length == 0)
-			{
-				return new RpcPath();
-			}
-			int componentCount = this.componentsValue.Length;
-			string[] newComponents = new string[componentCount];
-			this.componentsValue.CopyTo(newComponents, 0);
+			var newComponents = new char[this.path.Length];
+			this.path.CopyTo(newComponents, 0);
 			return new RpcPath(newComponents);
 		}
 
@@ -237,7 +256,7 @@ namespace EdjCase.JsonRpc.Router
 
 		public static implicit operator RpcPath(string s)
 		{
-			return RpcPath.Parse(s);
+			return RpcPath.Parse(s.AsSpan());
 		}
 	}
 }

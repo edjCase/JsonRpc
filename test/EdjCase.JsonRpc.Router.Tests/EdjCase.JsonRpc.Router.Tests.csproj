@@ -6,6 +6,9 @@
     <TargetFramework>netcoreapp3.0</TargetFramework>
     <AssemblyName>EdjCase.JsonRpc.Router.Tests</AssemblyName>
     <PackageId>EdjCase.JsonRpc.Router.Tests</PackageId>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+	<IsTestProject>true</IsTestProject>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,14 +16,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.3.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.4.0" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
     <PackageReference Include="xunit" Version="2.4.1" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.0.0" />
-    <PackageReference Include="Moq" Version="4.13.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.1" />
+    <PackageReference Include="Moq" Version="4.13.1" />
   </ItemGroup>
 
 </Project>

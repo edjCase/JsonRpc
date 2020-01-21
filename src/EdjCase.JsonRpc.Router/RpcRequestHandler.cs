@@ -1,11 +1,10 @@
-﻿using Edjcase.JsonRpc.Router;
-using EdjCase.JsonRpc.Core;
+﻿using EdjCase.JsonRpc.Router;
+using EdjCase.JsonRpc.Common;
 using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Defaults;
 using EdjCase.JsonRpc.Router.Utilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -15,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace EdjCase.JsonRpc.Router
 {
-	public class RpcRequestHandler : IRpcRequestHandler
+	internal class RpcRequestHandler : IRpcRequestHandler
 	{
 		/// <summary>
 		/// Configuration data for the server
@@ -56,12 +55,12 @@ namespace EdjCase.JsonRpc.Router
 			this.logger = logger;
 		}
 
-		public async Task<string> HandleRequestAsync(RpcPath requestPath, string requestBody, IRouteContext routeContext)
+		public async Task<bool> HandleRequestAsync(Stream requestBody, Stream responseBody)
 		{
 			try
 			{
 				ParsingResult result = this.parser.ParseRequests(requestBody);
-				this.logger?.LogInformation($"Processing {result.RequestCount} Rpc requests");
+				this.logger.ProcessingRequests(result.RequestCount);
 
 				int? batchLimit = this.serverConfig.Value.BatchRequestLimit;
 				List<RpcResponse> responses = new List<RpcResponse>();
@@ -70,15 +69,15 @@ namespace EdjCase.JsonRpc.Router
 					string batchLimitError = $"Request count exceeded batch request limit ({batchLimit}).";
 					responses = new List<RpcResponse>
 					{
-						new RpcResponse(null, new RpcError(RpcErrorCode.InvalidRequest, batchLimitError))
+						new RpcResponse(new RpcId(), new RpcError(RpcErrorCode.InvalidRequest, batchLimitError))
 					};
-					this.logger?.LogError(batchLimitError + " Returning error response.");
+					this.logger.LogError(batchLimitError + " Returning error response.");
 				}
 				else
 				{
 					if (result.Requests.Any())
 					{
-						responses = await this.invoker.InvokeBatchRequestAsync(result.Requests, requestPath, routeContext);
+						responses = await this.invoker.InvokeBatchRequestAsync(result.Requests);
 					}
 					else
 					{
@@ -86,9 +85,9 @@ namespace EdjCase.JsonRpc.Router
 					}
 					foreach ((RpcId id, RpcError error) in result.Errors)
 					{
-						if(id == default)
+						if (id == default)
 						{
-							this.logger.LogError($"Request with no id failed and no response will be sent. Error - Code: {error.Code}, Message: {error.Message}");
+							this.logger.ResponseFailedWithNoId(error.Code, error.Message);
 							continue;
 						}
 						responses.Add(new RpcResponse(id, error));
@@ -96,26 +95,27 @@ namespace EdjCase.JsonRpc.Router
 				}
 				if (responses == null || !responses.Any())
 				{
-					this.logger?.LogInformation("No rpc responses created.");
-					return null;
+					this.logger.NoResponses();
+					return false;
 				}
-				this.logger?.LogInformation($"{responses.Count} rpc response(s) created.");
+				this.logger.Responses(responses.Count);
 
 				if (result.IsBulkRequest)
 				{
-					return this.responseSerializer.SerializeBulk(responses);
+					await this.responseSerializer.SerializeBulkAsync(responses, responseBody);
 				}
 				else
 				{
-					return this.responseSerializer.Serialize(responses.Single());
+					await this.responseSerializer.SerializeAsync(responses.Single(), responseBody);
 				}
 			}
 			catch (RpcException ex)
 			{
-				this.logger?.LogException(ex, "Error occurred when proccessing Rpc request. Sending Rpc error response");
-				var response = new RpcResponse(null, ex.ToRpcError(this.serverConfig.Value.ShowServerExceptions));
-				return this.responseSerializer.Serialize(response);
+				this.logger.LogException(ex, "Error occurred when proccessing Rpc request. Sending Rpc error response");
+				var response = new RpcResponse(new RpcId(), ex.ToRpcError(this.serverConfig.Value.ShowServerExceptions));
+				await this.responseSerializer.SerializeAsync(response, responseBody);
 			}
+			return true;
 		}
 	}
 }

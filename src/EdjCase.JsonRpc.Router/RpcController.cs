@@ -14,7 +14,7 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		/// <param name="obj">Object to return in response</param>
 		/// <returns>Success result for rpc response</returns>
-		public virtual RpcMethodSuccessResult Ok(object obj = null)
+		public virtual RpcMethodSuccessResult Ok(object? obj = null)
 		{
 			return new RpcMethodSuccessResult(obj);
 		}
@@ -27,46 +27,9 @@ namespace EdjCase.JsonRpc.Router
 		/// <param name="message">(Optional)Error message</param>
 		/// <param name="data">(Optional)Error data</param>
 		/// <returns></returns>
-		public virtual RpcMethodErrorResult Error(int errorCode, string message = null, object data = null)
+		public virtual RpcMethodErrorResult Error(int errorCode, string message, object? data = null)
 		{
 			return new RpcMethodErrorResult(errorCode, message, data);
-		}
-	}
-	
-	public abstract class RpcErrorFilterAttribute : Attribute
-	{
-		public abstract OnExceptionResult OnException(RpcRouteInfo routeInfo, Exception ex);
-	}
-
-	public class OnExceptionResult
-	{
-		public bool ThrowException { get; }
-		public object ResponseObject { get; }
-
-		private OnExceptionResult(bool throwException, object responseObject)
-		{
-			this.ThrowException = throwException;
-			this.ResponseObject = responseObject;
-		}
-
-		public static OnExceptionResult UseObjectResponse(object responseObject)
-		{
-			return new OnExceptionResult(false, responseObject);
-		}
-
-		public static OnExceptionResult UseMethodResultResponse(IRpcMethodResult result)
-		{
-			return new OnExceptionResult(false, result);
-		}
-
-		public static OnExceptionResult UseExceptionResponse(Exception ex)
-		{
-			return new OnExceptionResult(true, ex);
-		}
-
-		public static OnExceptionResult DontHandle()
-		{
-			return new OnExceptionResult(true, null);
 		}
 	}
 
@@ -79,16 +42,15 @@ namespace EdjCase.JsonRpc.Router
 		/// <summary>
 		/// Name of the route to be used in the router. If unspecified, will use controller name.
 		/// </summary>
-		public string RouteName { get; }
+		public string? RouteName { get; }
 
 		/// <summary>
 		/// 
 		/// </summary>
 		/// <param name="routeName">(Optional) Name of the route to be used in the router. If unspecified, will use controller name.</param>
-		/// <param name="routeGroup">(Optional) Name of the group the route is in to allow route filtering per request.</param>
-		public RpcRouteAttribute(string routeName = null)
+		public RpcRouteAttribute(string? routeName)
 		{
-			this.RouteName = routeName?.Trim();
+			this.RouteName = routeName;
 		}
 	}
 #endif

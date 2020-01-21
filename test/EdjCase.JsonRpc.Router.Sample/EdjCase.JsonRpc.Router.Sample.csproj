@@ -8,9 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\EdjCase.JsonRpc.Router.WebSockets\EdjCase.JsonRpc.Router.WebSockets.csproj" />
+    <ProjectReference Include="..\..\src\EdjCase.JsonRpc.Router\EdjCase.JsonRpc.Router.csproj" />
   </ItemGroup>
-	<ItemGroup>
-    <PackageReference Include="EdjCase.BasicAuth" Version="2.0.2" />
-	</ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EdjCase.BasicAuth" Version="2.0.3" />
+  </ItemGroup>
 </Project>

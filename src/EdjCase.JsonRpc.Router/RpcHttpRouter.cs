@@ -4,42 +4,35 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using EdjCase.JsonRpc.Core;
+using EdjCase.JsonRpc.Common;
 using EdjCase.JsonRpc.Router.Abstractions;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using EdjCase.JsonRpc.Router.Utilities;
 using Microsoft.Extensions.Options;
 using EdjCase.JsonRpc.Router.Defaults;
 using Microsoft.AspNetCore.Http;
-using EdjCase.JsonRpc.Core.Tools;
+using EdjCase.JsonRpc.Common.Tools;
 using Microsoft.Extensions.DependencyInjection;
+using System.Buffers;
+using System.Reflection;
+using System.IO.Compression;
 
 namespace EdjCase.JsonRpc.Router
 {
 	/// <summary>
 	/// Router for Asp.Net to direct Http Rpc requests to the correct method, invoke it and return the proper response
 	/// </summary>
-	public class RpcHttpRouter : IRouter
+	internal class RpcHttpRouter : IRouter
 	{
-		/// <summary>
-		/// Provider that allows the retrieval of all configured routes
-		/// </summary>
-		private IRpcRouteProvider routeProvider { get; }
-
-		/// <param name="routeProvider">Provider that allows the retrieval of all configured routes</param>
-		public RpcHttpRouter(IRpcRouteProvider routeProvider)
-		{
-			this.routeProvider = routeProvider ?? throw new ArgumentNullException(nameof(routeProvider));
-		}
+		private static readonly char[] encodingSeperators = new[] { ',', ' ' };
 
 		/// <summary>
 		/// Generates the virtual path data for the router
 		/// </summary>
 		/// <param name="context">Virtual path context</param>
 		/// <returns>Virtual path data for the router</returns>
-		public VirtualPathData GetVirtualPath(VirtualPathContext context)
+		public VirtualPathData? GetVirtualPath(VirtualPathContext context)
 		{
 			// We return null here because we're not responsible for generating the url, the route is.
 			return null;
@@ -55,95 +48,41 @@ namespace EdjCase.JsonRpc.Router
 			ILogger<RpcHttpRouter> logger = context.HttpContext.RequestServices.GetService<ILogger<RpcHttpRouter>>();
 			try
 			{
-				RpcPath requestPath;
+				RpcPath? requestPath;
 				if (!context.HttpContext.Request.Path.HasValue)
 				{
-					requestPath = RpcPath.Default;
+					requestPath = null;
 				}
 				else
 				{
-					if (!RpcPath.TryParse(context.HttpContext.Request.Path.Value, out requestPath))
+					if (!RpcPath.TryParse(context.HttpContext.Request.Path.Value.AsSpan(), out requestPath))
 					{
 						logger?.LogInformation($"Could not parse the path '{context.HttpContext.Request.Path.Value}' for the " +
 							$"request into an rpc path. Skipping rpc router middleware.");
 						return;
 					}
 				}
-				if (!requestPath.TryRemoveBasePath(this.routeProvider.BaseRequestPath, out requestPath))
-				{
-					logger?.LogTrace("Request did not match the base request path. Skipping rpc router.");
-					return;
-				}
 				logger?.LogInformation($"Rpc request with route '{requestPath}' started.");
 
-				string jsonString;
-				if (context.HttpContext.Request.Body == null)
-				{
-					jsonString = null;
-				}
-				else
-				{
-					using (StreamReader streamReader = new StreamReader(context.HttpContext.Request.Body, Encoding.UTF8,
-						detectEncodingFromByteOrderMarks: true,
-						bufferSize: 1024,
-						leaveOpen: true))
-					{
-						try
-						{
-							jsonString = await streamReader.ReadToEndAsync();
-						}
-						catch (TaskCanceledException ex)
-						{
-							throw new RpcCanceledRequestException("Cancelled while reading the request.", ex);
-						}
-						jsonString = jsonString.Trim();
-					}
-
-				}
 
 				IRpcRequestHandler requestHandler = context.HttpContext.RequestServices.GetRequiredService<IRpcRequestHandler>();
-				var routeContext = DefaultRouteContext.FromHttpContext(context.HttpContext, this.routeProvider);
-				string responseJson = await requestHandler.HandleRequestAsync(requestPath, jsonString, routeContext);
-
-				if (responseJson == null)
+				var routeContext = DefaultRpcContext.Build(context.HttpContext.RequestServices, requestPath);
+				context.HttpContext.RequestServices.GetRequiredService<IRpcContextAccessor>().Value = routeContext;
+				Stream writableStream = this.BuildWritableResponseStream(context.HttpContext);
+				using (var requestBody = new MemoryStream())
 				{
-					//No response required, but status code must be 204
-					context.HttpContext.Response.StatusCode = 204;
-					context.MarkAsHandled();
-					return;
-				}
-
-				context.HttpContext.Response.ContentType = "application/json";
-
-				bool responseSet = false;
-				string acceptEncoding = context.HttpContext.Request.Headers["Accept-Encoding"];
-				if (!string.IsNullOrWhiteSpace(acceptEncoding))
-				{
-					IStreamCompressor compressor = context.HttpContext.RequestServices.GetService<IStreamCompressor>();
-					if (compressor != null)
+					await context.HttpContext.Request.Body.CopyToAsync(requestBody);
+					requestBody.Position = 0;
+					bool hasResponse = await requestHandler.HandleRequestAsync(requestBody, writableStream);
+					if (!hasResponse)
 					{
-						string[] encodings = acceptEncoding.Split(new[] { ',', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-						foreach (string encoding in encodings)
-						{
-							bool haveType = Enum.TryParse(encoding, true, out CompressionType compressionType);
-							if (!haveType)
-							{
-								continue;
-							}
-							context.HttpContext.Response.Headers.Add("Content-Encoding", new[] { encoding });
-							using (Stream responseStream = new MemoryStream(Encoding.UTF8.GetBytes(responseJson)))
-							{
-								compressor.Compress(responseStream, context.HttpContext.Response.Body, compressionType);
-							}
-							responseSet = true;
-							break;
-						}
+						//No response required, but status code must be 204
+						context.HttpContext.Response.StatusCode = 204;
+						context.MarkAsHandled();
+						return;
 					}
 				}
-				if (!responseSet)
-				{
-					await context.HttpContext.Response.WriteAsync(responseJson);
-				}
+
 
 				context.MarkAsHandled();
 
@@ -155,6 +94,29 @@ namespace EdjCase.JsonRpc.Router
 				logger?.LogException(ex, errorMessage);
 				context.MarkAsHandled();
 			}
+		}
+
+		private Stream BuildWritableResponseStream(HttpContext httpContext)
+		{
+			httpContext.Response.ContentType = "application/json";
+			string acceptEncoding = httpContext.Request.Headers["Accept-Encoding"];
+			if (!string.IsNullOrWhiteSpace(acceptEncoding))
+			{
+				IStreamCompressor compressor = httpContext.RequestServices.GetService<IStreamCompressor>();
+				if (compressor != null)
+				{
+					string[] encodings = acceptEncoding.Split(RpcHttpRouter.encodingSeperators, StringSplitOptions.RemoveEmptyEntries);
+					foreach (string encoding in encodings)
+					{
+						if (compressor.TryGetCompressionStream(httpContext.Response.Body, encoding, CompressionMode.Compress, out Stream compressedStream))
+						{
+							httpContext.Response.Headers.Add("Content-Encoding", encoding);
+							return compressedStream;
+						}
+					}
+				}
+			}
+			return httpContext.Response.Body;
 		}
 	}
 }

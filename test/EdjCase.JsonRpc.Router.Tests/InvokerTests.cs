@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
-using EdjCase.JsonRpc.Core;
+using EdjCase.JsonRpc.Common;
 using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Defaults;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,29 +11,60 @@ using Moq;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using EdjCase.JsonRpc.Router.MethodProviders;
 using System.Reflection;
+using EdjCase.JsonRpc.Router;
+using System.Text;
+using System.IO;
+using System.Linq;
 
 namespace EdjCase.JsonRpc.Router.Tests
 {
 	public class InvokerTests
 	{
-		private DefaultRpcInvoker GetInvoker()
+		private DefaultRpcInvoker GetInvoker(string? methodName, RpcPath? path = null)
 		{
-			var authorizationService = new Mock<IAuthorizationService>();
-			var policyProvider = new Mock<IAuthorizationPolicyProvider>();
-			var logger = new Mock<ILogger<DefaultRpcInvoker>>();
-			var options = new Mock<IOptions<RpcServerConfiguration>>();
-			var logger2 = new Mock<ILogger<DefaultRequestMatcher>>();
-			//TODO mock and make other tests for this
-			var rpcRequestMatcher = new DefaultRequestMatcher(logger2.Object, options.Object);
+			MethodInfo? methodInfo = null;
+			if (methodName != null)
+			{
+				methodInfo = typeof(TestRouteClass).GetMethod(methodName)!;
+			}
+			return this.GetInvoker(methodInfo, path);
+		}
+
+		private DefaultRpcInvoker GetInvoker(MethodInfo? methodInfo, RpcPath? path = null)
+
+		{
+			var logger = new Mock<ILogger<DefaultRpcInvoker>>(MockBehavior.Loose);
+			var options = new Mock<IOptions<RpcServerConfiguration>>(MockBehavior.Strict);
+			var matcher = new Mock<IRpcRequestMatcher>(MockBehavior.Strict);
+			var accessor = new Mock<IRpcContextAccessor>(MockBehavior.Strict);
+			IRpcContext requestContext = this.GetRouteContext(path);
+			accessor
+				.SetupGet(a => a.Value)
+				.Returns(requestContext);
+			Moq.Language.Flow.ISetup<IRpcRequestMatcher, RpcMethodInfo> matcherSetup = matcher
+					.Setup(m => m.GetMatchingMethod(It.IsAny<RpcRequestSignature>()));
+			if (methodInfo != null)
+			{
+				//TODO better way of getting this for unit tests?
+				RpcMethodInfo method = DefaultRequestMatcher.BuildMethodInfo(methodInfo);
+				matcherSetup.Returns(method);
+			}
+			else
+			{
+				matcherSetup.Throws(new RpcException(RpcErrorCode.MethodNotFound, "Method not found"));
+			}
 			var config = new RpcServerConfiguration();
 			config.ShowServerExceptions = true;
 			options
 				.SetupGet(o => o.Value)
 				.Returns(config);
+			var authHandler = new Mock<IRpcAuthorizationHandler>(MockBehavior.Strict);
+			authHandler
+				.Setup(h => h.IsAuthorizedAsync(It.IsAny<MethodInfo>()))
+				.Returns(Task.FromResult(true));
 
-			return new DefaultRpcInvoker(authorizationService.Object, policyProvider.Object, logger.Object, options.Object, rpcRequestMatcher);
+			return new DefaultRpcInvoker(logger.Object, options.Object, matcher.Object, accessor.Object, authHandler.Object);
 		}
 
 		private IServiceProvider GetServiceProvider()
@@ -44,66 +75,58 @@ namespace EdjCase.JsonRpc.Router.Tests
 			return serviceCollection.BuildServiceProvider();
 		}
 
-		private IRouteContext GetRouteContext<TController>()
+		private IRpcContext GetRouteContext(RpcPath? path = null)
 		{
 			IServiceProvider serviceProvider = this.GetServiceProvider();
-			var routeContext = new Mock<IRouteContext>(MockBehavior.Strict);
-			var routeProvider = new Mock<IRpcRouteProvider>(MockBehavior.Strict);
-			routeProvider
-				.Setup(p => p.GetMethodsByPath(It.IsAny<RpcPath>()))
-				.Returns(new List<IRpcMethodProvider>
-				{
-					new ControllerPublicMethodProvider(typeof(TController))
-				});
-
+			var routeContext = new Mock<IRpcContext>(MockBehavior.Strict);
+			routeContext
+				.SetupGet(rc => rc.Path)
+				.Returns(path);
 			routeContext
 				.SetupGet(rc => rc.RequestServices)
 				.Returns(serviceProvider);
-			routeContext
-				.SetupGet(rc => rc.User)
-				.Returns(new System.Security.Claims.ClaimsPrincipal());
-			routeContext
-				.SetupGet(rc => rc.RouteProvider)
-				.Returns(routeProvider.Object);
 			return routeContext.Object;
 		}
-		
+
 		[Fact]
 		public async Task InvokeRequest_StringParam_ParseAsGuidType()
 		{
 			Guid randomGuid = Guid.NewGuid();
-			RpcRequest stringRequest = RpcRequest.WithParameterList("GuidTypeMethod", new[] { JToken.FromObject(randomGuid.ToString()) }, "1");
+			var parameters = new RpcParameters(new RawRpcParameter(RpcParameterType.String, randomGuid.ToString()));
+			string methodName = nameof(TestRouteClass.GuidTypeMethod);
+			var stringRequest = new RpcRequest("1", methodName, parameters);
 
-			IRouteContext routeContext = this.GetRouteContext<TestRouteClass>();
-			DefaultRpcInvoker invoker = this.GetInvoker();
-			RpcResponse stringResponse = await invoker.InvokeRequestAsync(stringRequest, RpcPath.Default, routeContext);
+			DefaultRpcInvoker invoker = this.GetInvoker(methodName);
+			RpcResponse? stringResponse = await invoker.InvokeRequestAsync(stringRequest);
 
 
-			Assert.Equal(randomGuid, stringResponse.Result);
+			Assert.NotNull(stringResponse);
+			Assert.Equal(randomGuid, stringResponse!.Result);
 		}
 
 		[Fact]
-		public async Task InvokeRequest_AmbiguousRequest_ErrorResponse()
+		public async Task InvokeRequest_MethodNotFound_ErrorResponse()
 		{
-			RpcRequest stringRequest = RpcRequest.WithParameterList("AmbiguousMethod", new object[] { JToken.FromObject(1) }, "1");
+			var parameters = new RpcParameters(new RawRpcParameter(RpcParameterType.Number, 1));
+			var stringRequest = new RpcRequest("1", "MethodNotFound", parameters);
+			DefaultRpcInvoker invoker = this.GetInvoker(methodInfo:null);
+			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
 
-			IRouteContext routeContext = this.GetRouteContext<TestRouteClass>();
-			DefaultRpcInvoker invoker = this.GetInvoker();
-			RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, RpcPath.Default, routeContext);
-
-			Assert.NotNull(response.Error);
-			Assert.Equal((int)RpcErrorCode.MethodNotFound, response.Error.Code);
+			Assert.NotNull(response);
+			Assert.NotNull(response!.Error);
+			Assert.Equal((int)RpcErrorCode.MethodNotFound, response.Error!.Code);
 		}
 
 		[Fact]
 		public async Task InvokeRequest_AsyncMethod_Valid()
 		{
-			RpcRequest stringRequest = RpcRequest.WithParameterList("AddAsync", new object[] { JToken.FromObject(1), JToken.FromObject(1) }, "1");
+			var parameters = new RpcParameters(new RawRpcParameter(RpcParameterType.Number, 1), new RawRpcParameter(RpcParameterType.Number, 1));
+			string methodName = nameof(TestRouteClass.AddAsync);
+			var stringRequest = new RpcRequest("1", methodName, parameters);
 
-			IRouteContext routeContext = this.GetRouteContext<TestRouteClass>();
-			DefaultRpcInvoker invoker = this.GetInvoker();
+			DefaultRpcInvoker invoker = this.GetInvoker(methodName);
 
-			RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, RpcPath.Default, routeContext);
+			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.NotNull(resultResponse.Result);
@@ -113,52 +136,39 @@ namespace EdjCase.JsonRpc.Router.Tests
 		[Fact]
 		public async Task InvokeRequest_Int64RequestParam_ConvertToInt32Param()
 		{
-			RpcRequest stringRequest = RpcRequest.WithParameterList("IntParameter", new object[] { JToken.FromObject(1L) }, "1");
-			
-			IRouteContext routeContext = this.GetRouteContext<TestRouteClass>();
-			DefaultRpcInvoker invoker = this.GetInvoker();
+			var parameters = new RpcParameters(new RawRpcParameter(RpcParameterType.Number, 1L));
+			string methodName = nameof(TestRouteClass.IntParameter);
+			var stringRequest = new RpcRequest("1", methodName, parameters);
 
-			RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, RpcPath.Default, routeContext);
+			DefaultRpcInvoker invoker = this.GetInvoker(methodName);
 
-			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
-			Assert.NotNull(resultResponse.Result);
-			Assert.Equal(1, resultResponse.Result);
-		}
-
-		[Fact]
-		public async Task InvokeRequest_ServiceProvider_Pass()
-		{
-			RpcRequest stringRequest = RpcRequest.WithNoParameters("Test", "1");
-
-			DefaultRpcInvoker invoker = this.GetInvoker();
-			IServiceProvider serviceProvider = this.GetServiceProvider();
-			IRouteContext routeContext = this.GetRouteContext<TestIoCRouteClass>();
-			RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, RpcPath.Default, routeContext);
+			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.NotNull(resultResponse.Result);
 			Assert.Equal(1, resultResponse.Result);
 		}
+
 
 		[Fact]
 		public async Task InvokeRequest_OptionalParameter_Valid()
 		{
-			DefaultRpcInvoker invoker = this.GetInvoker();
-			IServiceProvider serviceProvider = this.GetServiceProvider();
-			IRouteContext routeContext = this.GetRouteContext<TestRouteClass>();
+			string methodName = nameof(TestRouteClass.Optional);
+			DefaultRpcInvoker invoker = this.GetInvoker(methodName);
 
 
 			//No params specified
-			RpcRequest stringRequest = RpcRequest.WithNoParameters("Optional", "1");
-			RpcResponse response = await invoker.InvokeRequestAsync(stringRequest, RpcPath.Default, routeContext);
+			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: null);
+			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.Null(resultResponse.Result);
-			Assert.False(resultResponse.HasError);
+			Assert.False(resultResponse.HasError, resultResponse.Error?.Message);
 
 			//Param is empty
-			stringRequest = RpcRequest.WithParameterList("Optional", new object[0], "1");
-			response = await invoker.InvokeRequestAsync(stringRequest, RpcPath.Default, routeContext);
+			var parameters = new RpcParameters(new IRpcParameter[0]);
+			stringRequest = new RpcRequest("1", methodName, parameters: parameters);
+			response = await invoker.InvokeRequestAsync(stringRequest);
 
 			resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.Null(resultResponse.Result);
@@ -166,31 +176,136 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 
 			//Param is a string
-			stringRequest = RpcRequest.WithParameterList("Optional", new[] { JToken.FromObject("Test") }, "1");
-			response = await invoker.InvokeRequestAsync(stringRequest, RpcPath.Default, routeContext);
+			const string value = "Test";
+			parameters = new RpcParameters(new IRpcParameter[] { new RawRpcParameter(RpcParameterType.String, value) });
+			stringRequest = new RpcRequest("1", methodName, parameters: parameters);
+			response = await invoker.InvokeRequestAsync(stringRequest);
 
 			resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.NotNull(resultResponse.Result);
-			Assert.Equal("Test", resultResponse.Result);
+			Assert.IsType<string>(resultResponse.Result);
+			Assert.Equal(value, (string)resultResponse.Result!);
+		}
+
+		[Fact]
+		public async Task InvokeRequest_ComplexParam_Valid()
+		{
+			string methodName = nameof(TestRouteClass.ComplexParam);
+			DefaultRpcInvoker invoker = this.GetInvoker(methodName);
+
+			TestComplexParam param = new TestComplexParam
+			{
+				A = "Test",
+				B = 5
+			};
+			var rpcParameter = new RawRpcParameter(RpcParameterType.Object, param);
+			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new RpcParameters(rpcParameter));
+			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
+
+			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
+			Assert.False(resultResponse.HasError);
+			Assert.Same(param, resultResponse.Result);
+		}
+
+		[Fact]
+		public async Task InvokeRequest_BoolParam_Valid()
+		{
+			string methodName = nameof(TestRouteClass.BoolParameter);
+			DefaultRpcInvoker invoker = this.GetInvoker(methodName);
+
+			var param = new RawRpcParameter(RpcParameterType.Boolean, true);
+			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new RpcParameters(param));
+			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
+
+			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
+			Assert.False(resultResponse.HasError);
+			Assert.Equal(param.Value, resultResponse.Result);
+		}
+
+		[Fact]
+		public async Task InvokeRequest_BoolDictParam_Valid()
+		{
+			string methodName = nameof(TestRouteClass.BoolParameter);
+			DefaultRpcInvoker invoker = this.GetInvoker(methodName);
+
+			var param = new RawRpcParameter(RpcParameterType.Boolean, true);
+			var paramDict = new Dictionary<string, IRpcParameter>
+			{
+				["a"] = param
+			};
+			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new RpcParameters(paramDict));
+			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
+
+			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
+			Assert.False(resultResponse.HasError);
+			Assert.Equal(param.Value, resultResponse.Result);
+		}
+
+		[Fact]
+		public async Task InvokeRequest_MultipleDictionaryValues_Valid()
+		{
+			string methodName = nameof(TestRouteClass.AllTypes);
+			DefaultRpcInvoker invoker = this.GetInvoker(methodName);
+
+			bool a = true;
+			string bb = "Test";
+			object? ccc = null;
+			var dddd = new TestComplexParam();
+			int eeeee = 1;
+			var paramDict = new Dictionary<string, IRpcParameter>
+			{
+				["a"] = new RawRpcParameter(RpcParameterType.Boolean, a),
+				["bb"] = new RawRpcParameter(RpcParameterType.String, bb),
+				["ccc"] = new RawRpcParameter(RpcParameterType.Null, ccc),
+				["dddd"] = new RawRpcParameter(RpcParameterType.Object, dddd),
+				["eeeee"] = new RawRpcParameter(RpcParameterType.Number, eeeee)
+			};
+			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new RpcParameters(paramDict));
+			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
+
+			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
+			Assert.False(resultResponse.HasError);
+			var value = Assert.IsType<ValueTuple<bool, string, object, object, int>>(resultResponse.Result);
+			Assert.Equal((a, bb, ccc, dddd, eeeee), value);
+		}
+
+		[Fact]
+		public async Task InvokeRequest_ComplexParam_TwoRequests_NotCached()
+		{
+			string methodName = nameof(TestRouteClass.ComplexParam);
+			DefaultRpcInvoker invoker = this.GetInvoker(methodName);
+
+			async Task Test(TestComplexParam param)
+			{
+				var rpcParameter = new RawRpcParameter(RpcParameterType.Object, param);
+				RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new RpcParameters(rpcParameter));
+				RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
+
+				RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
+				Assert.False(resultResponse.HasError);
+				Assert.Same(param, resultResponse.Result);
+			}
+			TestComplexParam param1 = new TestComplexParam
+			{
+				A = "Test",
+				B = 5
+			};
+			await Test(param1);
+			TestComplexParam param2 = new TestComplexParam
+			{
+				A = "Test2",
+				B = 6
+			};
+			await Test(param2);
 		}
 	}
-	
+
 
 	public class TestRouteClass
 	{
 		public Guid GuidTypeMethod(Guid guid)
 		{
 			return guid;
-		}
-
-		public int AmbiguousMethod(int a)
-		{
-			return a;
-		}
-
-		public long AmbiguousMethod(long a)
-		{
-			return a;
 		}
 
 		public async Task<int> AddAsync(int a, int b)
@@ -203,10 +318,31 @@ namespace EdjCase.JsonRpc.Router.Tests
 			return a;
 		}
 
-		public string Optional(string test = null)
+		public bool BoolParameter(bool a)
+		{
+			return a;
+		}
+
+		public string? Optional(string? test = null)
 		{
 			return test;
 		}
+
+		public TestComplexParam ComplexParam(TestComplexParam param)
+		{
+			return param;
+		}
+
+		public (bool, string, object, object, int) AllTypes(bool a, string bb, object ccc, object dddd, int eeeee)
+		{
+			return (a, bb, ccc, dddd, eeeee);
+		}
+	}
+
+	public class TestComplexParam
+	{
+		public string? A { get; set; }
+		public int B { get; set; }
 	}
 
 	public class TestIoCRouteClass

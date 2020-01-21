@@ -1,5 +1,5 @@
 ﻿using System;
-using EdjCase.JsonRpc.Core;
+using EdjCase.JsonRpc.Common;
 using EdjCase.JsonRpc.Router;
 using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Defaults;
@@ -7,12 +7,15 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
-using EdjCase.JsonRpc.Router.RouteProviders;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using EdjCase.JsonRpc.Core.Tools;
+using EdjCase.JsonRpc.Common.Tools;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Builder;
 using System.Net.WebSockets;
+using System.Collections.Generic;
+using System.Reflection;
+using EdjCase.JsonRpc.Router.Utilities;
+using System.Linq;
 
 // ReSharper disable once CheckNamespace
 namespace Microsoft.AspNetCore.Builder
@@ -23,115 +26,25 @@ namespace Microsoft.AspNetCore.Builder
 	public static class BuilderExtensions
 	{
 		/// <summary>
-		/// Extension method to use the JsonRpc router in the Asp.Net pipeline
+		/// Extension method to add the JsonRpc router services to the IoC container
 		/// </summary>
-		/// <param name="app"><see cref="IApplicationBuilder"/> that is supplied by Asp.Net</param>
-		/// <param name="configureOptions">Optional action to configure auto routing</param>
-		/// <returns><see cref="IApplicationBuilder"/> that includes the Basic auth middleware</returns>
-		public static IApplicationBuilder UseJsonRpc(this IApplicationBuilder app, Action<RpcAutoRoutingOptions> configureOptions = null)
+		/// <param name="serviceCollection">IoC serivce container to register JsonRpc dependencies</param>
+		/// <param name="configureOptions">Configuration action for server wide rpc configuration</param>
+		/// <returns>IoC service container</returns>
+		public static IServiceCollection AddJsonRpc(this IServiceCollection serviceCollection, Action<RpcServerConfiguration> configureOptions)
 		{
-			if (app == null)
-			{
-				throw new ArgumentNullException(nameof(app));
-			}
-
-			var options = new RpcAutoRoutingOptions();
-			configureOptions?.Invoke(options);
-			IRpcRouteProvider routeProvider = new RpcAutoRouteProvider(Options.Create(options));
-			return app.UseJsonRpc(routeProvider);
+			var configuration = new RpcServerConfiguration();
+			configureOptions?.Invoke(configuration);
+			return serviceCollection.AddJsonRpc(configuration);
 		}
-
-		/// <summary>
-		/// Extension method to use the JsonRpc router in the Asp.Net pipeline
-		/// </summary>
-		/// <param name="app"><see cref="IApplicationBuilder"/> that is supplied by Asp.Net</param>
-		/// <param name="options">Auto routing configuration</param>
-		/// <returns><see cref="IApplicationBuilder"/> that includes the Basic auth middleware</returns>
-		public static IApplicationBuilder UseJsonRpc(this IApplicationBuilder app, RpcAutoRoutingOptions options)
-		{
-			if (app == null)
-			{
-				throw new ArgumentNullException(nameof(app));
-			}
-			if (options == null)
-			{
-				throw new ArgumentNullException(nameof(options));
-			}
-			IRpcRouteProvider routeProvider = new RpcAutoRouteProvider(Options.Create(options));
-			return app.UseJsonRpc(routeProvider);
-		}
-
-		/// <summary>
-		/// Extension method to use the JsonRpc router in the Asp.Net pipeline
-		/// </summary>
-		/// <param name="app"><see cref="IApplicationBuilder"/> that is supplied by Asp.Net</param>
-		/// <param name="configureOptions">Optional action to configure manual routing</param>
-		/// <returns><see cref="IApplicationBuilder"/> that includes the Basic auth middleware</returns>
-		public static IApplicationBuilder UseManualJsonRpc(this IApplicationBuilder app, Action<RpcManualRoutingOptions> configureOptions = null)
-		{
-			if (app == null)
-			{
-				throw new ArgumentNullException(nameof(app));
-			}
-
-			var options = new RpcManualRoutingOptions();
-			configureOptions?.Invoke(options);
-			IRpcRouteProvider routeProvider = new RpcManualRouteProvider(Options.Create(options));
-			return app.UseJsonRpc(routeProvider);
-		}
-
-		/// <summary>
-		/// Extension method to use the JsonRpc router in the Asp.Net pipeline
-		/// </summary>
-		/// <param name="app"><see cref="IApplicationBuilder"/> that is supplied by Asp.Net</param>
-		/// <param name="options">Manual routing configuration</param>
-		/// <returns><see cref="IApplicationBuilder"/> that includes the Basic auth middleware</returns>
-		public static IApplicationBuilder UseManualJsonRpc(this IApplicationBuilder app, RpcManualRoutingOptions options)
-		{
-			if (app == null)
-			{
-				throw new ArgumentNullException(nameof(app));
-			}
-			if (options == null)
-			{
-				throw new ArgumentNullException(nameof(options));
-			}
-			IRpcRouteProvider routeProvider = new RpcManualRouteProvider(Options.Create(options));
-			return app.UseJsonRpc(routeProvider);
-		}
-
-
-		/// <summary>
-		/// Extension method to use the JsonRpc router in the Asp.Net pipeline
-		/// </summary>
-		/// <param name="app"><see cref="IApplicationBuilder"/> that is supplied by Asp.Net</param>
-		/// <param name="options">Auto routing configuration</param>
-		/// <returns><see cref="IApplicationBuilder"/> that includes the Basic auth middleware</returns>
-		public static IApplicationBuilder UseJsonRpc(this IApplicationBuilder app, IRpcRouteProvider routeProvider)
-		{
-			if (app == null)
-			{
-				throw new ArgumentNullException(nameof(app));
-			}
-			if (routeProvider == null)
-			{
-				throw new ArgumentNullException(nameof(routeProvider));
-			}
-			if (app.ApplicationServices.GetService<RpcServicesMarker>() == null)
-			{
-				throw new InvalidOperationException("AddJsonRpc() needs to be called in the ConfigureServices method.");
-			}
-			var router = new RpcHttpRouter(routeProvider);
-			return app.UseRouter(router);
-		}
-
 
 		/// <summary>
 		/// Extension method to add the JsonRpc router services to the IoC container
 		/// </summary>
 		/// <param name="serviceCollection">IoC serivce container to register JsonRpc dependencies</param>
+		/// <param name="configuration">(Optional) Server wide rpc configuration</param>
 		/// <returns>IoC service container</returns>
-		public static IRpcBuilder AddJsonRpc(this IServiceCollection serviceCollection)
+		public static IServiceCollection AddJsonRpc(this IServiceCollection serviceCollection, RpcServerConfiguration? configuration = null)
 		{
 			if (serviceCollection == null)
 			{
@@ -150,81 +63,123 @@ namespace Microsoft.AspNetCore.Builder
 			serviceCollection
 				.TryAddScoped<IRpcResponseSerializer, DefaultRpcResponseSerializer>();
 			serviceCollection
-				.TryAddScoped<IRpcRouteProvider, RpcAutoRouteProvider>();
-			serviceCollection
 				.TryAddScoped<IRpcRequestMatcher, DefaultRequestMatcher>();
-
 			serviceCollection
+				.TryAddScoped<IRpcContextAccessor, DefaultContextAccessor>();
+			serviceCollection
+				.TryAddScoped<IRpcAuthorizationHandler, DefaultAuthorizationHandler>();
+
+			return serviceCollection
+				.AddSingleton(Options.Create(configuration))
 				.AddRouting()
 				.AddAuthorizationCore();
-
-			return new RpcBuilder(serviceCollection);
 		}
+
+
+		/// <summary>
+		/// Extension method to use the JsonRpc router in the Asp.Net pipeline
+		/// Uses all the public methods on controllers extending <see cref="RpcController"/>
+		/// </summary>
+		/// <param name="app"><see cref="IApplicationBuilder"/> that is supplied by Asp.Net</param>
+		/// <returns><see cref="IApplicationBuilder"/> that includes the Basic auth middleware</returns>
+		public static IApplicationBuilder UseJsonRpc(this IApplicationBuilder app)
+		{
+			if (app == null)
+			{
+				throw new ArgumentNullException(nameof(app));
+			}
+
+			return app.UseJsonRpcWithBaseController<RpcController>();
+		}
+
+		/// <summary>
+		/// Extension method to use the JsonRpc router in the Asp.Net pipeline
+		/// Uses all the public methods on controllers extending the specified class
+		/// </summary>
+		/// <param name="app"><see cref="IApplicationBuilder"/> that is supplied by Asp.Net</param>
+		/// <returns><see cref="IApplicationBuilder"/> that includes the Basic auth middleware</returns>
+		public static IApplicationBuilder UseJsonRpcWithBaseController<T>(this IApplicationBuilder app)
+		{
+			if (app == null)
+			{
+				throw new ArgumentNullException(nameof(app));
+			}
+
+			return app.UseJsonRpc(builder =>
+			{
+				Type baseControllerType = typeof(T);
+				IEnumerable<Type> controllers = Assembly
+					.GetEntryAssembly()
+					.GetReferencedAssemblies()
+					.Select(Assembly.Load)
+					.SelectMany(x => x.DefinedTypes)
+					.Concat(Assembly.GetEntryAssembly().DefinedTypes)
+					.Where(t => !t.IsAbstract && (t == baseControllerType || t.IsSubclassOf(baseControllerType)));
+
+				foreach (Type type in controllers)
+				{
+					builder.AddController(type);
+				}
+			});
+		}
+
+		/// <summary>
+		/// Extension method to use the JsonRpc router in the Asp.Net pipeline
+		/// </summary>
+		/// <param name="app"><see cref="IApplicationBuilder"/> that is supplied by Asp.Net</param>
+		/// <param name="builder">Action to configure the endpoints</param>
+		/// <returns><see cref="IApplicationBuilder"/> that includes the Basic auth middleware</returns>
+		public static IApplicationBuilder UseJsonRpc(this IApplicationBuilder app, Action<RpcEndpointBuilder> builder)
+		{
+			if (app == null)
+			{
+				throw new ArgumentNullException(nameof(app));
+			}
+			if (builder == null)
+			{
+				throw new ArgumentNullException(nameof(builder));
+			}
+
+			var options = new RpcEndpointBuilder();
+			builder.Invoke(options);
+			StaticRpcMethodData data = options.Resolve();
+			return app.UseJsonRpc(data);
+		}
+
+		/// <summary>
+		/// Extension method to use the JsonRpc router in the Asp.Net pipeline
+		/// </summary>
+		/// <param name="app"><see cref="IApplicationBuilder"/> that is supplied by Asp.Net</param>
+		/// <param name="methodProvider">All the available methods to call</param>
+		/// <returns><see cref="IApplicationBuilder"/> that includes the Basic auth middleware</returns>
+		internal static IApplicationBuilder UseJsonRpc(this IApplicationBuilder app, StaticRpcMethodData data)
+		{
+			if (app == null)
+			{
+				throw new ArgumentNullException(nameof(app));
+			}
+			if (data == null)
+			{
+				throw new ArgumentNullException(nameof(data));
+			}
+			if (app.ApplicationServices.GetService<RpcServicesMarker>() == null)
+			{
+				throw new InvalidOperationException("AddJsonRpc() needs to be called in the ConfigureServices method.");
+			}
+			var router = new RpcHttpRouter();
+			return app
+				.Use((context, next) =>
+				{
+					context.RequestServices.GetRequiredService<StaticRpcMethodDataAccessor>().Value = data;
+					return next();
+				})
+				.UseRouter(router);
+		}
+
 	}
 
-	public interface IRpcBuilder
-	{
-		IServiceCollection Services { get; }
-	}
-
-	internal class RpcBuilder : IRpcBuilder
-	{
-		public IServiceCollection Services { get; }
-
-		public RpcBuilder(IServiceCollection services)
-		{
-			this.Services = services;
-		}
-	}
-
-	public class RpcServicesMarker
+	internal class RpcServicesMarker
 	{
 
-	}
-
-
-	public static class RpcBuilderExtensions
-	{
-		public static IRpcBuilder WithOptions(this IRpcBuilder builder, Action<RpcServerConfiguration> configureOptions)
-		{
-			var configuration = new RpcServerConfiguration();
-			configureOptions?.Invoke(configuration);
-			builder.Services.Configure(configureOptions);
-			return builder;
-		}
-
-		public static IRpcBuilder WithOptions(this IRpcBuilder builder, RpcServerConfiguration configuration)
-		{
-			builder.Services.AddSingleton<IOptions<RpcServerConfiguration>>(Options.Create(configuration));
-			return builder;
-		}
-
-		public static IRpcBuilder WithParser<T>(this IRpcBuilder builder)
-			where T : class, IRpcParser
-		{
-			builder.Services.AddScoped<IRpcParser, T>();
-			return builder;
-		}
-
-		public static IRpcBuilder WithCompressor<T>(this IRpcBuilder builder)
-			where T : class, IStreamCompressor
-		{
-			builder.Services.AddScoped<IStreamCompressor, T>();
-			return builder;
-		}
-
-		public static IRpcBuilder WithReponseSerializer<T>(this IRpcBuilder builder)
-			where T : class, IRpcResponseSerializer
-		{
-			builder.Services.AddScoped<IRpcResponseSerializer, T>();
-			return builder;
-		}
-
-		public static IRpcBuilder WithRequestMatcher<T>(this IRpcBuilder builder)
-			where T : class, IRpcRequestMatcher
-		{
-			builder.Services.AddScoped<IRpcRequestMatcher, T>();
-			return builder;
-		}
 	}
 }

@@ -1,9 +1,14 @@
-﻿using EdjCase.JsonRpc.Core;
+﻿using EdjCase.JsonRpc.Common;
+using EdjCase.JsonRpc.Router.Utilities;
 using System;
+using System.Buffers;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
 using System.Text;
+using System.Text.Json;
 
-namespace Edjcase.JsonRpc.Router
+namespace EdjCase.JsonRpc.Router
 {
 	public class ParsingResult
 	{
@@ -22,14 +27,13 @@ namespace Edjcase.JsonRpc.Router
 		/// <summary>
 		/// Count of total requests processed (successful and failed)
 		/// </summary>
-		public int RequestCount { get; }
+		public int RequestCount => this.Requests.Count + this.Errors.Count;
 
 		public ParsingResult(List<RpcRequest> requests, List<(RpcId, RpcError)> errors, bool isBulkRequest)
 		{
 			this.Requests = requests;
 			this.Errors = errors;
 			this.IsBulkRequest = isBulkRequest;
-			this.RequestCount = requests.Count + errors.Count;
 		}
 
 		internal static ParsingResult FromResults(List<RpcRequestParseResult> results, bool isBulkRequest)
@@ -44,9 +48,11 @@ namespace Edjcase.JsonRpc.Router
 				}
 				else
 				{
-					requests.Add(result.Request);
+					requests.Add(new RpcRequest(result.Id, result.Method!, result.Parameters));
 				}
 			}
+			//safety check
+			isBulkRequest = isBulkRequest || (requests.Count + errors.Count > 1);
 			return new ParsingResult(requests, errors, isBulkRequest);
 		}
 	}
@@ -54,23 +60,25 @@ namespace Edjcase.JsonRpc.Router
 	internal class RpcRequestParseResult
 	{
 		public RpcId Id { get; }
-		public RpcRequest Request { get; }
-		public RpcError Error { get; }
-		private RpcRequestParseResult(RpcId id, RpcRequest request, RpcError error)
+		public string? Method { get; }
+		public RpcParameters? Parameters { get; }
+		public RpcError? Error { get; }
+		private RpcRequestParseResult(RpcId id, string? method, RpcParameters? parameters, RpcError? error)
 		{
 			this.Id = id;
-			this.Request = request;
+			this.Method = method;
+			this.Parameters = parameters;
 			this.Error = error;
 		}
 
-		public static RpcRequestParseResult Success(RpcRequest request)
+		public static RpcRequestParseResult Success(RpcId id, string method, RpcParameters? parameters)
 		{
-			return new RpcRequestParseResult(request.Id, request, null);
+			return new RpcRequestParseResult(id, method, parameters, null);
 		}
 
 		public static RpcRequestParseResult Fail(RpcId id, RpcError error)
 		{
-			return new RpcRequestParseResult(id, null, error);
+			return new RpcRequestParseResult(id, null, null, error);
 		}
 	}
 }

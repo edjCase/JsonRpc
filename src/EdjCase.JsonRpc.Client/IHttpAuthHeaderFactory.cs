@@ -1,6 +1,6 @@
 
-using EdjCase.JsonRpc.Core;
-using EdjCase.JsonRpc.Core.Tools;
+using EdjCase.JsonRpc.Common;
+using EdjCase.JsonRpc.Common.Tools;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -16,22 +16,22 @@ namespace EdjCase.JsonRpc.Client
 {
 	public interface IHttpAuthHeaderFactory
 	{
-		Task<AuthenticationHeaderValue> CreateAuthHeader();
+		Task<AuthenticationHeaderValue?> CreateAuthHeader();
 	}
 
 	public class DefaultHttpAuthHeaderFactory : IHttpAuthHeaderFactory
 	{
-		private Func<Task<AuthenticationHeaderValue>> authHeaderFunc { get; }
-		public DefaultHttpAuthHeaderFactory(Func<Task<AuthenticationHeaderValue>> authHeaderFunc = null)
+		private Func<Task<AuthenticationHeaderValue?>> authHeaderFunc { get; }
+		public DefaultHttpAuthHeaderFactory(Func<Task<AuthenticationHeaderValue?>>? authHeaderFunc = null)
 		{
-			this.authHeaderFunc = authHeaderFunc ?? (() => Task.FromResult<AuthenticationHeaderValue>(null));
+			this.authHeaderFunc = authHeaderFunc ?? (() => Task.FromResult<AuthenticationHeaderValue?>(null));
 		}
-		public DefaultHttpAuthHeaderFactory(AuthenticationHeaderValue authHeader)
+		public DefaultHttpAuthHeaderFactory(AuthenticationHeaderValue? authHeader)
 		{
 			this.authHeaderFunc = () => Task.FromResult(authHeader);
 		}
 
-		public Task<AuthenticationHeaderValue> CreateAuthHeader()
+		public Task<AuthenticationHeaderValue?> CreateAuthHeader()
 		{
 			return this.authHeaderFunc();
 		}

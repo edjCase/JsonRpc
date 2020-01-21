@@ -1,16 +1,18 @@
-﻿using EdjCase.JsonRpc.Core;
+﻿using EdjCase.JsonRpc.Common;
 using EdjCase.JsonRpc.Router.Abstractions;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using System;
+using System.Buffers.Text;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace EdjCase.JsonRpc.Router.Defaults
 {
-	public class DefaultRpcResponseSerializer : IRpcResponseSerializer
+	internal class DefaultRpcResponseSerializer : IRpcResponseSerializer
 	{
 		private IOptions<RpcServerConfiguration> serverConfig { get; }
 		public DefaultRpcResponseSerializer(IOptions<RpcServerConfiguration> serverConfig)
@@ -18,62 +20,70 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			this.serverConfig = serverConfig;
 		}
 
-		public string SerializeBulk(IEnumerable<RpcResponse> responses)
+		public Task SerializeBulkAsync(IEnumerable<RpcResponse> responses, Stream stream)
 		{
-			return this.SerializeInternal(responses, isBulkRequest: true);
+			return this.SerializeInternalAsync(responses, isBulkRequest: true, stream);
 		}
 
-		public string Serialize(RpcResponse response)
+		public Task SerializeAsync(RpcResponse response, Stream stream)
 		{
-			return this.SerializeInternal(new[] { response }, isBulkRequest: false);
+			return this.SerializeInternalAsync(new[] { response }, isBulkRequest: false, stream);
 		}
 
-		private string SerializeInternal(IEnumerable<RpcResponse> responses, bool isBulkRequest)
+		private async Task SerializeInternalAsync(IEnumerable<RpcResponse> responses, bool isBulkRequest, Stream stream)
 		{
-			using (StringWriter textWriter = new StringWriter())
+			var jsonWriter = new Utf8JsonWriter(stream);
+			try
 			{
-				using (JsonTextWriter jsonWriter = new JsonTextWriter(textWriter))
+				if (isBulkRequest)
 				{
-					if (isBulkRequest)
+					jsonWriter.WriteStartArray();
+					foreach (RpcResponse response in responses)
 					{
-						jsonWriter.WriteStartArray();
-						foreach (RpcResponse response in responses)
-						{
-							this.SerializeResponse(response, jsonWriter);
-						}
-						jsonWriter.WriteEndArray();
+						this.SerializeResponse(response, jsonWriter);
 					}
-					else
-					{
-						this.SerializeResponse(responses.Single(), jsonWriter);
-					}
+					jsonWriter.WriteEndArray();
 				}
-				return textWriter.ToString();
+				else
+				{
+					this.SerializeResponse(responses.Single(), jsonWriter);
+				}
 			}
-
+			finally
+			{
+				await jsonWriter.FlushAsync();
+				await jsonWriter.DisposeAsync();
+			}
 		}
 
-		private void SerializeResponse(RpcResponse response, JsonTextWriter jsonWriter)
+		private void SerializeResponse(RpcResponse response, Utf8JsonWriter jsonWriter)
 		{
 			jsonWriter.WriteStartObject();
 			jsonWriter.WritePropertyName(JsonRpcContants.IdPropertyName);
-			jsonWriter.WriteValue(response.Id.Value);
-			jsonWriter.WritePropertyName(JsonRpcContants.VersionPropertyName);
-			jsonWriter.WriteValue("2.0");
+			switch (response.Id.Type)
+			{
+				case RpcIdType.Number:
+					jsonWriter.WriteNumberValue(response.Id.NumberValue);
+					break;
+				case RpcIdType.String:
+					jsonWriter.WriteStringValue(response.Id.StringValue);
+					break;
+				default:
+					throw new NotImplementedException();
+			}
+			jsonWriter.WriteString(JsonRpcContants.VersionPropertyName, "2.0");
 			if (!response.HasError)
 			{
 				jsonWriter.WritePropertyName(JsonRpcContants.ResultPropertyName);
 
-				this.SerializeValue(response.Result, jsonWriter);
+				this.SerializeValue(response.Result!, jsonWriter);
 			}
 			else
 			{
 				jsonWriter.WritePropertyName(JsonRpcContants.ErrorPropertyName);
 				jsonWriter.WriteStartObject();
-				jsonWriter.WritePropertyName(JsonRpcContants.ErrorCodePropertyName);
-				jsonWriter.WriteValue(response.Error.Code);
-				jsonWriter.WritePropertyName(JsonRpcContants.ErrorMessagePropertyName);
-				jsonWriter.WriteValue(response.Error.Message);
+				jsonWriter.WriteNumber(JsonRpcContants.ErrorCodePropertyName, response.Error!.Code);
+				jsonWriter.WriteString(JsonRpcContants.ErrorMessagePropertyName, response.Error.Message);
 				jsonWriter.WritePropertyName(JsonRpcContants.ErrorDataPropertyName);
 				this.SerializeValue(response.Error.Data, jsonWriter);
 				jsonWriter.WriteEndObject();
@@ -81,16 +91,20 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			jsonWriter.WriteEndObject();
 		}
 
-		private void SerializeValue(object value, JsonTextWriter jsonWriter)
+		private void SerializeValue(object? value, Utf8JsonWriter jsonWriter)
 		{
 			if (value != null)
 			{
-				string valueJson = JsonConvert.SerializeObject(value, this.serverConfig.Value.JsonSerializerSettings);
-				jsonWriter.WriteRawValue(valueJson);
+				JsonSerializerOptions? options = this.serverConfig.Value.JsonSerializerSettings;
+
+				//TODO a better way? cant figure out how to serialize an object to the writer in an async way
+				//JsonSerializer.Serialize(jsonWriter, value, value.GetType(), options) does not work because kestrel doesnt allow non-async calls
+				byte[] jsonBytes = JsonSerializer.SerializeToUtf8Bytes(value, value.GetType(), options);
+				JsonDocument.Parse(jsonBytes).WriteTo(jsonWriter);
 			}
 			else
 			{
-				jsonWriter.WriteNull();
+				jsonWriter.WriteNullValue();
 			}
 		}
 	}
