@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using EdjCase.JsonRpc.Router.Utilities;
 using System.Linq;
+using Microsoft.AspNetCore.Http;
 
 // ReSharper disable once CheckNamespace
 namespace Microsoft.AspNetCore.Builder
@@ -68,6 +69,11 @@ namespace Microsoft.AspNetCore.Builder
 				.TryAddScoped<IRpcContextAccessor, DefaultContextAccessor>();
 			serviceCollection
 				.TryAddScoped<IRpcAuthorizationHandler, DefaultAuthorizationHandler>();
+			serviceCollection
+				.TryAddScoped<IRpcMethodProvider, StaticRpcMethodProvider>();
+			serviceCollection
+				.TryAddSingleton<StaticRpcMethodDataAccessor>();
+			serviceCollection.AddHttpContextAccessor();
 
 			return serviceCollection
 				.AddSingleton(Options.Create(configuration))
