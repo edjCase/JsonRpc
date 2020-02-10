@@ -233,6 +233,7 @@ namespace EdjCase.JsonRpc.Router
 				RpcParameterType.Object => RpcRequestSignature.objectType,
 				RpcParameterType.Number => RpcRequestSignature.numberType,
 				RpcParameterType.Null => RpcRequestSignature.nullType,
+				RpcParameterType.Array => RpcRequestSignature.arrayType,
 				_ => throw new InvalidOperationException($"Unimplemented parameter type '{type}'"),
 			};
 		}
@@ -246,6 +247,7 @@ namespace EdjCase.JsonRpc.Router
 				RpcRequestSignature.objectType => RpcParameterType.Object,
 				RpcRequestSignature.numberType => RpcParameterType.Number,
 				RpcRequestSignature.nullType => RpcParameterType.Null,
+				RpcRequestSignature.arrayType => RpcParameterType.Array,
 				_ => throw new InvalidOperationException($"Unimplemented parameter type '{type}'"),
 			};
 		}

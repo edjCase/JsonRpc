@@ -45,12 +45,14 @@ namespace EdjCase.JsonRpc.Router
 					return methodType == RpcParameterType.Boolean || methodType == RpcParameterType.Object;
 				case RpcParameterType.Number:
 					//Almost anything can be converted from a number
-					return true;
+					return methodType != RpcParameterType.Array;
 				case RpcParameterType.Object:
 					return methodType == RpcParameterType.Object;
 				case RpcParameterType.Null:
 				case RpcParameterType.String:
 					return methodType == RpcParameterType.String || methodType == RpcParameterType.Object;
+				case RpcParameterType.Array:
+					return methodType == RpcParameterType.Object || methodType == RpcParameterType.Array;
 				default:
 					throw new ArgumentOutOfRangeException(nameof(requestType));
 			}
