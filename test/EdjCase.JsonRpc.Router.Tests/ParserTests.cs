@@ -318,9 +318,36 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.False(result.IsBulkRequest);
 		}
 
+		[Fact]
+		public void ParseRequests_ObjectWithArrayParam_NoException()
+		{
+			const string json = "{\"jsonrpc\": \"2.0\", \"id\": 1, \"method\": \"Add7\", \"params\": [[{\"test\":2},{\"test\":3}]]}";
+			IRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
+
+			ParsingResult result = parser.ParseRequests(json);
+
+			Assert.NotNull(result);
+			Assert.Equal(1, result.RequestCount);
+			Assert.Single(result.Requests);
+			Assert.Equal("1", result.Requests[0].Id);
+			Assert.Equal("Add7", result.Requests[0].Method);
+			var expectedParams = new Obj[]
+			{
+				new Obj { Test = 2 },
+				new Obj { Test = 3 }
+			};
+			ParserTests.CompareParameters(new object[] { expectedParams }, result.Requests[0].Parameters);
+			Assert.False(result.IsBulkRequest);
+		}
+
 		private class Obj
 		{
 			public int Test { get; set; }
+		}
+
+		private class ObjWithArray
+		{
+			public Obj[]? Items { get; set; }
 		}
 	}
 }

@@ -19,7 +19,8 @@ namespace EdjCase.JsonRpc.Router
 		Boolean,
 		Number,
 		String,
-		Object
+		Object,
+		Array
 	}
 
 	public static class RpcParameterUtil
@@ -54,58 +55,30 @@ namespace EdjCase.JsonRpc.Router
 					throw new ArgumentOutOfRangeException(nameof(requestType));
 			}
 		}
-	}
 
-	internal class RawRpcParameter : IRpcParameter
-	{
-		public RpcParameterType Type { get; }
-		public object? Value { get; }
-		public RawRpcParameter(RpcParameterType type, object? value)
+		internal static RpcParameterType GetRpcType(Type parameterType)
 		{
-			this.Type = type;
-			this.Value = value;
-		}
-
-		public bool TryGetValue(Type type, out object? value)
-		{
-			if (this.Type == RpcParameterType.Null)
+			if (parameterType == typeof(short)
+				|| parameterType == typeof(ushort)
+				|| parameterType == typeof(int)
+				|| parameterType == typeof(uint)
+				|| parameterType == typeof(long)
+				|| parameterType == typeof(ulong)
+				|| parameterType == typeof(float)
+				|| parameterType == typeof(double)
+				|| parameterType == typeof(decimal))
 			{
-				value = null;
-				return type.IsNullableType();
+				return RpcParameterType.Number;
 			}
-			if (this.Value == null)
+			if (parameterType == typeof(string))
 			{
-				value = null;
-				return false;
+				return RpcParameterType.String;
 			}
-			Type parameterType = this.Value.GetType();
-
-			if (parameterType == type || type.IsAssignableFrom(parameterType))
+			if (parameterType == typeof(bool))
 			{
-				value = this.Value;
-				return true;
+				return RpcParameterType.Boolean;
 			}
-			TypeConverter typeConverter = TypeDescriptor.GetConverter(type);
-			if (typeConverter != null)
-			{
-				if (typeConverter.CanConvertFrom(parameterType))
-				{
-					value = typeConverter.ConvertFrom(this.Value);
-					return true;
-				}
-			}
-			TypeConverter parameterTypeConverter = TypeDescriptor.GetConverter(parameterType);
-			if (parameterTypeConverter != null)
-			{
-				if (parameterTypeConverter.CanConvertTo(type))
-				{
-					value = parameterTypeConverter.ConvertTo(this.Value, type);
-					return true;
-				}
-			}
-
-			value = default;
-			return false;
+			return RpcParameterType.Object;
 		}
 	}
 
@@ -129,6 +102,7 @@ namespace EdjCase.JsonRpc.Router
 				value = null;
 				return type.IsNullableType();
 			}
+			
 			try
 			{
 				value = JsonSerializer.Deserialize(this.bytes.Span, type, this.serializerOptions);
@@ -139,6 +113,13 @@ namespace EdjCase.JsonRpc.Router
 				value = default;
 				return false;
 			}
+		}
+
+		public static JsonBytesRpcParameter FromRaw(object? value, JsonSerializerOptions? serializerOptions = null)
+		{
+			byte[] jsonBytes = JsonSerializer.SerializeToUtf8Bytes(value);
+			RpcParameterType type = value != null ? RpcParameterUtil.GetRpcType(value.GetType()) : RpcParameterType.Null;
+			return new JsonBytesRpcParameter(type, jsonBytes, serializerOptions);
 		}
 	}
 }

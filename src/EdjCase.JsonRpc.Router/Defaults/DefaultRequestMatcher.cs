@@ -169,31 +169,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			static RpcParameterInfo ExtractParam(ParameterInfo parameterInfo)
 			{
 				Type parameterType = parameterInfo.ParameterType;
-				RpcParameterType type;
-				if (parameterType == typeof(short)
-					|| parameterType == typeof(ushort)
-					|| parameterType == typeof(int)
-					|| parameterType == typeof(uint)
-					|| parameterType == typeof(long)
-					|| parameterType == typeof(ulong)
-					|| parameterType == typeof(float)
-					|| parameterType == typeof(double)
-					|| parameterType == typeof(decimal))
-				{
-					type = RpcParameterType.Number;
-				}
-				else if (parameterType == typeof(string))
-				{
-					type = RpcParameterType.String;
-				}
-				else if (parameterType == typeof(bool))
-				{
-					type = RpcParameterType.Boolean;
-				}
-				else
-				{
-					type = RpcParameterType.Object;
-				}
+				RpcParameterType type = RpcParameterUtil.GetRpcType(parameterType);
 				return new RpcParameterInfo(parameterInfo.Name, type, parameterInfo.ParameterType, parameterInfo.IsOptional);
 			}
 		}

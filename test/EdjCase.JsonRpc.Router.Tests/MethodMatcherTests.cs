@@ -143,6 +143,27 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.Equal(RpcParameterType.Object, methodInfo.Parameters[4].Type);
 			Assert.Equal("e", methodInfo.Parameters[4].Name);
 		}
+		[Fact]
+		public void GetMatchingMethod_ListParam_Match()
+		{
+			DefaultRequestMatcher matcher = this.GetMatcher();
+
+			RpcParameterType[] parameters = new[] { RpcParameterType.Object };
+			string methodName = nameof(MethodMatcherController.List);
+			var requestSignature = RpcRequestSignature.Create(methodName, parameters);
+			RpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
+
+
+			Assert.NotNull(methodInfo);
+			MethodInfo expectedMethodInfo = typeof(MethodMatcherController).GetMethod(methodName)!;
+			Assert.Equal(expectedMethodInfo, methodInfo.MethodInfo);
+			Assert.Single(methodInfo.Parameters);
+
+			Assert.False(methodInfo.Parameters[0].IsOptional);
+			Assert.Equal(typeof(List<string>), methodInfo.Parameters[0].RawType);
+			Assert.Equal(RpcParameterType.Object, methodInfo.Parameters[0].Type);
+			Assert.Equal("values", methodInfo.Parameters[0].Name);
+		}
 
 		public class MethodMatcherController
 		{
@@ -154,6 +175,11 @@ namespace EdjCase.JsonRpc.Router.Tests
 			public (int, bool, string, object, int?) SimpleMulitParam(int a, bool b, string c, object d, int? e = null)
 			{
 				return (a, b, c, d, e);
+			}
+
+			public List<string> List(List<string> values)
+			{
+				return values;
 			}
 		}
 	}
