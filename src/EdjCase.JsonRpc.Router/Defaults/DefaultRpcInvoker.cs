@@ -302,10 +302,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			catch (TargetInvocationException ex)
 			{
 				//Controller error handling
-				if (this.serverConfig.Value.OnInvokeExcpetion != null)
+				if (this.serverConfig.Value.OnInvokeException != null)
 				{
 					var context = new ExceptionContext(request, serviceProvider, ex.InnerException);
-					OnExceptionResult result = this.serverConfig.Value.OnInvokeExcpetion(context);
+					OnExceptionResult result = this.serverConfig.Value.OnInvokeException(context);
 					if (!result.ThrowException)
 					{
 						return result.ResponseObject!;

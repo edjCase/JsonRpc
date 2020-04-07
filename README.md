@@ -78,7 +78,7 @@ public void ConfigureServices(IServiceCollection services)
 				WriteIndented = true
 			};
 			//(Optional) Configure custom exception handling for exceptions during invocation of the method
-			config.OnInvokeExcpetion = (context) =>
+			config.OnInvokeException = (context) =>
 			{
 				if (context.Exception is InvalidOperationException)
 				{
