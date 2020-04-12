@@ -27,7 +27,7 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		public int? BatchRequestLimit { get; set; }
 
-		public Func<ExceptionContext, OnExceptionResult>? OnInvokeExcpetion { get; set; }
+		public Func<ExceptionContext, OnExceptionResult>? OnInvokeException { get; set; }
 	}
 
 	public class ExceptionContext
