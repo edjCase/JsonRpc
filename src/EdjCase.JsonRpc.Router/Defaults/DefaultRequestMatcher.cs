@@ -286,7 +286,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 						return false;
 					}
 					RpcParameterInfo info = parameters[parameterCount];
-					if (!RpcParameterUtil.TypesCompatible(parameterType, info.Type))
+					if (!RpcParameterUtil.TypesCompatible(info.Type, parameterType))
 					{
 						return false;
 					}
