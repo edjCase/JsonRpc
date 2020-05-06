@@ -259,25 +259,11 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				foreach ((Memory<char> name, RpcParameterType type) in requestSignature.ParametersAsDict)
 				{
 					bool found = false;
-					//TODO use a better matching system?
 					for (int paramIndex = 0; paramIndex < parameters.Length; paramIndex++)
 					{
 						RpcParameterInfo parameter = parameters[paramIndex];
-						if (parameter.Name.Length != name.Length)
-						{
-							continue;
-						}
-						for (int i = 0; i < name.Length; i++)
-						{
-							//TODO this needs to allow different cases?
-							if (parameter.Name.Length <= i
-								|| name.Span[i] != parameter.Name[i])
-							{
-								//Name doesnt match
-								continue;
-							}
-						}
-						if (!RpcParameterUtil.TypesCompatible(type, parameter.Type))
+						if(!RpcUtil.NamesMatch(parameter.Name, name.Span) || 
+							!RpcParameterUtil.TypesCompatible(parameter.Type, type))
 						{
 							continue;
 						}
