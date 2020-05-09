@@ -37,24 +37,24 @@ namespace EdjCase.JsonRpc.Router
 			return false;
 		}
 
-		public static bool TypesCompatible(RpcParameterType requestType, RpcParameterType methodType)
+		public static bool TypesCompatible(RpcParameterType actualType, RpcParameterType requestedType)
 		{
-			switch (requestType)
+			switch (requestedType)
 			{
 				case RpcParameterType.Boolean:
-					return methodType == RpcParameterType.Boolean || methodType == RpcParameterType.Object;
+					return actualType == RpcParameterType.Boolean || actualType == RpcParameterType.Object;
 				case RpcParameterType.Number:
 					//Almost anything can be converted from a number
-					return methodType != RpcParameterType.Array;
+					return actualType != RpcParameterType.Array;
 				case RpcParameterType.Object:
-					return methodType == RpcParameterType.Object;
+					return actualType == RpcParameterType.Object;
 				case RpcParameterType.Null:
 				case RpcParameterType.String:
-					return methodType == RpcParameterType.String || methodType == RpcParameterType.Object;
+					return actualType == RpcParameterType.String || actualType == RpcParameterType.Object;
 				case RpcParameterType.Array:
-					return methodType == RpcParameterType.Object || methodType == RpcParameterType.Array;
+					return actualType == RpcParameterType.Object || actualType == RpcParameterType.Array;
 				default:
-					throw new ArgumentOutOfRangeException(nameof(requestType));
+					throw new ArgumentOutOfRangeException(nameof(requestedType));
 			}
 		}
 

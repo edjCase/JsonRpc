@@ -4,10 +4,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using EdjCase.JsonRpc.Router.Utilities;
 using Xunit;
 
 namespace EdjCase.JsonRpc.Router.Tests
@@ -181,6 +183,42 @@ namespace EdjCase.JsonRpc.Router.Tests
 			{
 				return values;
 			}
+			
+			public string SnakeCaseParams(string parameterOne)
+			{
+				return parameterOne;
+			}
+		}
+		
+		[Theory]
+		[InlineData("parameterOne")]
+		[InlineData("parameter_one")]
+		[InlineData("PARAMETER_ONE")]
+		[InlineData("parameter-one")]
+		[InlineData("PARAMETER-ONE")]
+		public void GetMatchingMethod_ListParam_Match_Snake_Case(string parameterNameCase)
+		{
+			DefaultRequestMatcher matcher = this.GetMatcher();
+
+			IEnumerable<KeyValuePair<string, RpcParameterType>> parameters = new[]
+			{
+				new KeyValuePair<string, RpcParameterType>(parameterNameCase, RpcParameterType.String)
+			};
+			
+			string methodName = nameof(MethodMatcherController.SnakeCaseParams);
+			var requestSignature = RpcRequestSignature.Create(methodName, parameters);
+			RpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
+
+
+			Assert.NotNull(methodInfo);
+			MethodInfo expectedMethodInfo = typeof(MethodMatcherController).GetMethod(methodName)!;
+			Assert.Equal(expectedMethodInfo, methodInfo.MethodInfo);
+			Assert.Single(methodInfo.Parameters);
+
+			Assert.False(methodInfo.Parameters[0].IsOptional);
+			Assert.Equal(typeof(string), methodInfo.Parameters[0].RawType);
+			Assert.Equal(RpcParameterType.String, methodInfo.Parameters[0].Type);
+			Assert.True(RpcUtil.NamesMatch(methodInfo.Parameters[0].Name, parameterNameCase));
 		}
 	}
 
