@@ -25,5 +25,18 @@ namespace EdjCase.JsonRpc.Router.Tests
 		{
 			Assert.True(RpcUtil.NamesMatch(methodInfo, requestMethodName));
 		}
+
+		[Fact]
+		public void MatchMethodNamesCulturallyInvariantTest()
+		{
+			var previousCulture = System.Globalization.CultureInfo.CurrentCulture;
+			// Switch to a locale that would result in lowercasing 'I' to
+			// U+0131, if not done with invariant culture.
+			System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("az");
+			var methodInfo = "IsLunchTime";
+			var requestMethodName = "isLunchtIme";
+			Assert.True(RpcUtil.NamesMatch(methodInfo, requestMethodName));
+			System.Globalization.CultureInfo.CurrentCulture = previousCulture;
+		}
 	}
 }

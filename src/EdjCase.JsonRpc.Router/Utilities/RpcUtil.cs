@@ -29,7 +29,7 @@ namespace EdjCase.JsonRpc.Router.Utilities
 			for (int i = 0; i < actual.Length; i++)
 			{
 				char requestedChar = requested[j++];
-				if (char.ToLower(actual[i]) == char.ToLower(requestedChar))
+				if (char.ToLowerInvariant(actual[i]) == char.ToLowerInvariant(requestedChar))
 				{
 					continue;
 				}
