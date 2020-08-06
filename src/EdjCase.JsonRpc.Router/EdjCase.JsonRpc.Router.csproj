@@ -8,7 +8,7 @@
 		<AssemblyName>EdjCase.JsonRpc.Router</AssemblyName>
 		<PackageId>EdjCase.JsonRpc.Router</PackageId>
 		<PackageTags>JsonRpc Rpc AspNet Json-Rpc .Net Core</PackageTags>
-		<PackageReleaseNotes>Fixing issue with name checking with different cases</PackageReleaseNotes>
+		<PackageReleaseNotes>Fixing null ref with server config</PackageReleaseNotes>
 		<PackageProjectUrl>https://github.com/edjCase/JsonRpc</PackageProjectUrl>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<RepositoryType>git</RepositoryType>
