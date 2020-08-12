@@ -21,7 +21,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		[InlineData("TestCase", "test-case")]
 		[InlineData("TestCase", "TEST-CASE")]
 		[InlineData("test", "Test")]
-		public async Task MatchMethodNamesTest(string methodInfo, string requestMethodName)
+		public void MatchMethodNamesTest(string methodInfo, string requestMethodName)
 		{
 			Assert.True(RpcUtil.NamesMatch(methodInfo, requestMethodName));
 		}

@@ -2,13 +2,13 @@
 
 	<PropertyGroup>
 		<Description>A AspNet Core IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing.</Description>
-		<Version>4.0.8</Version>
+		<Version>4.1.0</Version>
 		<Authors>Gekctek</Authors>
 		<TargetFramework>netstandard2.1</TargetFramework>
 		<AssemblyName>EdjCase.JsonRpc.Router</AssemblyName>
 		<PackageId>EdjCase.JsonRpc.Router</PackageId>
 		<PackageTags>JsonRpc Rpc AspNet Json-Rpc .Net Core</PackageTags>
-		<PackageReleaseNotes>Fixing null ref with server config</PackageReleaseNotes>
+		<PackageReleaseNotes>Adding invoke start/end events to configuration</PackageReleaseNotes>
 		<PackageProjectUrl>https://github.com/edjCase/JsonRpc</PackageProjectUrl>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<RepositoryType>git</RepositoryType>
