@@ -16,6 +16,7 @@ using System.Collections.Concurrent;
 using EdjCase.JsonRpc.Router;
 using System.IO;
 using System.Buffers;
+using System.Diagnostics;
 
 namespace EdjCase.JsonRpc.Router.Defaults
 {
@@ -24,6 +25,11 @@ namespace EdjCase.JsonRpc.Router.Defaults
 	/// </summary>
 	internal class DefaultRpcInvoker : IRpcInvoker
 	{
+		/// <summary>
+		/// Audit handler Rpc invocation 
+		/// </summary>
+		private IRpcRequestAuditHandler? auditHandler;
+
 		/// <summary>
 		/// Logger for logging Rpc invocation
 		/// </summary>
@@ -59,6 +65,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			this.rpcRequestMatcher = rpcRequestMatcher;
 			this.contextAccessor = contextAccessor;
 			this.authorizationHandler = authorizationHandler;
+			this.auditHandler = this.serverConfig.Value.RpcRequestAuditHandler;
 		}
 
 
@@ -94,7 +101,28 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 			return responses;
 		}
+		
+		public async Task<RpcResponse?> InvokeRequestAsync(RpcRequest request)
+		{
+			bool auditEnabled = this.auditHandler != null;
+			return auditEnabled
+				? await this.InternalInvokeRequestWithAuditAsync(request)
+				: await this.InternalInvokeRequestAsync(request);
+		}
 
+		/// <summary>
+		/// Wrap InternalInvokeRequestAsync for audit 
+		/// </summary>
+		/// <param name="request"></param>
+		/// <returns></returns>
+		private async Task<RpcResponse?> InternalInvokeRequestWithAuditAsync(RpcRequest request)
+		{
+			var st = Stopwatch.StartNew();
+			var response = await this.InternalInvokeRequestAsync(request);
+			await this.auditHandler?.HandleAsync(this?.contextAccessor?.Value?.Path, request, response, st.Elapsed)!;
+			return response;
+		}
+		
 		/// <summary>
 		/// Call the incoming Rpc request method and gives the appropriate response
 		/// </summary>
@@ -102,7 +130,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <param name="path">Rpc path that applies to the current request</param>
 		/// <param name="routeContext">The context of the current rpc request</param>
 		/// <returns>An Rpc response for the request</returns>
-		public async Task<RpcResponse?> InvokeRequestAsync(RpcRequest request)
+		private async Task<RpcResponse?> InternalInvokeRequestAsync(RpcRequest request)
 		{
 			if (request == null)
 			{
