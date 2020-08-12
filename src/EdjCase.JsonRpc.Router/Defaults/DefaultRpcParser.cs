@@ -234,7 +234,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			RpcParameterType paramType = GetParameters(ref jsonReader);
 			int length = (int)jsonReader.BytesConsumed - start;
 			jsonReader.Read();
-			return new JsonBytesRpcParameter(paramType, bytes.Slice(start, length), this.serverConfig.Value?.JsonSerializerSettings);
+			return new JsonBytesRpcParameter(paramType, bytes.Slice(start, length), this.serverConfig.Value.JsonSerializerSettings);
 		}
 
 		private static RpcParameterType GetParameters(ref Utf8JsonReader jsonReader)

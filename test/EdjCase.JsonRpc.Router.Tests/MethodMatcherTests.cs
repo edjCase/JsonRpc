@@ -167,6 +167,28 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.Equal("values", methodInfo.Parameters[0].Name);
 		}
 
+		[Fact]
+		public void GetMatchingMethod_CulturallyInvariantComparison()
+		{
+			DefaultRequestMatcher matcher = this.GetMatcher();
+
+			RpcParameterType[] parameters = Array.Empty<RpcParameterType>();
+			string methodName = nameof(MethodMatcherController.IsLunchTime);
+			// Use lowercase version of method name when making request.
+			var methodNameLower = methodName.ToLowerInvariant();
+			var requestSignature = RpcRequestSignature.Create(methodNameLower, parameters);
+			var previousCulture = System.Globalization.CultureInfo.CurrentCulture;
+			// Switch to a culture that would result in lowercasing 'I' to
+			// U+0131, if not done with invariant culture.
+			System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("az");
+			RpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
+
+			Assert.NotNull(methodInfo);
+			MethodInfo expectedMethodInfo = typeof(MethodMatcherController).GetMethod(methodName)!;
+			Assert.Equal(expectedMethodInfo, methodInfo.MethodInfo);
+			System.Globalization.CultureInfo.CurrentCulture = previousCulture;
+		}
+
 		public class MethodMatcherController
 		{
 			public Guid GuidTypeMethod(Guid guid)
@@ -187,6 +209,11 @@ namespace EdjCase.JsonRpc.Router.Tests
 			public string SnakeCaseParams(string parameterOne)
 			{
 				return parameterOne;
+			}
+
+			public bool IsLunchTime()
+			{
+				return true;
 			}
 		}
 		

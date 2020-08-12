@@ -75,6 +75,10 @@ namespace Microsoft.AspNetCore.Builder
 				.TryAddSingleton<StaticRpcMethodDataAccessor>();
 			serviceCollection.AddHttpContextAccessor();
 
+			if (configuration == null)
+			{
+				configuration = new RpcServerConfiguration();
+			}
 			return serviceCollection
 				.AddSingleton(Options.Create(configuration))
 				.AddRouting()
