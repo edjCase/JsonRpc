@@ -21,6 +21,7 @@ using EdjCase.JsonRpc.Router.Defaults;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore;
 using System.Reflection;
+using Microsoft.Extensions.Hosting;
 
 namespace EdjCase.JsonRpc.Router.Sample
 {
@@ -62,6 +63,7 @@ namespace EdjCase.JsonRpc.Router.Sample
 						//Continue to throw the exception
 						return OnExceptionResult.DontHandle();
 					};
+					config.ShutdownTimeoutOverride = TimeSpan.FromSeconds(30);
 				});
 		}
 
@@ -111,13 +113,17 @@ namespace EdjCase.JsonRpc.Router.Sample
 
 	public class Program
 	{
-		public static void Main(string[] args)
+		public static Task Main(string[] args)
 		{
 			var host = WebHost.CreateDefaultBuilder(args)
 				.UseStartup<Startup>()
+				.ConfigureServices((webBuilderContext, services) =>
+				{
+					services.Configure<HostOptions>(options => options.ShutdownTimeout = TimeSpan.FromSeconds(90));
+				})
 				.Build();
 
-			host.Run();
+			return host.RunAsync();
 		}
 	}
 }

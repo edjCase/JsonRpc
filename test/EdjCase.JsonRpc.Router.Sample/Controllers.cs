@@ -21,9 +21,15 @@ namespace EdjCase.JsonRpc.Router.Sample
 	}
 	public class OtherController : ControllerBase
 	{
-		public string Method1(string a)
+		private static int counter = 0;
+		public async Task<int> Method1(string a)
 		{
-			return a;
+			if (a == "delay")
+			{
+				await Task.Delay(20000);
+			}
+			OtherController.counter++;
+			return OtherController.counter;
 		}
 	}
 	public class Commands : ControllerBase

@@ -39,4 +39,15 @@ namespace EdjCase.JsonRpc.Router
 		{
 		}
 	}
+	/// <summary>
+	/// Exception for a unknown errors
+	/// </summary>
+	//Not a response exception so it is not an `RpcException`
+	public class RpcUnknownException : RpcRouterException
+	{
+		/// <param name="message">Error message</param>
+		public RpcUnknownException(string message, Exception? ex = null) : base(message, ex)
+		{
+		}
+	}
 }

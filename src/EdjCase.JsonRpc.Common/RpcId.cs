@@ -161,5 +161,7 @@ namespace EdjCase.JsonRpc.Common
 			}
 			throw new RpcException(RpcErrorCode.InvalidRequest, "Id must be a string, a number or null.");
 		}
+
+		public static RpcId None => new RpcId();
 	}
 }

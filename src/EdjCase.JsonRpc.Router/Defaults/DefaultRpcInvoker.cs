@@ -40,6 +40,8 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		private IRpcRequestMatcher rpcRequestMatcher { get; }
 		private IRpcContextAccessor contextAccessor { get; }
 		private IRpcAuthorizationHandler authorizationHandler { get; }
+		private IRpcFireAndForgetTaskPool fireAndForgetTaskPool { get; }
+		private ILoggerFactory loggerFactory { get; }
 
 		private static ConcurrentDictionary<Type, ObjectFactory> objectFactoryCache { get; } = new ConcurrentDictionary<Type, ObjectFactory>();
 
@@ -52,13 +54,17 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			IOptions<RpcServerConfiguration> serverConfig,
 			IRpcRequestMatcher rpcRequestMatcher,
 			IRpcContextAccessor contextAccessor,
-			IRpcAuthorizationHandler authorizationHandler)
+			IRpcAuthorizationHandler authorizationHandler,
+			IRpcFireAndForgetTaskPool fireAndForgetTaskQueue,
+			ILoggerFactory loggerFactory)
 		{
 			this.logger = logger;
 			this.serverConfig = serverConfig;
 			this.rpcRequestMatcher = rpcRequestMatcher;
 			this.contextAccessor = contextAccessor;
 			this.authorizationHandler = authorizationHandler;
+			this.fireAndForgetTaskPool = fireAndForgetTaskQueue;
+			this.loggerFactory = loggerFactory;
 		}
 
 
@@ -72,18 +78,11 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		public async Task<List<RpcResponse>> InvokeBatchRequestAsync(IList<RpcRequest> requests)
 		{
 			this.logger.InvokingBatchRequests(requests.Count);
-			var invokingTasks = new List<Task<RpcResponse?>>();
-			foreach (RpcRequest request in requests)
-			{
-				Task<RpcResponse?> invokingTask = this.InvokeRequestAsync(request);
-				if (request.Id.HasValue)
-				{
-					//Only wait for non-notification requests
-					invokingTasks.Add(invokingTask);
-				}
-			}
+			Task<RpcResponse?>[] invokingTasks = requests
+				.Select(r => this.InvokeRequestAsync(r))
+				.ToArray();
 
-			await Task.WhenAll(invokingTasks.ToArray());
+			await Task.WhenAll(invokingTasks);
 
 			List<RpcResponse> responses = invokingTasks
 				.Where(t => t.Result != null)
@@ -102,48 +101,49 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// <param name="path">Rpc path that applies to the current request</param>
 		/// <param name="routeContext">The context of the current rpc request</param>
 		/// <returns>An Rpc response for the request</returns>
-		public async Task<RpcResponse?> InvokeRequestAsync(RpcRequest request)
+		public Task<RpcResponse?> InvokeRequestAsync(RpcRequest request)
 		{
-			if (request == null)
+			if (!request.Id.HasValue)
 			{
-				throw new ArgumentNullException(nameof(request));
+				this.InvokeInBackground(request);
+				return Task.FromResult<RpcResponse?>(null);
 			}
+			//Only wait and give response for requests with ids
+			return this.InvokeInForground(request);
+		}
 
-			this.logger.InvokingRequest(request.Id);
-			RpcResponse rpcResponse;
+		private void InvokeInBackground(RpcRequest request)
+		{
+			//Create new logger because logger may be disposed if using request logging
+			ILogger logger = this.loggerFactory.CreateLogger("Background Request Invoke");
+			async Task NoReponseInvoke()
+			{
+				try
+				{
+					(bool isError, object? result) = await this.InvokeRequestInternalAsync(request);
+					if (isError)
+					{
+						var error = (RpcError)result!;
+						throw error.CreateException();
+					}
+					logger.FinishedRequestNoId();
+				}
+				catch (Exception ex)
+				{
+					logger.LogException(ex, "Failed processing request in the background");
+				}
+			}
+			//Execute non-id requests in the 'background'. No response is given for the request
+			this.fireAndForgetTaskPool.Add(NoReponseInvoke);
+		}
+
+		private async Task<RpcResponse?> InvokeInForground(RpcRequest request)
+		{
+			bool isError;
+			object? result;
 			try
 			{
-				RpcMethodInfo rpcMethod;
-				using (var requestSignature = RpcRequestSignature.Create(request))
-				{
-					rpcMethod = this.rpcRequestMatcher.GetMatchingMethod(requestSignature);
-				}
-
-				bool isAuthorized = await this.authorizationHandler.IsAuthorizedAsync(rpcMethod.MethodInfo);
-
-				if (isAuthorized)
-				{
-					object[] realParameters = this.ParseParameters(request.Parameters, rpcMethod.Parameters);
-
-					this.logger.InvokeMethod(request.Method);
-					IRpcContext routeContext = this.contextAccessor.Value!;
-					object? result = await this.InvokeAsync(rpcMethod.MethodInfo, realParameters, request, routeContext.RequestServices);
-					this.logger.InvokeMethodComplete(request.Method);
-
-					if (result is IRpcMethodResult methodResult)
-					{
-						rpcResponse = methodResult.ToRpcResponse(request.Id);
-					}
-					else
-					{
-						rpcResponse = new RpcResponse(request.Id, result);
-					}
-				}
-				else
-				{
-					var authError = new RpcError(RpcErrorCode.InvalidRequest, "Unauthorized");
-					rpcResponse = new RpcResponse(request.Id, authError);
-				}
+				(isError, result) = await this.InvokeRequestInternalAsync(request); ;
 			}
 			catch (Exception ex)
 			{
@@ -158,18 +158,62 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				{
 					error = new RpcError(RpcErrorCode.InternalError, errorMessage, ex);
 				}
-				rpcResponse = new RpcResponse(request.Id, error);
+				isError = true;
+				result = error;
+			}
+			if (isError)
+			{
+				var error = (RpcError)result!;
+				return new RpcResponse(request.Id, error);
+			}
+			else
+			{
+				RpcResponse response;
+				if (result is IRpcMethodResult methodResult)
+				{
+					response = methodResult.ToRpcResponse(request.Id);
+				}
+				else
+				{
+					response = new RpcResponse(request.Id, result);
+				}
+
+				this.logger.FinishedRequest(request.Id);
+				return response;
+			}
+		}
+
+		private async Task<(bool, object?)> InvokeRequestInternalAsync(RpcRequest request)
+		{
+			if (request == null)
+			{
+				throw new ArgumentNullException(nameof(request));
 			}
 
-			if (request.Id.HasValue)
+			this.logger.InvokingRequest(request.Id);
+			RpcMethodInfo rpcMethod;
+			using (var requestSignature = RpcRequestSignature.Create(request))
 			{
-				this.logger.FinishedRequest(request.Id.ToString());
-				//Only give a response if there is an id
-				return rpcResponse;
+				rpcMethod = this.rpcRequestMatcher.GetMatchingMethod(requestSignature);
 			}
-			//TODO make no id run in a non-blocking way
-			this.logger.FinishedRequestNoId();
-			return null;
+
+			bool isAuthorized = await this.authorizationHandler.IsAuthorizedAsync(rpcMethod.MethodInfo);
+
+			if (isAuthorized)
+			{
+				object[] realParameters = this.ParseParameters(request.Parameters, rpcMethod.Parameters);
+
+				this.logger.InvokeMethod(request.Method);
+				IRpcContext routeContext = this.contextAccessor.Value!;
+				object? result = await this.InvokeAsync(rpcMethod.MethodInfo, realParameters, request, routeContext.RequestServices);
+				this.logger.InvokeMethodComplete(request.Method);
+				return (false, result);
+			}
+			else
+			{
+				var authError = new RpcError(RpcErrorCode.InvalidRequest, "Unauthorized");
+				return (true, authError);
+			}
 		}
 
 		private object[] ParseParameters(RpcParameters? requestParameters, RpcParameterInfo[] methodParameters)
@@ -182,7 +226,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					IRpcParameter[] parameterList;
 					if (requestParameters.IsDictionary)
 					{
-						if(!this.TryParseParameterList(methodParameters, requestParameters.AsDictionary, out IRpcParameter[]? pList))
+						if (!this.TryParseParameterList(methodParameters, requestParameters.AsDictionary, out IRpcParameter[]? pList))
 						{
 							string message = "Unable to parse the ";
 							throw new RpcException(RpcErrorCode.InternalError, message);
@@ -200,7 +244,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 						IRpcParameter parameter = parameterList[i];
 						if (!parameter.TryGetValue(parameterInfo.RawType, out object? value))
 						{
-							if(badParams == null)
+							if (badParams == null)
 							{
 								int parametersRemaining = parameterList.Length - i;
 								badParams = new List<RpcParameterInfo>(parametersRemaining);
@@ -210,7 +254,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 						}
 						paramCache[i] = value!;
 					}
-					if(badParams != null)
+					if (badParams != null)
 					{
 						string message = string.Join("\n", badParams.Select(p => $"Unable to parse parameter '{p.Name}' to type '{p.RawType}'"));
 						throw new RpcException(RpcErrorCode.InvalidParams, message);

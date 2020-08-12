@@ -64,7 +64,20 @@ namespace EdjCase.JsonRpc.Router.Tests
 				.Setup(h => h.IsAuthorizedAsync(It.IsAny<MethodInfo>()))
 				.Returns(Task.FromResult(true));
 
-			return new DefaultRpcInvoker(logger.Object, options.Object, matcher.Object, accessor.Object, authHandler.Object);
+			var backgroundProcessor = new Mock<IRpcFireAndForgetTaskPool>(MockBehavior.Strict);
+			backgroundProcessor
+				.Setup(p => p.Add(It.IsAny<Func<Task>>()));
+			var loggerFactory = new Mock<ILoggerFactory>(MockBehavior.Strict);
+			loggerFactory.Setup(l => l.CreateLogger(It.IsAny<string>())).Returns(logger.Object);
+
+			return new DefaultRpcInvoker(
+				logger.Object,
+				options.Object,
+				matcher.Object,
+				accessor.Object,
+				authHandler.Object,
+				backgroundProcessor.Object,
+				loggerFactory.Object);
 		}
 
 		private IServiceProvider GetServiceProvider()
@@ -109,7 +122,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		{
 			var parameters = new RpcParameters(JsonBytesRpcParameter.FromRaw(1));
 			var stringRequest = new RpcRequest("1", "MethodNotFound", parameters);
-			DefaultRpcInvoker invoker = this.GetInvoker(methodInfo:null);
+			DefaultRpcInvoker invoker = this.GetInvoker(methodInfo: null);
 			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
 
 			Assert.NotNull(response);
@@ -323,11 +336,26 @@ namespace EdjCase.JsonRpc.Router.Tests
 			};
 			await Test(param2);
 		}
+
+		[Fact]
+		public async Task InvokeRequest_NoId_NoResponse()
+		{
+			string methodName = nameof(TestRouteClass.ParameterlessMethod);
+			DefaultRpcInvoker invoker = this.GetInvoker(methodName);
+			RpcRequest request = new RpcRequest(RpcId.None, methodName);
+			RpcResponse? response = await invoker.InvokeRequestAsync(request);
+			Assert.Null(response);
+		}
 	}
 
 
 	public class TestRouteClass
 	{
+		public void ParameterlessMethod()
+		{
+
+		}
+
 		public Guid GuidTypeMethod(Guid guid)
 		{
 			return guid;
@@ -375,7 +403,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 		public override bool Equals(object? obj)
 		{
-			if(obj is TestComplexParam tcp)
+			if (obj is TestComplexParam tcp)
 			{
 				return this.Equals(tcp);
 			}
@@ -383,7 +411,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		}
 		public bool Equals(TestComplexParam? obj)
 		{
-			if(obj != null)
+			if (obj != null)
 			{
 				return obj.A == this.A && obj.B == this.B;
 			}

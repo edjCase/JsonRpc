@@ -17,6 +17,7 @@ using System.Reflection;
 using EdjCase.JsonRpc.Router.Utilities;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
 
 // ReSharper disable once CheckNamespace
 namespace Microsoft.AspNetCore.Builder
@@ -73,8 +74,14 @@ namespace Microsoft.AspNetCore.Builder
 				.TryAddScoped<IRpcMethodProvider, StaticRpcMethodProvider>();
 			serviceCollection
 				.TryAddSingleton<StaticRpcMethodDataAccessor>();
+			serviceCollection
+				.TryAddSingleton<IRpcFireAndForgetTaskPool, DefaultFireAndForgetTaskPool>();
+			if (configuration?.ShutdownTimeoutOverride != null)
+			{
+				serviceCollection.Configure<HostOptions>(options => options.ShutdownTimeout = configuration.ShutdownTimeoutOverride.Value);
+			}
+			serviceCollection.AddHostedService<FireAndForgetHostedService>();
 			serviceCollection.AddHttpContextAccessor();
-
 			if (configuration == null)
 			{
 				configuration = new RpcServerConfiguration();

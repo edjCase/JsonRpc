@@ -28,6 +28,12 @@ namespace EdjCase.JsonRpc.Router
 		public int? BatchRequestLimit { get; set; }
 
 		public Func<ExceptionContext, OnExceptionResult>? OnInvokeException { get; set; }
+
+		/// <summary>
+		/// Max wait time for the server to shutdown to wait for fire and forget requests
+		/// to complete
+		/// </summary>
+		public TimeSpan? ShutdownTimeoutOverride { get; set; }
 	}
 
 	public class ExceptionContext
