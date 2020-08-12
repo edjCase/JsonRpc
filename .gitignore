@@ -198,3 +198,5 @@ project.lock.json
 
 # Rider workspace options directory
 .idea
+
+.DS_Store

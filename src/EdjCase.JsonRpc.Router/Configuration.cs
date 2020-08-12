@@ -28,6 +28,11 @@ namespace EdjCase.JsonRpc.Router
 		public int? BatchRequestLimit { get; set; }
 
 		public Func<ExceptionContext, OnExceptionResult>? OnInvokeException { get; set; }
+		
+		/// <summary>
+		/// Audit handler for collect metrics(route, method, status, time) and custom logging
+		/// </summary>
+		public IRpcRequestAuditHandler? RpcRequestAuditHandler { get; set; }
 	}
 
 	public class ExceptionContext
