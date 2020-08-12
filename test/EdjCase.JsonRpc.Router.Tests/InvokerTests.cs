@@ -21,17 +21,19 @@ namespace EdjCase.JsonRpc.Router.Tests
 {
 	public class InvokerTests
 	{
-		private DefaultRpcInvoker GetInvoker(string? methodName, RpcPath? path = null)
+		private DefaultRpcInvoker GetInvoker(string? methodName, RpcPath? path = null,
+			Action<RpcServerConfiguration>? configure = null)
 		{
 			MethodInfo? methodInfo = null;
 			if (methodName != null)
 			{
 				methodInfo = typeof(TestRouteClass).GetMethod(methodName)!;
 			}
-			return this.GetInvoker(methodInfo, path);
+			return this.GetInvoker(methodInfo, path, configure: configure);
 		}
 
-		private DefaultRpcInvoker GetInvoker(MethodInfo? methodInfo, RpcPath? path = null)
+		private DefaultRpcInvoker GetInvoker(MethodInfo? methodInfo, RpcPath? path = null,
+			Action<RpcServerConfiguration>? configure = null)
 
 		{
 			var logger = new Mock<ILogger<DefaultRpcInvoker>>(MockBehavior.Loose);
@@ -56,6 +58,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			}
 			var config = new RpcServerConfiguration();
 			config.ShowServerExceptions = true;
+			configure?.Invoke(config);
 			options
 				.SetupGet(o => o.Value)
 				.Returns(config);
@@ -109,7 +112,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		{
 			var parameters = new RpcParameters(JsonBytesRpcParameter.FromRaw(1));
 			var stringRequest = new RpcRequest("1", "MethodNotFound", parameters);
-			DefaultRpcInvoker invoker = this.GetInvoker(methodInfo:null);
+			DefaultRpcInvoker invoker = this.GetInvoker(methodInfo: null);
 			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
 
 			Assert.NotNull(response);
@@ -323,6 +326,38 @@ namespace EdjCase.JsonRpc.Router.Tests
 			};
 			await Test(param2);
 		}
+
+		[Fact]
+		public async Task InvokeRequest_WithAudit()
+		{
+			Guid randomGuid = Guid.NewGuid();
+			var parameters = new RpcParameters(JsonBytesRpcParameter.FromRaw(randomGuid.ToString()));
+			string methodName = nameof(TestRouteClass.GuidTypeMethod);
+			var stringRequest = new RpcRequest("1", methodName, parameters);
+
+
+			int startCalledCount = 0;
+			int endCalledCount = 0;
+			object data = new object();
+
+			DefaultRpcInvoker invoker = this.GetInvoker(methodName, configure: (config) =>
+			{
+				config.OnInvokeStart = (context) =>
+				{
+					startCalledCount++;
+					context.CustomContextData = data;
+				};
+				config.OnInvokeEnd = (context, response) =>
+				{
+					endCalledCount++;
+					Assert.Same(data, context.CustomContextData);
+				};
+			});
+			RpcResponse? stringResponse = await invoker.InvokeRequestAsync(stringRequest);
+			Assert.Equal(1, startCalledCount);
+			Assert.Equal(1, endCalledCount);
+
+		}
 	}
 
 
@@ -375,7 +410,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 		public override bool Equals(object? obj)
 		{
-			if(obj is TestComplexParam tcp)
+			if (obj is TestComplexParam tcp)
 			{
 				return this.Equals(tcp);
 			}
@@ -383,7 +418,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		}
 		public bool Equals(TestComplexParam? obj)
 		{
-			if(obj != null)
+			if (obj != null)
 			{
 				return obj.A == this.A && obj.B == this.B;
 			}

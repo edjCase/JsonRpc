@@ -16,6 +16,7 @@ using System.Collections.Concurrent;
 using EdjCase.JsonRpc.Router;
 using System.IO;
 using System.Buffers;
+using System.Diagnostics;
 
 namespace EdjCase.JsonRpc.Router.Defaults
 {
@@ -99,8 +100,6 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		/// Call the incoming Rpc request method and gives the appropriate response
 		/// </summary>
 		/// <param name="request">Rpc request</param>
-		/// <param name="path">Rpc path that applies to the current request</param>
-		/// <param name="routeContext">The context of the current rpc request</param>
 		/// <returns>An Rpc response for the request</returns>
 		public async Task<RpcResponse?> InvokeRequestAsync(RpcRequest request)
 		{
@@ -110,6 +109,13 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 
 			this.logger.InvokingRequest(request.Id);
+			IRpcContext routeContext = this.contextAccessor.Value!;
+			RpcInvokeContext? invokeContext = null;
+			if (this.serverConfig.Value.OnInvokeStart != null)
+			{
+				invokeContext = new RpcInvokeContext(routeContext.RequestServices, request, routeContext.Path);
+				this.serverConfig.Value.OnInvokeStart(invokeContext);
+			}
 			RpcResponse rpcResponse;
 			try
 			{
@@ -126,7 +132,6 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					object[] realParameters = this.ParseParameters(request.Parameters, rpcMethod.Parameters);
 
 					this.logger.InvokeMethod(request.Method);
-					IRpcContext routeContext = this.contextAccessor.Value!;
 					object? result = await this.InvokeAsync(rpcMethod.MethodInfo, realParameters, request, routeContext.RequestServices);
 					this.logger.InvokeMethodComplete(request.Method);
 
@@ -160,7 +165,14 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				}
 				rpcResponse = new RpcResponse(request.Id, error);
 			}
-
+			if (this.serverConfig.Value.OnInvokeEnd != null)
+			{
+				if (invokeContext == null)
+				{
+					invokeContext = new RpcInvokeContext(routeContext.RequestServices, request, routeContext.Path);
+				}
+				this.serverConfig.Value.OnInvokeEnd(invokeContext, rpcResponse);
+			}
 			if (request.Id.HasValue)
 			{
 				this.logger.FinishedRequest(request.Id.ToString());
@@ -182,7 +194,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					IRpcParameter[] parameterList;
 					if (requestParameters.IsDictionary)
 					{
-						if(!this.TryParseParameterList(methodParameters, requestParameters.AsDictionary, out IRpcParameter[]? pList))
+						if (!this.TryParseParameterList(methodParameters, requestParameters.AsDictionary, out IRpcParameter[]? pList))
 						{
 							string message = "Unable to parse the ";
 							throw new RpcException(RpcErrorCode.InternalError, message);
@@ -200,7 +212,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 						IRpcParameter parameter = parameterList[i];
 						if (!parameter.TryGetValue(parameterInfo.RawType, out object? value))
 						{
-							if(badParams == null)
+							if (badParams == null)
 							{
 								int parametersRemaining = parameterList.Length - i;
 								badParams = new List<RpcParameterInfo>(parametersRemaining);
@@ -210,7 +222,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 						}
 						paramCache[i] = value!;
 					}
-					if(badParams != null)
+					if (badParams != null)
 					{
 						string message = string.Join("\n", badParams.Select(p => $"Unable to parse parameter '{p.Name}' to type '{p.RawType}'"));
 						throw new RpcException(RpcErrorCode.InvalidParams, message);
