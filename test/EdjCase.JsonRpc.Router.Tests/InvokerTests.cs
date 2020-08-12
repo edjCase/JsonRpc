@@ -21,17 +21,19 @@ namespace EdjCase.JsonRpc.Router.Tests
 {
 	public class InvokerTests
 	{
-		private DefaultRpcInvoker GetInvoker(string? methodName, RpcPath? path = null)
+		private DefaultRpcInvoker GetInvoker(string? methodName, RpcPath? path = null, 
+			IRpcRequestAuditHandler? auditHandler = null)
 		{
 			MethodInfo? methodInfo = null;
 			if (methodName != null)
 			{
 				methodInfo = typeof(TestRouteClass).GetMethod(methodName)!;
 			}
-			return this.GetInvoker(methodInfo, path);
+			return this.GetInvoker(methodInfo, path, auditHandler: auditHandler);
 		}
 
-		private DefaultRpcInvoker GetInvoker(MethodInfo? methodInfo, RpcPath? path = null)
+		private DefaultRpcInvoker GetInvoker(MethodInfo? methodInfo, RpcPath? path = null, 
+			IRpcRequestAuditHandler? auditHandler = null)
 
 		{
 			var logger = new Mock<ILogger<DefaultRpcInvoker>>(MockBehavior.Loose);
@@ -56,6 +58,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			}
 			var config = new RpcServerConfiguration();
 			config.ShowServerExceptions = true;
+			config.RpcRequestAuditHandler = auditHandler;
 			options
 				.SetupGet(o => o.Value)
 				.Returns(config);
@@ -322,6 +325,27 @@ namespace EdjCase.JsonRpc.Router.Tests
 				B = 6
 			};
 			await Test(param2);
+		}
+		
+		[Fact]
+		public async Task InvokeRequest_WithAudit()
+		{
+			Guid randomGuid = Guid.NewGuid();
+			var parameters = new RpcParameters(JsonBytesRpcParameter.FromRaw(randomGuid.ToString()));
+			string methodName = nameof(TestRouteClass.GuidTypeMethod);
+			var stringRequest = new RpcRequest("1", methodName, parameters);
+
+			
+			var auditHandlerMock = new Mock<IRpcRequestAuditHandler>();
+			DefaultRpcInvoker invoker = this.GetInvoker(methodName, auditHandler: auditHandlerMock.Object);
+			RpcResponse? stringResponse = await invoker.InvokeRequestAsync(stringRequest);
+
+			auditHandlerMock.Verify(x=>
+				x.HandleAsync(
+					It.IsAny<RpcPath?>(), 
+					stringRequest, 
+					stringResponse, 
+					It.IsAny<TimeSpan>()), Times.Once);
 		}
 	}
 
