@@ -72,6 +72,8 @@ namespace Microsoft.AspNetCore.Builder
 			serviceCollection
 				.TryAddScoped<IRpcMethodProvider, StaticRpcMethodProvider>();
 			serviceCollection
+				.TryAddScoped<IJsonRpcMetadata, JsonRpcMetadata>();
+			serviceCollection
 				.TryAddSingleton<StaticRpcMethodDataAccessor>();
 			serviceCollection.AddHttpContextAccessor();
 
@@ -153,6 +155,7 @@ namespace Microsoft.AspNetCore.Builder
 			var options = new RpcEndpointBuilder();
 			builder.Invoke(options);
 			StaticRpcMethodData data = options.Resolve();
+			JsonRpcMetadata.StaticRpcMethodData = data;
 			return app.UseJsonRpc(data);
 		}
 
