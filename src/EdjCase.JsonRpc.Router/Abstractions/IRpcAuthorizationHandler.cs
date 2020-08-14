@@ -13,6 +13,6 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 {
 	internal interface IRpcAuthorizationHandler
 	{
-		Task<bool> IsAuthorizedAsync(MethodInfo methodInfo);
+		Task<bool> IsAuthorizedAsync(IRpcMethodInfo methodInfo);
 	}
 }

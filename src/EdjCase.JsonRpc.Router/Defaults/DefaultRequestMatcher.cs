@@ -27,17 +27,22 @@ namespace EdjCase.JsonRpc.Router.Defaults
 	internal class MethodInfoEqualityComparer : IEqualityComparer<MethodInfo>
 	{
 		public static MethodInfoEqualityComparer Instance = new MethodInfoEqualityComparer();
-		public bool Equals(MethodInfo x, MethodInfo y)
+
+		public bool Equals(MethodInfo? x, MethodInfo? y)
 		{
-			if(object.ReferenceEquals(x, y))
+			if (x == null || y == null)
+			{
+				return x == null && y == null;
+			}
+			if (object.ReferenceEquals(x, y))
 			{
 				return true;
 			}
-			if(x.Name != y.Name)
+			if (x.Name != y.Name)
 			{
 				return false;
 			}
-			if(x.DeclaringType != y.DeclaringType)
+			if (x.DeclaringType != y.DeclaringType)
 			{
 				return false;
 			}
@@ -59,8 +64,12 @@ namespace EdjCase.JsonRpc.Router.Defaults
 	internal class ParameterInfoEqualityComparer : IEqualityComparer<ParameterInfo>
 	{
 		public static ParameterInfoEqualityComparer Instance = new ParameterInfoEqualityComparer();
-		public bool Equals(ParameterInfo x, ParameterInfo y)
+		public bool Equals(ParameterInfo? x, ParameterInfo? y)
 		{
+			if (x == null || y == null)
+			{
+				return x == null && y == null;
+			}
 			if (x.ParameterType != y.ParameterType)
 			{
 				return false;
@@ -74,45 +83,38 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 		public int GetHashCode(ParameterInfo obj)
 		{
-			return obj.Name.GetHashCode();
+			return obj.Name?.GetHashCode() ?? 0;
 		}
 	}
 
 	internal class DefaultRequestMatcher : IRpcRequestMatcher
 	{
-		private static ConcurrentDictionary<MethodInfo, RpcMethodInfo> compiledMethodCache { get; } = new ConcurrentDictionary<MethodInfo, RpcMethodInfo>(MethodInfoEqualityComparer.Instance);
-		private static ConcurrentDictionary<RpcRequestSignature, RpcMethodInfo[]> requestToMethodCache { get; } = new ConcurrentDictionary<RpcRequestSignature, RpcMethodInfo[]>();
+		private static ConcurrentDictionary<RpcRequestSignature, IRpcMethodInfo[]> requestToMethodCache { get; } = new ConcurrentDictionary<RpcRequestSignature, IRpcMethodInfo[]>();
 
 		private ILogger<DefaultRequestMatcher> logger { get; }
 		private IRpcMethodProvider methodProvider { get; }
+		private IRpcContextAccessor contextAccessor { get; }
 		public DefaultRequestMatcher(ILogger<DefaultRequestMatcher> logger,
-			IRpcMethodProvider methodProvider)
+			IRpcMethodProvider methodProvider,
+			IRpcContextAccessor contextAccessor)
 		{
 			this.logger = logger;
 			this.methodProvider = methodProvider;
+			this.contextAccessor = contextAccessor;
 		}
 
-		public RpcMethodInfo GetMatchingMethod(RpcRequestSignature requestSignature)
+		public IRpcMethodInfo GetMatchingMethod(RpcRequestSignature requestSignature)
 		{
 			this.logger.AttemptingToMatchMethod(new string(requestSignature.GetMethodName().Span));
 
-			IReadOnlyList<MethodInfo> methods = this.methodProvider.Get();
+			RpcContext context = this.contextAccessor.Get();
+			IReadOnlyList<IRpcMethodInfo> methods = this.methodProvider.GetByPath(context.Path);
 			if (methods == null || !methods.Any())
 			{
 				throw new RpcException(RpcErrorCode.MethodNotFound, $"No methods found for route");
 			}
 
-			RpcMethodInfo[] compiledMethods = ArrayPool<RpcMethodInfo>.Shared.Rent(methods.Count);
-			Span<RpcMethodInfo> matches;
-			try
-			{
-				this.FillRpcMethodInfos(methods, compiledMethods);
-				matches = this.FilterAndBuildMethodInfoByRequest(compiledMethods.AsMemory(0, methods.Count), requestSignature);
-			}
-			finally
-			{
-				ArrayPool<RpcMethodInfo>.Shared.Return(compiledMethods, clearArray: true);
-			}
+			Span<IRpcMethodInfo> matches = this.FilterAndBuildMethodInfoByRequest(methods, requestSignature);
 			if (matches.Length == 1)
 			{
 				this.logger.RequestMatchedMethod();
@@ -123,12 +125,12 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			if (matches.Length > 1)
 			{
 				var methodInfoList = new List<string>();
-				foreach (RpcMethodInfo matchedMethod in matches)
+				foreach (IRpcMethodInfo matchedMethod in matches)
 				{
 					var parameterTypeList = new List<string>();
-					foreach (ParameterInfo parameterInfo in matchedMethod.MethodInfo.GetParameters())
+					foreach (IRpcParameterInfo parameterInfo in matchedMethod.Parameters)
 					{
-						string parameterType = parameterInfo.Name + ": " + parameterInfo.ParameterType.Name;
+						string parameterType = parameterInfo.Name + ": " + parameterInfo.Type;
 						if (parameterInfo.IsOptional)
 						{
 							parameterType += "(Optional)";
@@ -136,7 +138,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 						parameterTypeList.Add(parameterType);
 					}
 					string parameterString = string.Join(", ", parameterTypeList);
-					methodInfoList.Add($"{{Name: '{matchedMethod.MethodInfo.Name}', Parameters: [{parameterString}]}}");
+					methodInfoList.Add($"{{Name: '{matchedMethod.Name}', Parameters: [{parameterString}]}}");
 				}
 				errorMessage = "More than one method matched the rpc request. Unable to invoke due to ambiguity. Methods that matched the same name: " + string.Join(", ", methodInfoList);
 			}
@@ -149,83 +151,56 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			throw new RpcException(RpcErrorCode.MethodNotFound, errorMessage);
 		}
 
-		private void FillRpcMethodInfos(IReadOnlyList<MethodInfo> methods, RpcMethodInfo[] compiledMethods)
-		{
-			for (int i = 0; i < methods.Count; i++)
-			{
-				MethodInfo methodInfo = methods[i];
-				compiledMethods[i] = DefaultRequestMatcher.compiledMethodCache.GetOrAdd(methodInfo, BuildMethodInfo);
-			}
-		}
-
-		internal static RpcMethodInfo BuildMethodInfo(MethodInfo methodInfo)
-		{
-			RpcParameterInfo[] parameters = methodInfo
-				.GetParameters()
-				.Select(ExtractParam)
-				.ToArray();
-			return new RpcMethodInfo(methodInfo, parameters);
-
-			static RpcParameterInfo ExtractParam(ParameterInfo parameterInfo)
-			{
-				Type parameterType = parameterInfo.ParameterType;
-				RpcParameterType type = RpcParameterUtil.GetRpcType(parameterType);
-				return new RpcParameterInfo(parameterInfo.Name, type, parameterInfo.ParameterType, parameterInfo.IsOptional);
-			}
-		}
-
-		private RpcMethodInfo[] FilterAndBuildMethodInfoByRequest(Memory<RpcMethodInfo> methods, RpcRequestSignature requestSignature)
+		private IRpcMethodInfo[] FilterAndBuildMethodInfoByRequest(IReadOnlyList<IRpcMethodInfo> methods, RpcRequestSignature requestSignature)
 		{
 			//If the request signature is found, it means we have the methods cached already
-			//TODO make a cache that uses spans/char array and not strings
-			//TODO does the entire method info need to be cached?
-			return DefaultRequestMatcher.requestToMethodCache.GetOrAdd(requestSignature, BuildCache);
+			return DefaultRequestMatcher.requestToMethodCache.GetOrAdd(requestSignature, GetMatchingMethodsWrapper);
 
-			RpcMethodInfo[] BuildCache(RpcRequestSignature s)
+			IRpcMethodInfo[] GetMatchingMethodsWrapper(RpcRequestSignature s)
 			{
-				return this.BuildMethodInfos(s, methods.Span);
+				return this.GetMatchingMethods(s, methods);
 			}
 		}
 
 
-		private RpcMethodInfo[] BuildMethodInfos(RpcRequestSignature requestSignature, Span<RpcMethodInfo> methods)
+		private IRpcMethodInfo[] GetMatchingMethods(RpcRequestSignature requestSignature, IReadOnlyList<IRpcMethodInfo> methods)
 		{
-			RpcMethodInfo[] methodsWithSameName = ArrayPool<RpcMethodInfo>.Shared.Rent(methods.Length);
+			IRpcMethodInfo[] methodsWithSameName = ArrayPool<IRpcMethodInfo>.Shared.Rent(methods.Count);
 			try
 			{
 				//Case insenstive check for hybrid approach. Will check for case sensitive if there is ambiguity
 				int methodsWithSameNameCount = 0;
-				for (int i = 0; i < methods.Length; i++)
+				for (int i = 0; i < methods.Count; i++)
 				{
-					RpcMethodInfo compiledMethodInfo = methods[i];
-					if (RpcUtil.NamesMatch(compiledMethodInfo.MethodInfo.Name.AsSpan(), requestSignature.GetMethodName().Span))
+					IRpcMethodInfo methodInfo = methods[i];
+					if (RpcUtil.NamesMatch(methodInfo.Name.AsSpan(), requestSignature.GetMethodName().Span))
 					{
-						methodsWithSameName[methodsWithSameNameCount++] = compiledMethodInfo;
+						methodsWithSameName[methodsWithSameNameCount++] = methodInfo;
 					}
 				}
 
 				if (methodsWithSameNameCount < 1)
 				{
-					return Array.Empty<RpcMethodInfo>();
+					return Array.Empty<IRpcMethodInfo>();
 				}
 				return this.FilterBySimilarParams(requestSignature, methodsWithSameName.AsSpan(0, methodsWithSameNameCount));
 			}
 			finally
 			{
-				ArrayPool<RpcMethodInfo>.Shared.Return(methodsWithSameName, clearArray: false);
+				ArrayPool<IRpcMethodInfo>.Shared.Return(methodsWithSameName, clearArray: false);
 			}
 		}
 
-		private RpcMethodInfo[] FilterBySimilarParams(RpcRequestSignature requestSignature, Span<RpcMethodInfo> methodsWithSameName)
+		private IRpcMethodInfo[] FilterBySimilarParams(RpcRequestSignature requestSignature, Span<IRpcMethodInfo> methodsWithSameName)
 		{
-			RpcMethodInfo[] potentialMatches = ArrayPool<RpcMethodInfo>.Shared.Rent(methodsWithSameName.Length);
+			IRpcMethodInfo[] potentialMatches = ArrayPool<IRpcMethodInfo>.Shared.Rent(methodsWithSameName.Length);
 
 			try
 			{
 				int potentialMatchCount = 0;
 				for (int i = 0; i < methodsWithSameName.Length; i++)
 				{
-					RpcMethodInfo m = methodsWithSameName[i];
+					IRpcMethodInfo m = methodsWithSameName[i];
 
 					bool isMatch = this.ParametersMatch(requestSignature, m.Parameters);
 					if (isMatch)
@@ -238,16 +213,44 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				{
 					return potentialMatches.AsSpan(0, potentialMatchCount).ToArray();
 				}
-				return this.FilterByExactParams(requestSignature, potentialMatches.AsSpan(0, potentialMatchCount));
+				return this.FilterMatchesByCaseSensitiveMethod(requestSignature, potentialMatches.AsSpan(0, potentialMatchCount));
 			}
 			finally
 			{
-				ArrayPool<RpcMethodInfo>.Shared.Return(potentialMatches, clearArray: false);
+				ArrayPool<IRpcMethodInfo>.Shared.Return(potentialMatches, clearArray: false);
 			}
 		}
 
+		private IRpcMethodInfo[] FilterMatchesByCaseSensitiveMethod(RpcRequestSignature requestSignature, Span<IRpcMethodInfo> matches)
+		{
+			//Try to remove ambiguity with case sensitive check
+			IRpcMethodInfo[] caseSensitiveMatches = ArrayPool<IRpcMethodInfo>.Shared.Rent(matches.Length);
+			try
+			{
+				int caseSensitiveCount = 0;
+				for (int i = 0; i < matches.Length; i++)
+				{
+					IRpcMethodInfo m = matches[i];
+					Memory<char> requestMethodName = requestSignature.GetMethodName();
+					if (m.Name.Length == requestMethodName.Length)
+					{
+						if (!RpcUtil.NamesMatch(m.Name.AsSpan(), requestMethodName.Span))
+						{
+							//TODO do we care about the case where 2+ parameters have very similar names and types?
+							continue;
+						}
+						caseSensitiveMatches[caseSensitiveCount++] = m;
+					}
+				}
+				return caseSensitiveMatches.AsSpan(0, caseSensitiveCount).ToArray();
+			}
+			finally
+			{
+				ArrayPool<IRpcMethodInfo>.Shared.Return(caseSensitiveMatches, clearArray: false);
+			}
+		}
 
-		private bool ParametersMatch(RpcRequestSignature requestSignature, RpcParameterInfo[] parameters)
+		private bool ParametersMatch(RpcRequestSignature requestSignature, IReadOnlyList<IRpcParameterInfo> parameters)
 		{
 			if (!requestSignature.HasParameters)
 			{
@@ -259,10 +262,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				foreach ((Memory<char> name, RpcParameterType type) in requestSignature.ParametersAsDict)
 				{
 					bool found = false;
-					for (int paramIndex = 0; paramIndex < parameters.Length; paramIndex++)
+					for (int paramIndex = 0; paramIndex < parameters.Count; paramIndex++)
 					{
-						RpcParameterInfo parameter = parameters[paramIndex];
-						if(!RpcUtil.NamesMatch(parameter.Name, name.Span) || 
+						IRpcParameterInfo parameter = parameters[paramIndex];
+						if (!RpcUtil.NamesMatch(parameter.Name.AsSpan(), name.Span) ||
 							!RpcParameterUtil.TypesCompatible(parameter.Type, type))
 						{
 							continue;
@@ -281,11 +284,11 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			{
 				foreach (RpcParameterType parameterType in requestSignature.ParametersAsList)
 				{
-					if (parameters.Length <= parameterCount)
+					if (parameters.Count <= parameterCount)
 					{
 						return false;
 					}
-					RpcParameterInfo info = parameters[parameterCount];
+					IRpcParameterInfo info = parameters[parameterCount];
 					if (!RpcParameterUtil.TypesCompatible(info.Type, parameterType))
 					{
 						return false;
@@ -295,7 +298,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				}
 
 
-				for (int i = parameterCount; i < parameters.Length; i++)
+				for (int i = parameterCount; i < parameters.Count; i++)
 				{
 					//Only if the last parameters in the method are optional does the request match
 					//Will be skipped if they are equal length
@@ -305,7 +308,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					}
 				}
 			}
-			if (parameterCount != parameters.Length)
+			if (parameterCount != parameters.Count)
 			{
 				return false;
 			}
@@ -313,84 +316,5 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 		}
 
-
-		private RpcMethodInfo[] FilterByExactParams(RpcRequestSignature requestSignature, Span<RpcMethodInfo> potentialMatches)
-		{
-			RpcMethodInfo[] exactParamMatches = ArrayPool<RpcMethodInfo>.Shared.Rent(potentialMatches.Length);
-			try
-			{
-				int exactParamMatchCount = 0;
-				//Try to remove ambiguity with 'perfect matching' (usually optional params and types)
-				for (int i = 0; i < potentialMatches.Length; i++)
-				{
-					bool matched = true;
-					RpcMethodInfo info = potentialMatches[i];
-					ParameterInfo[] parameters = info.MethodInfo.GetParameters();
-					if (info.Parameters.Length == parameters.Length)
-					{
-						for (int j = 0; j < info.Parameters.Length; j++)
-						{
-							object original = info.Parameters[j];
-							ParameterInfo parameter = parameters[j];
-							if (!RpcUtil.TypesMatch(original, parameter.ParameterType))
-							{
-								matched = false;
-								break;
-							}
-						}
-					}
-					else
-					{
-						matched = false;
-					}
-					if (matched)
-					{
-						exactParamMatches[exactParamMatchCount++] = potentialMatches[i];
-					}
-				}
-
-				//Fallback to not-exact match if there are none found
-				Span<RpcMethodInfo> matches = exactParamMatchCount > 0 ? exactParamMatches.AsSpan(0, exactParamMatchCount) : potentialMatches;
-
-				if (matches.Length <= 1)
-				{
-					return matches.ToArray();
-				}
-				return this.FilterMatchesByCaseSensitiveMethod(requestSignature, matches);
-			}
-			finally
-			{
-				ArrayPool<RpcMethodInfo>.Shared.Return(exactParamMatches, clearArray: false);
-			}
-		}
-
-		private RpcMethodInfo[] FilterMatchesByCaseSensitiveMethod(RpcRequestSignature requestSignature, Span<RpcMethodInfo> matches)
-		{
-			//Try to remove ambiguity with case sensitive check
-			RpcMethodInfo[] caseSensitiveMatches = ArrayPool<RpcMethodInfo>.Shared.Rent(matches.Length);
-			try
-			{
-				int caseSensitiveCount = 0;
-				for (int i = 0; i < matches.Length; i++)
-				{
-					RpcMethodInfo m = matches[i];
-					Memory<char> requestMethodName = requestSignature.GetMethodName();
-					if (m.MethodInfo.Name.Length == requestMethodName.Length)
-					{
-						if (!RpcUtil.NamesMatch(m.MethodInfo.Name.AsSpan(), requestMethodName.Span))
-						{
-							//TODO do we care about the case where 2+ parameters have very similar names and types?
-							continue;
-						}
-						caseSensitiveMatches[caseSensitiveCount++] = m;
-					}
-				}
-				return caseSensitiveMatches.AsSpan(0, caseSensitiveCount).ToArray();
-			}
-			finally
-			{
-				ArrayPool<RpcMethodInfo>.Shared.Return(caseSensitiveMatches, clearArray: false);
-			}
-		}
 	}
 }

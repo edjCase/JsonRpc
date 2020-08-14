@@ -1,22 +1,14 @@
 ﻿using System;
-using EdjCase.JsonRpc.Common;
 using EdjCase.JsonRpc.Router;
 using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Defaults;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using EdjCase.JsonRpc.Common.Tools;
-using Microsoft.AspNetCore.Routing;
-using Microsoft.AspNetCore.Builder;
-using System.Net.WebSockets;
 using System.Collections.Generic;
 using System.Reflection;
-using EdjCase.JsonRpc.Router.Utilities;
 using System.Linq;
-using Microsoft.AspNetCore.Http;
 
 // ReSharper disable once CheckNamespace
 namespace Microsoft.AspNetCore.Builder
@@ -119,11 +111,11 @@ namespace Microsoft.AspNetCore.Builder
 			{
 				Type baseControllerType = typeof(T);
 				IEnumerable<Type> controllers = Assembly
-					.GetEntryAssembly()
+					.GetEntryAssembly()!
 					.GetReferencedAssemblies()
 					.Select(Assembly.Load)
 					.SelectMany(x => x.DefinedTypes)
-					.Concat(Assembly.GetEntryAssembly().DefinedTypes)
+					.Concat(Assembly.GetEntryAssembly()!.DefinedTypes)
 					.Where(t => !t.IsAbstract && (t == baseControllerType || t.IsSubclassOf(baseControllerType)));
 
 				foreach (Type type in controllers)

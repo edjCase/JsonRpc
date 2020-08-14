@@ -10,7 +10,7 @@ namespace EdjCase.JsonRpc.Router.Utilities
 	{
 		public static bool TypesMatch(object value, Type type)
 		{
-			Type nullableType = Nullable.GetUnderlyingType(type);
+			Type? nullableType = Nullable.GetUnderlyingType(type);
 			if (nullableType != null)
 			{
 				type = nullableType;

@@ -11,25 +11,34 @@ using System.Text;
 using System.Threading.Tasks;
 using EdjCase.JsonRpc.Router.Utilities;
 using Xunit;
+using System.Linq;
 
 namespace EdjCase.JsonRpc.Router.Tests
 {
 	public class MethodMatcherTests
 	{
-		private MethodInfo[] methods;
+		private IReadOnlyList<IRpcMethodInfo> methods;
 		public MethodMatcherTests()
 		{
-			this.methods = typeof(MethodMatcherController).GetMethods();
+			this.methods = typeof(MethodMatcherController)
+				.GetMethods()
+				.Select(DefaultRpcMethodInfo.FromMethodInfo)
+				.ToList();
 		}
 		private DefaultRequestMatcher GetMatcher()
 		{
 			var logger = new Mock<ILogger<DefaultRequestMatcher>>(MockBehavior.Loose);
 			var methodProvider = new Mock<IRpcMethodProvider>(MockBehavior.Strict);
 			methodProvider
-				.Setup(p => p.Get())
+				.Setup(p => p.GetByPath(null))
 				.Returns(this.methods);
 
-			return new DefaultRequestMatcher(logger.Object, methodProvider.Object);
+			var contextAccessor = new Mock<IRpcContextAccessor>();
+			contextAccessor
+			.Setup(a => a.Get())
+			.Returns(new RpcContext(null, null));
+
+			return new DefaultRequestMatcher(logger.Object, methodProvider.Object, contextAccessor.Object);
 		}
 
 
@@ -40,12 +49,10 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			DefaultRequestMatcher matcher = this.GetMatcher();
 			var requestSignature = RpcRequestSignature.Create(methodName, new[] { RpcParameterType.String });
-			RpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
-
+			IRpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
 
 			Assert.NotNull(methodInfo);
-			MethodInfo expectedMethodInfo = typeof(MethodMatcherController).GetMethod(methodName)!;
-			Assert.Equal(expectedMethodInfo, methodInfo.MethodInfo);
+			Assert.Equal(methodName, methodInfo.Name);
 			Assert.Single(methodInfo.Parameters);
 			Assert.False(methodInfo.Parameters[0].IsOptional);
 			Assert.Equal(typeof(Guid), methodInfo.Parameters[0].RawType);
@@ -71,13 +78,12 @@ namespace EdjCase.JsonRpc.Router.Tests
 			};
 			string methodName = nameof(MethodMatcherController.SimpleMulitParam);
 			var requestSignature = RpcRequestSignature.Create(methodName, parameters);
-			RpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
+			IRpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
 
 
 			Assert.NotNull(methodInfo);
-			MethodInfo expectedMethodInfo = typeof(MethodMatcherController).GetMethod(methodName)!;
-			Assert.Equal(expectedMethodInfo, methodInfo.MethodInfo);
-			Assert.Equal(5, methodInfo.Parameters.Length);
+			Assert.Equal(methodName, methodInfo.Name);
+			Assert.Equal(5, methodInfo.Parameters.Count);
 
 			Assert.False(methodInfo.Parameters[0].IsOptional);
 			Assert.Equal(typeof(int), methodInfo.Parameters[0].RawType);
@@ -112,13 +118,12 @@ namespace EdjCase.JsonRpc.Router.Tests
 			RpcParameterType[] parameters = new[] { RpcParameterType.Number, RpcParameterType.Boolean, RpcParameterType.String, RpcParameterType.Object, RpcParameterType.Null };
 			string methodName = nameof(MethodMatcherController.SimpleMulitParam);
 			var requestSignature = RpcRequestSignature.Create(methodName, parameters);
-			RpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
+			IRpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
 
 
 			Assert.NotNull(methodInfo);
-			MethodInfo expectedMethodInfo = typeof(MethodMatcherController).GetMethod(methodName)!;
-			Assert.Equal(expectedMethodInfo, methodInfo.MethodInfo);
-			Assert.Equal(5, methodInfo.Parameters.Length);
+			Assert.Equal(methodName, methodInfo.Name);
+			Assert.Equal(5, methodInfo.Parameters.Count);
 
 			Assert.False(methodInfo.Parameters[0].IsOptional);
 			Assert.Equal(typeof(int), methodInfo.Parameters[0].RawType);
@@ -153,12 +158,11 @@ namespace EdjCase.JsonRpc.Router.Tests
 			RpcParameterType[] parameters = new[] { RpcParameterType.Object };
 			string methodName = nameof(MethodMatcherController.List);
 			var requestSignature = RpcRequestSignature.Create(methodName, parameters);
-			RpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
+			IRpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
 
 
 			Assert.NotNull(methodInfo);
-			MethodInfo expectedMethodInfo = typeof(MethodMatcherController).GetMethod(methodName)!;
-			Assert.Equal(expectedMethodInfo, methodInfo.MethodInfo);
+			Assert.Equal(methodName, methodInfo.Name);
 			Assert.Single(methodInfo.Parameters);
 
 			Assert.False(methodInfo.Parameters[0].IsOptional);
@@ -181,11 +185,10 @@ namespace EdjCase.JsonRpc.Router.Tests
 			// Switch to a culture that would result in lowercasing 'I' to
 			// U+0131, if not done with invariant culture.
 			System.Globalization.CultureInfo.CurrentCulture = new System.Globalization.CultureInfo("az");
-			RpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
+			IRpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
 
 			Assert.NotNull(methodInfo);
-			MethodInfo expectedMethodInfo = typeof(MethodMatcherController).GetMethod(methodName)!;
-			Assert.Equal(expectedMethodInfo, methodInfo.MethodInfo);
+			Assert.Equal(methodName, methodInfo.Name);
 			System.Globalization.CultureInfo.CurrentCulture = previousCulture;
 		}
 
@@ -205,7 +208,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			{
 				return values;
 			}
-			
+
 			public string SnakeCaseParams(string parameterOne)
 			{
 				return parameterOne;
@@ -216,7 +219,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 				return true;
 			}
 		}
-		
+
 		[Theory]
 		[InlineData("parameterOne")]
 		[InlineData("parameter_one")]
@@ -231,15 +234,14 @@ namespace EdjCase.JsonRpc.Router.Tests
 			{
 				new KeyValuePair<string, RpcParameterType>(parameterNameCase, RpcParameterType.String)
 			};
-			
+
 			string methodName = nameof(MethodMatcherController.SnakeCaseParams);
 			var requestSignature = RpcRequestSignature.Create(methodName, parameters);
-			RpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
+			IRpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
 
 
 			Assert.NotNull(methodInfo);
-			MethodInfo expectedMethodInfo = typeof(MethodMatcherController).GetMethod(methodName)!;
-			Assert.Equal(expectedMethodInfo, methodInfo.MethodInfo);
+			Assert.Equal(methodName, methodInfo.Name);
 			Assert.Single(methodInfo.Parameters);
 
 			Assert.False(methodInfo.Parameters[0].IsOptional);

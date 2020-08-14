@@ -40,16 +40,16 @@ namespace EdjCase.JsonRpc.Router.Tests
 			var options = new Mock<IOptions<RpcServerConfiguration>>(MockBehavior.Strict);
 			var matcher = new Mock<IRpcRequestMatcher>(MockBehavior.Strict);
 			var accessor = new Mock<IRpcContextAccessor>(MockBehavior.Strict);
-			IRpcContext requestContext = this.GetRouteContext(path);
+			RpcContext requestContext = this.GetRouteContext(path);
 			accessor
-				.SetupGet(a => a.Value)
+				.Setup(a => a.Get())
 				.Returns(requestContext);
-			Moq.Language.Flow.ISetup<IRpcRequestMatcher, RpcMethodInfo> matcherSetup = matcher
+			Moq.Language.Flow.ISetup<IRpcRequestMatcher, IRpcMethodInfo> matcherSetup = matcher
 					.Setup(m => m.GetMatchingMethod(It.IsAny<RpcRequestSignature>()));
 			if (methodInfo != null)
 			{
 				//TODO better way of getting this for unit tests?
-				RpcMethodInfo method = DefaultRequestMatcher.BuildMethodInfo(methodInfo);
+				DefaultRpcMethodInfo method = DefaultRpcMethodInfo.FromMethodInfo(methodInfo);
 				matcherSetup.Returns(method);
 			}
 			else
@@ -64,7 +64,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 				.Returns(config);
 			var authHandler = new Mock<IRpcAuthorizationHandler>(MockBehavior.Strict);
 			authHandler
-				.Setup(h => h.IsAuthorizedAsync(It.IsAny<MethodInfo>()))
+				.Setup(h => h.IsAuthorizedAsync(It.IsAny<IRpcMethodInfo>()))
 				.Returns(Task.FromResult(true));
 
 			return new DefaultRpcInvoker(logger.Object, options.Object, matcher.Object, accessor.Object, authHandler.Object);
@@ -78,17 +78,10 @@ namespace EdjCase.JsonRpc.Router.Tests
 			return serviceCollection.BuildServiceProvider();
 		}
 
-		private IRpcContext GetRouteContext(RpcPath? path = null)
+		private RpcContext GetRouteContext(RpcPath? path = null)
 		{
 			IServiceProvider serviceProvider = this.GetServiceProvider();
-			var routeContext = new Mock<IRpcContext>(MockBehavior.Strict);
-			routeContext
-				.SetupGet(rc => rc.Path)
-				.Returns(path);
-			routeContext
-				.SetupGet(rc => rc.RequestServices)
-				.Returns(serviceProvider);
-			return routeContext.Object;
+			return new RpcContext(serviceProvider, path);
 		}
 
 		[Fact]
