@@ -45,8 +45,9 @@ namespace EdjCase.JsonRpc.Router.Utilities
 				return false;
 			}
 			//Make sure that it matched ALL the actual characters
-			//j - all iterations of comparing, need compare j with actual.Length
-			return equalsChars == actual.Length;
+			//j - all iterations of comparing, need compare j with requested.Length
+			return j == requested.Length
+					&& equalsChars == actual.Length;
 		}
 	}
 }
