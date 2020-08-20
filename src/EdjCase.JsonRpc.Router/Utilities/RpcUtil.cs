@@ -26,11 +26,14 @@ namespace EdjCase.JsonRpc.Router.Utilities
 				return false;
 			}
 			int j = 0;
-			for (int i = 0; i < actual.Length; i++)
+			int equalsChars = 0;
+			for (int i = 0; i < actual.Length && j < requested.Length; i++)
 			{
 				char requestedChar = requested[j++];
-				if (char.ToLowerInvariant(actual[i]) == char.ToLowerInvariant(requestedChar))
+				char actualChar = actual[i];
+				if (char.ToLowerInvariant(actualChar) == char.ToLowerInvariant(requestedChar))
 				{
+					equalsChars++;
 					continue;
 				}
 				if (requestedChar == '-' || requestedChar == '_')
@@ -42,8 +45,8 @@ namespace EdjCase.JsonRpc.Router.Utilities
 				return false;
 			}
 			//Make sure that it matched ALL the actual characters
-			//j - all iterations of comparing, need compare j with request.Length
-			return j == requested.Length;
+			//j - all iterations of comparing, need compare j with actual.Length
+			return equalsChars == actual.Length;
 		}
 	}
 }
