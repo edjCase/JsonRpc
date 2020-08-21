@@ -25,6 +25,14 @@ namespace EdjCase.JsonRpc.Router.Tests
 		{
 			Assert.True(RpcUtil.NamesMatch(methodInfo, requestMethodName));
 		}
+		
+		[Theory]
+		[InlineData("GetUsers", "get_user")]
+		[InlineData("GetUsers", "get_user_super")]
+		public void NotMatchMethodNamesTest(string methodInfo, string requestMethodName)
+		{
+			Assert.False(RpcUtil.NamesMatch(methodInfo, requestMethodName));
+		}
 
 		[Fact]
 		public void MatchMethodNamesCulturallyInvariantTest()
