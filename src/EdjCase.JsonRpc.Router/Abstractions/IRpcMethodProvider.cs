@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.OpenApi.Models;
 
 namespace EdjCase.JsonRpc.Router.Abstractions
 {
-	internal interface IRpcMethodProvider
+	public interface IRpcMethodProvider
 	{
 		IRpcRouteMetaData Get();
 	}
@@ -33,6 +34,23 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 		RpcParameterType Type { get; }
 		Type RawType { get; }
 		bool IsOptional { get; }
+	}
+
+	public static class MethodProviderExtensions
+	{
+		public static IReadOnlyList<IRpcMethodInfo>? GetByPath(this IRpcMethodProvider methodProvider, RpcPath? path)
+		{
+			IRpcRouteMetaData metaData = methodProvider.Get();
+			if(path == null)
+			{
+				return metaData.BaseRoute;
+			}
+			if(metaData.PathRoutes.TryGetValue(path, out IReadOnlyList<IRpcMethodInfo> methods))
+			{
+				return methods;
+			}
+			return null;
+		}
 	}
 }
 
