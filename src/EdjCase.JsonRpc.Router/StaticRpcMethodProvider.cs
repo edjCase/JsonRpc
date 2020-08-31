@@ -24,23 +24,28 @@ namespace EdjCase.JsonRpc.Router
 			}
 			if (path == null)
 			{
-				return data.BaseMethods;
+				return data.BaseRoute;
 			}
-			bool result = data.Methods.TryGetValue(path, out List<IRpcMethodInfo>? m);
+			bool result = data.PathRoutes.TryGetValue(path, out IReadOnlyList<IRpcMethodInfo>? m);
 
 			return result ? m! : (IReadOnlyList<IRpcMethodInfo>)Array.Empty<IRpcMethodInfo>();
 		}
+
+		public IRpcRouteMetaData Get()
+		{
+			return this.dataAccessor.Value;
+		}
 	}
 
-	internal class StaticRpcMethodData
+	internal class StaticRpcMethodData : IRpcRouteMetaData
 	{
-		public List<IRpcMethodInfo> BaseMethods { get; }
-		public Dictionary<RpcPath, List<IRpcMethodInfo>> Methods { get; }
+		public IReadOnlyList<IRpcMethodInfo> BaseRoute { get; }
+		public IReadOnlyDictionary<RpcPath, IReadOnlyList<IRpcMethodInfo>> PathRoutes { get; }
 
-		public StaticRpcMethodData(List<IRpcMethodInfo> baseMethods, Dictionary<RpcPath, List<IRpcMethodInfo>> methods)
+		public StaticRpcMethodData(IReadOnlyList<IRpcMethodInfo> baseMethods, IReadOnlyDictionary<RpcPath, IReadOnlyList<IRpcMethodInfo>> methods)
 		{
-			this.BaseMethods = baseMethods;
-			this.Methods = methods;
+			this.BaseRoute = baseMethods;
+			this.PathRoutes = methods;
 		}
 	}
 

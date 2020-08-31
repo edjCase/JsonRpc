@@ -1,24 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Primitives;
-using System.IO;
-using Microsoft.AspNetCore.Authentication;
-using System.Security.Claims;
-using System.Threading.Tasks;
-using EdjCase.JsonRpc.Router.Abstractions;
-using Microsoft.AspNetCore.Http;
-using System.Diagnostics;
-using Microsoft.Extensions.Configuration;
-using System.Net.WebSockets;
-using System.Threading;
 using EdjCase.JsonRpc.Router.Defaults;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore;
 using System.Reflection;
 

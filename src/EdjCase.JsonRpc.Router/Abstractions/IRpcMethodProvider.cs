@@ -8,7 +8,13 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 {
 	internal interface IRpcMethodProvider
 	{
-		IReadOnlyList<IRpcMethodInfo> GetByPath(RpcPath? path = null);
+		IRpcRouteMetaData Get();
+	}
+
+	public interface IRpcRouteMetaData
+	{
+		IReadOnlyList<IRpcMethodInfo> BaseRoute { get; }
+		IReadOnlyDictionary<RpcPath, IReadOnlyList<IRpcMethodInfo>> PathRoutes { get; }
 	}
 
 	public interface IRpcMethodInfo
