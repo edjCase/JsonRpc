@@ -144,7 +144,7 @@ namespace Microsoft.AspNetCore.Builder
 
 			var options = new RpcEndpointBuilder();
 			builder.Invoke(options);
-			StaticRpcMethodData data = options.Resolve();
+			RpcRouteMetaData data = options.Resolve();
 			return app.UseJsonRpc(data);
 		}
 
@@ -154,7 +154,7 @@ namespace Microsoft.AspNetCore.Builder
 		/// <param name="app"><see cref="IApplicationBuilder"/> that is supplied by Asp.Net</param>
 		/// <param name="methodProvider">All the available methods to call</param>
 		/// <returns><see cref="IApplicationBuilder"/> that includes the Basic auth middleware</returns>
-		internal static IApplicationBuilder UseJsonRpc(this IApplicationBuilder app, StaticRpcMethodData data)
+		internal static IApplicationBuilder UseJsonRpc(this IApplicationBuilder app, RpcRouteMetaData data)
 		{
 			if (app == null)
 			{

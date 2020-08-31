@@ -15,42 +15,14 @@ namespace EdjCase.JsonRpc.Router
 			this.dataAccessor = dataAccessor;
 		}
 
-		public IReadOnlyList<IRpcMethodInfo> GetByPath(RpcPath? path = null)
+		public RpcRouteMetaData Get()
 		{
-			StaticRpcMethodData? data = this.dataAccessor.Value;
-			if (data == null)
-			{
-				throw new InvalidOperationException("No rpc method data is avaliable. It must be added to the request pipeline.");
-			}
-			if (path == null)
-			{
-				return data.BaseRoute;
-			}
-			bool result = data.PathRoutes.TryGetValue(path, out IReadOnlyList<IRpcMethodInfo>? m);
-
-			return result ? m! : (IReadOnlyList<IRpcMethodInfo>)Array.Empty<IRpcMethodInfo>();
-		}
-
-		public IRpcRouteMetaData Get()
-		{
-			return this.dataAccessor.Value;
-		}
-	}
-
-	internal class StaticRpcMethodData : IRpcRouteMetaData
-	{
-		public IReadOnlyList<IRpcMethodInfo> BaseRoute { get; }
-		public IReadOnlyDictionary<RpcPath, IReadOnlyList<IRpcMethodInfo>> PathRoutes { get; }
-
-		public StaticRpcMethodData(IReadOnlyList<IRpcMethodInfo> baseMethods, IReadOnlyDictionary<RpcPath, IReadOnlyList<IRpcMethodInfo>> methods)
-		{
-			this.BaseRoute = baseMethods;
-			this.PathRoutes = methods;
+			return this.dataAccessor.Value!;
 		}
 	}
 
 	internal class StaticRpcMethodDataAccessor
 	{
-		public StaticRpcMethodData? Value { get; set; }
+		public RpcRouteMetaData? Value { get; set; }
 	}
 }

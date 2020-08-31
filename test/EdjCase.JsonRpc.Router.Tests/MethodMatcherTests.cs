@@ -17,21 +17,22 @@ namespace EdjCase.JsonRpc.Router.Tests
 {
 	public class MethodMatcherTests
 	{
-		private IReadOnlyList<IRpcMethodInfo> methods;
+		private RpcRouteMetaData routeMetaData;
 		public MethodMatcherTests()
 		{
-			this.methods = typeof(MethodMatcherController)
+			var methods = typeof(MethodMatcherController)
 				.GetMethods()
 				.Select(DefaultRpcMethodInfo.FromMethodInfo)
 				.ToList();
+			this.routeMetaData = new RpcRouteMetaData(methods, new Dictionary<RpcPath, IReadOnlyList<IRpcMethodInfo>>());
 		}
 		private DefaultRequestMatcher GetMatcher()
 		{
 			var logger = new Mock<ILogger<DefaultRequestMatcher>>(MockBehavior.Loose);
 			var methodProvider = new Mock<IRpcMethodProvider>(MockBehavior.Strict);
 			methodProvider
-				.Setup(p => p.GetByPath(null))
-				.Returns(this.methods);
+				.Setup(p => p.Get())
+				.Returns(this.routeMetaData);
 
 			var contextAccessor = new Mock<IRpcContextAccessor>();
 			contextAccessor

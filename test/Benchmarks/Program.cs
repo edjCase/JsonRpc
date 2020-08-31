@@ -149,9 +149,9 @@ namespace Benchmarks
 			.ToList();
 
 
-		public IReadOnlyList<IRpcMethodInfo> GetByPath(RpcPath? path = null)
+		public RpcRouteMetaData Get()
 		{
-			return FakeMethodProvider.methods;
+			return new RpcRouteMetaData(FakeMethodProvider.methods, new Dictionary<RpcPath, IReadOnlyList<IRpcMethodInfo>>());
 		}
 	}
 

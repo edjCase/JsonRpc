@@ -3,19 +3,25 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.OpenApi.Models;
 
 namespace EdjCase.JsonRpc.Router.Abstractions
 {
 	public interface IRpcMethodProvider
 	{
-		IRpcRouteMetaData Get();
+		RpcRouteMetaData Get();
 	}
 
-	public interface IRpcRouteMetaData
+
+	public class RpcRouteMetaData
 	{
-		IReadOnlyList<IRpcMethodInfo> BaseRoute { get; }
-		IReadOnlyDictionary<RpcPath, IReadOnlyList<IRpcMethodInfo>> PathRoutes { get; }
+		public IReadOnlyList<IRpcMethodInfo> BaseRoute { get; }
+		public IReadOnlyDictionary<RpcPath, IReadOnlyList<IRpcMethodInfo>> PathRoutes { get; }
+
+		public RpcRouteMetaData(IReadOnlyList<IRpcMethodInfo> baseMethods, IReadOnlyDictionary<RpcPath, IReadOnlyList<IRpcMethodInfo>> methods)
+		{
+			this.BaseRoute = baseMethods;
+			this.PathRoutes = methods;
+		}
 	}
 
 	public interface IRpcMethodInfo
@@ -40,7 +46,7 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 	{
 		public static IReadOnlyList<IRpcMethodInfo>? GetByPath(this IRpcMethodProvider methodProvider, RpcPath? path)
 		{
-			IRpcRouteMetaData metaData = methodProvider.Get();
+			RpcRouteMetaData metaData = methodProvider.Get();
 			if(path == null)
 			{
 				return metaData.BaseRoute;

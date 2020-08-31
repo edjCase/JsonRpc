@@ -67,9 +67,11 @@ namespace EdjCase.JsonRpc.Router
 			return this;
 		}
 
-		internal StaticRpcMethodData Resolve()
+		internal RpcRouteMetaData Resolve()
 		{
-			return new StaticRpcMethodData(this.baseMethods, this.methods);
+			IReadOnlyDictionary<RpcPath, IReadOnlyList<IRpcMethodInfo>> pathMethods = this.methods
+				.ToDictionary(kv => kv.Key, kv => (IReadOnlyList<IRpcMethodInfo>)kv.Value);
+			return new RpcRouteMetaData(this.baseMethods, pathMethods);
 		}
 
 		private static IEnumerable<MethodInfo> Extract(Type controllerType)

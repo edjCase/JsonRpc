@@ -108,7 +108,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			this.logger.AttemptingToMatchMethod(new string(requestSignature.GetMethodName().Span));
 
 			RpcContext context = this.contextAccessor.Get();
-			IReadOnlyList<IRpcMethodInfo> methods = this.methodProvider.GetByPath(context.Path);
+			IReadOnlyList<IRpcMethodInfo>? methods = this.methodProvider.GetByPath(context.Path);
 			if (methods == null || !methods.Any())
 			{
 				throw new RpcException(RpcErrorCode.MethodNotFound, $"No methods found for route");
