@@ -6,9 +6,11 @@ using Moq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using EdjCase.JsonRpc.Router.Tests.Controllers;
 using EdjCase.JsonRpc.Router.Utilities;
 using Xunit;
 
@@ -16,30 +18,75 @@ namespace EdjCase.JsonRpc.Router.Tests
 {
 	public class MethodMatcherTests
 	{
-		private MethodInfo[] methods;
+		private Dictionary<RpcPath, List<MethodInfo>> methodData;
+		private Mock<IRpcContext> rpcContext;
+
 		public MethodMatcherTests()
 		{
-			this.methods = typeof(MethodMatcherController).GetMethods();
+			this.methodData = new Dictionary<RpcPath, List<MethodInfo>>()
+			{
+				{
+					nameof(MethodMatcherController), 
+					typeof(MethodMatcherController)
+						.GetMethods(BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.Instance).ToList()
+				},
+				{
+					nameof(MethodMatcherDuplicatesController),
+					typeof(MethodMatcherDuplicatesController)
+						.GetMethods(BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.Instance).ToList()
+				}
+			};
 		}
+		
+		private StaticRpcMethodDataAccessor GetMethodDataAccessor()
+		{
+			return new StaticRpcMethodDataAccessor()
+			{
+				Value = new StaticRpcMethodData(new List<MethodInfo>(), this.methodData)
+			};
+		}
+		
 		private DefaultRequestMatcher GetMatcher()
 		{
+			
 			var logger = new Mock<ILogger<DefaultRequestMatcher>>(MockBehavior.Loose);
-			var methodProvider = new Mock<IRpcMethodProvider>(MockBehavior.Strict);
-			methodProvider
-				.Setup(p => p.Get())
-				.Returns(this.methods);
+			this.rpcContext = new Mock<IRpcContext>(MockBehavior.Strict);
+			var rpcContextAccessor = new Mock<IRpcContextAccessor>(MockBehavior.Strict);
 
-			return new DefaultRequestMatcher(logger.Object, methodProvider.Object);
+			this.rpcContext.Setup(x => x.Path).Returns(typeof(MethodMatcherController).GetTypeInfo().Name);
+			rpcContextAccessor.Setup(p => p.Value).Returns(this.rpcContext.Object);
+			
+			var methodProvider = new StaticRpcMethodProvider(this.GetMethodDataAccessor(), rpcContextAccessor.Object);
+			return new DefaultRequestMatcher(logger.Object, methodProvider);
 		}
 
+		[Fact]
+		public void GetMatchingMethod_WithRpcRoute()
+		{
+			string methodName = nameof(MethodMatcherController.GuidTypeMethod);
 
+			DefaultRequestMatcher matcher = this.GetMatcher();
+			var requestSignature = RpcRequestSignature.Create(nameof(MethodMatcherController), methodName, new[] { RpcParameterType.String });
+
+			RpcMethodInfo methodInfoMatched = matcher.GetMatchingMethod(requestSignature);
+			MethodInfo expectedMethodInfo = typeof(MethodMatcherController).GetMethod(methodName)!;
+			Assert.Equal(expectedMethodInfo.DeclaringType, methodInfoMatched.MethodInfo.DeclaringType);
+			
+			
+			requestSignature = RpcRequestSignature.Create(nameof(MethodMatcherDuplicatesController), methodName, new[] { RpcParameterType.String });
+			this.rpcContext.Setup(x => x.Path).Returns(typeof(MethodMatcherDuplicatesController).GetTypeInfo().Name);
+			methodInfoMatched = matcher.GetMatchingMethod(requestSignature);
+			expectedMethodInfo = typeof(MethodMatcherDuplicatesController).GetMethod(methodName)!;
+			Assert.Equal(expectedMethodInfo.DeclaringType, methodInfoMatched.MethodInfo.DeclaringType); //method from cache with similar method name and params
+		}
+		
 		[Fact]
 		public void GetMatchingMethod_GuidParameter_Match()
 		{
 			string methodName = nameof(MethodMatcherController.GuidTypeMethod);
 
 			DefaultRequestMatcher matcher = this.GetMatcher();
-			var requestSignature = RpcRequestSignature.Create(methodName, new[] { RpcParameterType.String });
+			var requestSignature = RpcRequestSignature.Create("TestRoute", methodName, new[] { RpcParameterType.String });
 			RpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
 
 
@@ -70,7 +117,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 				{"e", RpcParameterType.Null }
 			};
 			string methodName = nameof(MethodMatcherController.SimpleMulitParam);
-			var requestSignature = RpcRequestSignature.Create(methodName, parameters);
+			var requestSignature = RpcRequestSignature.Create("TestRoute", methodName, parameters);
 			RpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
 
 
@@ -111,7 +158,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			RpcParameterType[] parameters = new[] { RpcParameterType.Number, RpcParameterType.Boolean, RpcParameterType.String, RpcParameterType.Object, RpcParameterType.Null };
 			string methodName = nameof(MethodMatcherController.SimpleMulitParam);
-			var requestSignature = RpcRequestSignature.Create(methodName, parameters);
+			var requestSignature = RpcRequestSignature.Create("TestRoute", methodName, parameters);
 			RpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
 
 
@@ -152,7 +199,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			RpcParameterType[] parameters = new[] { RpcParameterType.Object };
 			string methodName = nameof(MethodMatcherController.List);
-			var requestSignature = RpcRequestSignature.Create(methodName, parameters);
+			var requestSignature = RpcRequestSignature.Create("TestRoute", methodName, parameters);
 			RpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
 
 
@@ -176,7 +223,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			string methodName = nameof(MethodMatcherController.IsLunchTime);
 			// Use lowercase version of method name when making request.
 			var methodNameLower = methodName.ToLowerInvariant();
-			var requestSignature = RpcRequestSignature.Create(methodNameLower, parameters);
+			var requestSignature = RpcRequestSignature.Create("TestRoute", methodNameLower, parameters);
 			var previousCulture = System.Globalization.CultureInfo.CurrentCulture;
 			// Switch to a culture that would result in lowercasing 'I' to
 			// U+0131, if not done with invariant culture.
@@ -187,34 +234,6 @@ namespace EdjCase.JsonRpc.Router.Tests
 			MethodInfo expectedMethodInfo = typeof(MethodMatcherController).GetMethod(methodName)!;
 			Assert.Equal(expectedMethodInfo, methodInfo.MethodInfo);
 			System.Globalization.CultureInfo.CurrentCulture = previousCulture;
-		}
-
-		public class MethodMatcherController
-		{
-			public Guid GuidTypeMethod(Guid guid)
-			{
-				return guid;
-			}
-
-			public (int, bool, string, object, int?) SimpleMulitParam(int a, bool b, string c, object d, int? e = null)
-			{
-				return (a, b, c, d, e);
-			}
-
-			public List<string> List(List<string> values)
-			{
-				return values;
-			}
-			
-			public string SnakeCaseParams(string parameterOne)
-			{
-				return parameterOne;
-			}
-
-			public bool IsLunchTime()
-			{
-				return true;
-			}
 		}
 		
 		[Theory]
@@ -233,7 +252,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			};
 			
 			string methodName = nameof(MethodMatcherController.SnakeCaseParams);
-			var requestSignature = RpcRequestSignature.Create(methodName, parameters);
+			var requestSignature = RpcRequestSignature.Create("TestRoute", methodName, parameters);
 			RpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
 
 

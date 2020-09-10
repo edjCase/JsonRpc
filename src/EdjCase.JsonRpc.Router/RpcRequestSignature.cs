@@ -20,21 +20,23 @@ namespace EdjCase.JsonRpc.Router
 		private const char nullType = '-';
 
 		private readonly char[] values;
+		private readonly int routeEndIndex;
 		private readonly int methodEndIndex;
 		private readonly int? paramStartIndex;
 		private readonly int endIndex;
 		public bool IsDictionary { get; }
 
-		private RpcRequestSignature(char[] values, int methodEndIndex, int? paramStartIndex, int endIndex, bool isDictionary)
+		private RpcRequestSignature(char[] values, int routeEndIndex, int methodEndIndex, int? paramStartIndex, int endIndex, bool isDictionary)
 		{
 			this.values = values;
+			this.routeEndIndex = routeEndIndex;
 			this.methodEndIndex = methodEndIndex;
 			this.paramStartIndex = paramStartIndex;
 			this.endIndex = endIndex;
 			this.IsDictionary = isDictionary;
 		}
 
-		public Memory<char> GetMethodName() => this.values.AsMemory(0, this.methodEndIndex + 1);
+		public Memory<char> GetMethodName() => this.values.AsMemory(this.routeEndIndex + 1, this.methodEndIndex - this.routeEndIndex);
 		public bool HasParameters => this.paramStartIndex != null;
 
 		public IEnumerable<(Memory<char>, RpcParameterType)> ParametersAsDict
@@ -126,27 +128,26 @@ namespace EdjCase.JsonRpc.Router
 			return new string(this.values, 0, this.endIndex + 1);
 		}
 
-
-		public static RpcRequestSignature Create(RpcRequest request)
+		public static RpcRequestSignature Create(string route, RpcRequest request)
 		{
 			if (request.Parameters == null || !request.Parameters.IsDictionary)
 			{
-				return RpcRequestSignature.Create(request.Method, request.Parameters?.AsArray.Select(p => p.Type));
+				return RpcRequestSignature.Create(route, request.Method, request.Parameters?.AsArray.Select(p => p.Type));
 			}
-			return RpcRequestSignature.Create(request.Method, request.Parameters.AsDictionary.Select(p => new KeyValuePair<string, RpcParameterType>(p.Key, p.Value.Type)));
+			return RpcRequestSignature.Create(route, request.Method, request.Parameters.AsDictionary.Select(p => new KeyValuePair<string, RpcParameterType>(p.Key, p.Value.Type)));
 		}
 
-		public static RpcRequestSignature Create(string methodName, IEnumerable<RpcParameterType>? parameters = null)
+		public static RpcRequestSignature Create(string route, string methodName, IEnumerable<RpcParameterType>? parameters = null)
 		{
-			return RpcRequestSignature.CreateInternal(methodName, parameters);
+			return RpcRequestSignature.CreateInternal(route, methodName, parameters);
 		}
 
-		public static RpcRequestSignature Create(string methodName, IEnumerable<KeyValuePair<string, RpcParameterType>>? parameters)
+		public static RpcRequestSignature Create(string route, string methodName, IEnumerable<KeyValuePair<string, RpcParameterType>>? parameters)
 		{
-			return RpcRequestSignature.CreateInternal(methodName, parameters);
+			return RpcRequestSignature.CreateInternal(route, methodName, parameters);
 		}
 
-		private static RpcRequestSignature CreateInternal(string methodName, object? parameters)
+		private static RpcRequestSignature CreateInternal(string route, string methodName, object? parameters)
 		{
 			//TODO size
 			int initialParamSize = 200;
@@ -157,13 +158,22 @@ namespace EdjCase.JsonRpc.Router
 			}
 
 			char[] requestSignatureArray = ArrayPool<char>.Shared.Rent(arraySize);
+
 			int signatureLength = 0;
+			
 			const int incrementSize = 30;
+			for (int a = 0; a < route.Length; a++)
+			{
+				requestSignatureArray[signatureLength++] = route[a];
+			}
+			int routeEndIndex = signatureLength - 1;
+			
 			for (int a = 0; a < methodName.Length; a++)
 			{
 				requestSignatureArray[signatureLength++] = methodName[a];
 			}
 			int methodEndIndex = signatureLength - 1;
+			
 			int? parameterStartIndex = null;
 			bool isDictionary = false;
 			if (parameters != null)
@@ -220,7 +230,7 @@ namespace EdjCase.JsonRpc.Router
 						throw new ArgumentOutOfRangeException(nameof(parameters));
 				}
 			}
-			return new RpcRequestSignature(requestSignatureArray, methodEndIndex, parameterStartIndex, signatureLength - 1, isDictionary);
+			return new RpcRequestSignature(requestSignatureArray, routeEndIndex, methodEndIndex, parameterStartIndex, signatureLength - 1, isDictionary);
 		}
 
 
