@@ -81,13 +81,18 @@ namespace EdjCase.JsonRpc.Router.Defaults
 	internal class DefaultRequestMatcher : IRpcRequestMatcher
 	{
 		private static ConcurrentDictionary<MethodInfo, RpcMethodInfo> compiledMethodCache { get; } = new ConcurrentDictionary<MethodInfo, RpcMethodInfo>(MethodInfoEqualityComparer.Instance);
-		private static ConcurrentDictionary<RpcRequestSignature, RpcMethodInfo[]> requestToMethodCache { get; } = new ConcurrentDictionary<RpcRequestSignature, RpcMethodInfo[]>();
+		private static ConcurrentDictionary<RpcPath?, ConcurrentDictionary<RpcRequestSignature, RpcMethodInfo[]>> requestToMethodCache { get; } 
+			= new ConcurrentDictionary<RpcPath?, ConcurrentDictionary<RpcRequestSignature, RpcMethodInfo[]>>();
 
 		private ILogger<DefaultRequestMatcher> logger { get; }
 		private IRpcMethodProvider methodProvider { get; }
-		public DefaultRequestMatcher(ILogger<DefaultRequestMatcher> logger,
+		private IRpcContextAccessor rpcContextAccessor;
+		public DefaultRequestMatcher(
+			ILogger<DefaultRequestMatcher> logger,
+			IRpcContextAccessor rpcContextAccessor,
 			IRpcMethodProvider methodProvider)
 		{
+			this.rpcContextAccessor = rpcContextAccessor;
 			this.logger = logger;
 			this.methodProvider = methodProvider;
 		}
@@ -179,9 +184,12 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			//If the request signature is found, it means we have the methods cached already
 			//TODO make a cache that uses spans/char array and not strings
 			//TODO does the entire method info need to be cached?
-			return DefaultRequestMatcher.requestToMethodCache.GetOrAdd(requestSignature, BuildCache);
-
-			RpcMethodInfo[] BuildCache(RpcRequestSignature s)
+			
+			var rpcPath = this.rpcContextAccessor.Value?.Path;
+			var rpcPathMethodsCache = DefaultRequestMatcher.requestToMethodCache.GetOrAdd(rpcPath,
+				new ConcurrentDictionary<RpcRequestSignature, RpcMethodInfo[]>());
+			return rpcPathMethodsCache.GetOrAdd(requestSignature, BuildMethodCache);
+			RpcMethodInfo[] BuildMethodCache(RpcRequestSignature s)
 			{
 				return this.BuildMethodInfos(s, methods.Span);
 			}
