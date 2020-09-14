@@ -120,8 +120,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			try
 			{
 				RpcMethodInfo rpcMethod;
-				var route = this.contextAccessor.Value?.Path ?? "";
-				using (var requestSignature = RpcRequestSignature.Create(route, request))
+				using (var requestSignature = RpcRequestSignature.Create(request))
 				{
 					rpcMethod = this.rpcRequestMatcher.GetMatchingMethod(requestSignature);
 				}

@@ -12,8 +12,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public void Create_NullListParam_Valid()
 		{
 			string methodName = "Test";
-			string route = "TestRoute";
-			var signature = RpcRequestSignature.Create(route, methodName, parameters: (RpcParameterType[]?)null);
+			var signature = RpcRequestSignature.Create(methodName, parameters: (RpcParameterType[]?)null);
 			Assert.Equal(methodName, signature.GetMethodName().ToString());
 			Assert.False(signature.HasParameters);
 			Assert.False(signature.IsDictionary);
@@ -24,9 +23,8 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public void Create_EmptyListParam_Valid()
 		{
 			string methodName = "Test";
-			string route = "TestRoute";
 			RpcParameterType[] parameters = new RpcParameterType[0];
-			var signature = RpcRequestSignature.Create(route, methodName, parameters);
+			var signature = RpcRequestSignature.Create(methodName, parameters);
 			Assert.Equal(methodName, signature.GetMethodName().ToString());
 			Assert.False(signature.HasParameters);
 			Assert.False(signature.IsDictionary);
@@ -37,9 +35,8 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public void Create_SingleListParam_Valid()
 		{
 			string methodName = "Test";
-			string route = "TestRoute";
 			RpcParameterType[] parameters = new[] { RpcParameterType.String };
-			var signature = RpcRequestSignature.Create(route, methodName, parameters);
+			var signature = RpcRequestSignature.Create(methodName, parameters);
 			Assert.Equal(methodName, signature.GetMethodName().ToString());
 			Assert.True(signature.HasParameters);
 			Assert.False(signature.IsDictionary);
@@ -50,9 +47,8 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public void Create_MultiListParam_Valid()
 		{
 			string methodName = "Test";
-			string route = "TestRoute";
 			RpcParameterType[] parameters = new[] { RpcParameterType.String, RpcParameterType.Boolean, RpcParameterType.Null, RpcParameterType.Number, RpcParameterType.Object };
-			var signature = RpcRequestSignature.Create(route, methodName, parameters);
+			var signature = RpcRequestSignature.Create(methodName, parameters);
 			Assert.Equal(methodName, signature.GetMethodName().ToString());
 			Assert.True(signature.HasParameters);
 			Assert.False(signature.IsDictionary);
@@ -63,8 +59,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public void Create_NullDictParam_Valid()
 		{
 			string methodName = "Test";
-			string route = "TestRoute";
-			var signature = RpcRequestSignature.Create(route, methodName, parameters: (IEnumerable<KeyValuePair<string, RpcParameterType>>?)null);
+			var signature = RpcRequestSignature.Create(methodName, parameters: (IEnumerable<KeyValuePair<string, RpcParameterType>>?)null);
 			Assert.Equal(methodName, signature.GetMethodName().ToString());
 			Assert.False(signature.HasParameters);
 			Assert.False(signature.IsDictionary);
@@ -75,9 +70,8 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public void Create_EmptyDictParam_Valid()
 		{
 			string methodName = "Test";
-			string route = "TestRoute";
 			var parameters = new Dictionary<string, RpcParameterType>();
-			var signature = RpcRequestSignature.Create(route, methodName, parameters);
+			var signature = RpcRequestSignature.Create(methodName, parameters);
 			Assert.Equal(methodName, signature.GetMethodName().ToString());
 			Assert.False(signature.HasParameters);
 			Assert.True(signature.IsDictionary);
@@ -88,12 +82,11 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public void Create_SingleDictParam_Valid()
 		{
 			string methodName = "Test";
-			string route = "TestRoute";
 			var parameters = new Dictionary<string, RpcParameterType>
 			{
 				["Param1"] = RpcParameterType.String
 			};
-			var signature = RpcRequestSignature.Create(route, methodName, parameters);
+			var signature = RpcRequestSignature.Create(methodName, parameters);
 			Assert.Equal(methodName, signature.GetMethodName().ToString());
 			Assert.True(signature.HasParameters);
 			Assert.True(signature.IsDictionary);
@@ -104,7 +97,6 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public void Create_MultiDictParam_Valid()
 		{
 			string methodName = "Test";
-			string route = "TestRoute";
 			var parameters = new Dictionary<string, RpcParameterType>
 			{
 				["String"] = RpcParameterType.String,
@@ -113,7 +105,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 				["Number"] = RpcParameterType.Number,
 				["Object"] = RpcParameterType.Object,
 			};
-			var signature = RpcRequestSignature.Create(route, methodName, parameters);
+			var signature = RpcRequestSignature.Create(methodName, parameters);
 			Assert.Equal(methodName, signature.GetMethodName().ToString());
 			Assert.True(signature.HasParameters);
 			Assert.True(signature.IsDictionary);
