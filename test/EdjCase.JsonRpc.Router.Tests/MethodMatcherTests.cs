@@ -118,7 +118,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 				{"e", RpcParameterType.Null }
 			};
 			string methodName = nameof(MethodMatcherController.SimpleMulitParam);
-			var requestSignature = RpcRequestSignature.Create( methodName, parameters);
+			var requestSignature = RpcRequestSignature.Create(methodName, parameters);
 			RpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
 
 
