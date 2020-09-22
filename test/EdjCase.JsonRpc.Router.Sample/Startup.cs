@@ -21,15 +21,31 @@ using EdjCase.JsonRpc.Router.Defaults;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore;
 using System.Reflection;
+using System.Text.Json;
+using EdjCase.JsonRpc.Router.Swagger.Documentation.Extensions;
 
 namespace EdjCase.JsonRpc.Router.Sample
 {
 	public class Startup
 	{
+		private readonly IConfiguration configuration;
+
+		public Startup(IConfiguration configuration)
+		{
+			this.configuration = configuration;
+		}
+		
 		// This method gets called by a runtime.
 		// Use this method to add services to the container
 		public void ConfigureServices(IServiceCollection services)
 		{
+			var globalJsonSerializerOptions = new System.Text.Json.JsonSerializerOptions
+			{
+				//Example json config
+				IgnoreNullValues = false,
+				WriteIndented = true
+			};
+			
 			services
 				.AddJsonRpc(config =>
 				{
@@ -38,12 +54,7 @@ namespace EdjCase.JsonRpc.Router.Sample
 					//(Optional) If true returns full error messages in response, defaults to false
 					config.ShowServerExceptions = false;
 					//(Optional) Configure how the router serializes requests
-					config.JsonSerializerSettings = new System.Text.Json.JsonSerializerOptions
-					{
-						//Example json config
-						IgnoreNullValues = false,
-						WriteIndented = true
-					};
+					config.JsonSerializerSettings = globalJsonSerializerOptions;
 					//(Optional) Configure custom exception handling for exceptions during invocation of the method
 					config.OnInvokeException = (context) =>
 					{
@@ -62,12 +73,14 @@ namespace EdjCase.JsonRpc.Router.Sample
 						//Continue to throw the exception
 						return OnExceptionResult.DontHandle();
 					};
-				});
+				})
+				.AddJrpcSwaggerDocumentaion(globalJsonSerializerOptions);
 		}
 
 		// Configure is called after ConfigureServices is called.
 		public void Configure(IApplicationBuilder app)
 		{
+			app.AddJrpcSwaggerUI();
 			app
 				.Map("/BaseController", b =>
 				{

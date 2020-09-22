@@ -1,13 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
+    <!--No warn on xml comments empty-->
+    <NoWarn>1591</NoWarn>
     <TargetFrameworks>netcoreapp3.0</TargetFrameworks>
     <AssemblyName>EdjCase.JsonRpc.Router.Sample</AssemblyName>
     <PackageId>EdjCase.JsonRpc.Router.Sample</PackageId>
     <UserSecretsId>bd997694-63b3-4cf8-8798-f7274f180573</UserSecretsId>
   </PropertyGroup>
 
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DocumentationFile>bin\Debug\EdjCase.JsonRpc.Router.Sample.xml</DocumentationFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DocumentationFile>bin\Release\EdjCase.JsonRpc.Router.Sample.xml</DocumentationFile>
+  </PropertyGroup>
+
   <ItemGroup>
-    <ProjectReference Include="..\..\src\EdjCase.JsonRpc.Router\EdjCase.JsonRpc.Router.csproj" />
+    <ProjectReference Include="..\..\src\EdjCase.JsonRpc.Router.Swagger\EdjCase.JsonRpc.Router.Swagger.csproj" />
   </ItemGroup>
 </Project>
