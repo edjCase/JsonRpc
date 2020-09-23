@@ -13,6 +13,6 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 		/// </summary>
 		/// <param name="request">Current Rpc request</param>
 		/// <returns>The matching Rpc method to the current request</returns>
-		RpcMethodInfo GetMatchingMethod(RpcRequestSignature requestSignature);
+		IRpcMethodInfo GetMatchingMethod(RpcRequestSignature requestSignature);
 	}
 }

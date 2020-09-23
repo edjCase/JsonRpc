@@ -1,14 +1,14 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<Description>A AspNet Core IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing.</Description>
-		<Version>4.1.0</Version>
+		<Version>5.0.0-beta.3</Version>
 		<Authors>Gekctek</Authors>
 		<TargetFramework>netstandard2.1</TargetFramework>
 		<AssemblyName>EdjCase.JsonRpc.Router</AssemblyName>
 		<PackageId>EdjCase.JsonRpc.Router</PackageId>
 		<PackageTags>JsonRpc Rpc AspNet Json-Rpc .Net Core</PackageTags>
-		<PackageReleaseNotes>Adding invoke start/end events to configuration</PackageReleaseNotes>
+		<PackageReleaseNotes>Allowing access to method info provider</PackageReleaseNotes>
 		<PackageProjectUrl>https://github.com/edjCase/JsonRpc</PackageProjectUrl>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<RepositoryType>git</RepositoryType>
@@ -28,7 +28,6 @@
 		<PackageReference Include="Microsoft.Extensions.DependencyModel" Version="3.1.1" />
 		<PackageReference Include="Microsoft.AspNetCore.ResponseCompression" Version="2.2.0" />
 	</ItemGroup>
-
 	<Import Project="..\EdjCase.JsonRpc.Common\EdjCase.JsonRpc.Common.projitems" Label="Shared" />
 
 </Project>

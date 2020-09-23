@@ -89,7 +89,7 @@ namespace EdjCase.JsonRpc.Common
 			};
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
 			if (obj is RpcId id)
 			{
@@ -107,7 +107,7 @@ namespace EdjCase.JsonRpc.Common
 			return this.Value!.GetHashCode();
 		}
 
-		public override string ToString()
+		public override string? ToString()
 		{
 			if (!this.HasValue)
 			{

@@ -1,7 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.1</TargetFramework>
+		<Description>An extension library for EdjCase.JsonRpc.Router to add Swagger functionality.</Description>
+		<Version>1.0.0-beta.1</Version>
+		<Authors>2m0nd;Gekctek</Authors>
+		<TargetFramework>netstandard2.1</TargetFramework>
+		<AssemblyName>EdjCase.JsonRpc.Router.Swagger</AssemblyName>
+		<PackageId>EdjCase.JsonRpc.Router.Swagger</PackageId>
+		<PackageTags>JsonRpc Rpc AspNet Json-Rpc .Net Core Swagger</PackageTags>
+		<PackageReleaseNotes>Initial</PackageReleaseNotes>
+		<PackageProjectUrl>https://github.com/edjCase/JsonRpc</PackageProjectUrl>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<RepositoryType>git</RepositoryType>
+		<RepositoryUrl>https://github.com/edjCase/JsonRpc</RepositoryUrl>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
     </PropertyGroup>
 
     <ItemGroup>

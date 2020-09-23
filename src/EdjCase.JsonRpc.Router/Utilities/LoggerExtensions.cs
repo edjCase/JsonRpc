@@ -1,4 +1,5 @@
 ﻿using EdjCase.JsonRpc.Common;
+using EdjCase.JsonRpc.Router.Abstractions;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -165,7 +166,7 @@ namespace EdjCase.JsonRpc.Router.Utilities
 			LoggerExtensions.requestMatchedMethod(logger, null);
 		}
 
-		public static void MethodsInRoute(this ILogger logger, IEnumerable<MethodInfo> methods)
+		public static void MethodsInRoute(this ILogger logger, IEnumerable<IRpcMethodInfo> methods)
 		{
 			if (!logger.IsEnabled(LoggerExtensions.methodsInRouteLevel))
 			{

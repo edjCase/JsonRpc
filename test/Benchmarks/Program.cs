@@ -42,7 +42,7 @@ namespace Benchmarks
 	[SimpleJob(RunStrategy.Throughput, invocationCount: 100_000)]
 	public class RequestMatcherTester
 	{
-		private IRpcRequestMatcher requestMatcher;
+		private IRpcRequestMatcher? requestMatcher;
 
 		[GlobalSetup]
 		public void GlobalSetup()
@@ -50,10 +50,10 @@ namespace Benchmarks
 			var logger = new FakeLogger<DefaultRequestMatcher>();
 			var methodProvider = new FakeMethodProvider();
 			var fakeRpcContextAccessor = new FakeRpcContextAccessor();
-			this.requestMatcher = new DefaultRequestMatcher(logger, fakeRpcContextAccessor, methodProvider);
+			this.requestMatcher = new DefaultRequestMatcher(logger, methodProvider, fakeRpcContextAccessor);
 		}
 
-		private RpcRequestSignature requestsignature;
+		private RpcRequestSignature? requestsignature;
 
 		[IterationSetup(Target = nameof(NoParamsNoReturn))]
 		public void IterationSetup()
@@ -64,7 +64,7 @@ namespace Benchmarks
 		[Benchmark]
 		public void NoParamsNoReturn()
 		{
-			this.requestMatcher.GetMatchingMethod(requestsignature);
+			this.requestMatcher!.GetMatchingMethod(requestsignature!);
 		}
 
 		[IterationSetup(Target = nameof(ComplexParamNoReturn))]
@@ -76,7 +76,7 @@ namespace Benchmarks
 		[Benchmark]
 		public void ComplexParamNoReturn()
 		{
-			this.requestMatcher.GetMatchingMethod(requestsignature);
+			this.requestMatcher!.GetMatchingMethod(requestsignature!);
 		}
 
 
@@ -95,7 +95,7 @@ namespace Benchmarks
 		[Benchmark]
 		public void SimpleParamsNoReturn()
 		{
-			this.requestMatcher.GetMatchingMethod(requestsignature);
+			this.requestMatcher!.GetMatchingMethod(requestsignature!);
 		}
 
 
@@ -128,20 +128,31 @@ namespace Benchmarks
 
 	public class FakeRpcContextAccessor : IRpcContextAccessor
 	{
-		IRpcContext? IRpcContextAccessor.Value { get; set; } = new DefaultRpcContext(null, "/api/v1/controller_name");
+
+		public RpcContext Get()
+		{
+			return new RpcContext(null, "/api/v1/controller_name");
+		}
+
+		public void Set(RpcContext context)
+		{
+			throw new NotImplementedException();
+		}
 	}
 
 	internal class FakeMethodProvider : IRpcMethodProvider
 	{
-		private static readonly List<MethodInfo> methods = typeof(RequestMatcherTester.MethodClass)
+		private static readonly List<DefaultRpcMethodInfo> methods = typeof(RequestMatcherTester.MethodClass)
 			.GetTypeInfo()
 			.GetMethods(BindingFlags.Public | BindingFlags.Instance)
 			.Where(m => m.DeclaringType != typeof(object))
+			.Select(DefaultRpcMethodInfo.FromMethodInfo)
 			.ToList();
 
-		public IReadOnlyList<MethodInfo> Get()
+
+		public RpcRouteMetaData Get()
 		{
-			return FakeMethodProvider.methods;
+			return new RpcRouteMetaData(FakeMethodProvider.methods, new Dictionary<RpcPath, IReadOnlyList<IRpcMethodInfo>>());
 		}
 	}
 

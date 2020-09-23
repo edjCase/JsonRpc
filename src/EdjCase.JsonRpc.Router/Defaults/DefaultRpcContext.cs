@@ -9,26 +9,27 @@ using Microsoft.AspNetCore.Http;
 
 namespace EdjCase.JsonRpc.Router.Defaults
 {
-	internal class DefaultRpcContext : IRpcContext
-	{
-		public IServiceProvider RequestServices { get; }
-
-		public RpcPath? Path { get; }
-
-		public DefaultRpcContext(IServiceProvider serviceProvider, RpcPath? path = null)
-		{
-			this.RequestServices = serviceProvider;
-			this.Path = path;
-		}
-
-		public static IRpcContext Build(IServiceProvider serviceProvider, RpcPath? path = null)
-		{
-			return new DefaultRpcContext(serviceProvider, path);
-		}
-	}
 
 	internal class DefaultContextAccessor : IRpcContextAccessor
 	{
-		public IRpcContext? Value { get; set; }
+		private RpcContext? value;
+
+		public RpcContext Get()
+		{
+			if (this.value == null)
+			{
+				throw new InvalidOperationException("Cannot access rpc context outside of a rpc request scope");
+			}
+			return this.value;
+		}
+
+		public void Set(RpcContext context)
+		{
+			if (this.value != null)
+			{
+				throw new InvalidOperationException("Cannot set rpc context multiple times");
+			}
+			this.value = context;
+		}
 	}
 }

@@ -97,23 +97,23 @@ namespace EdjCase.JsonRpc.Router
 			return new string(this.values).GetHashCode();
 		}
 
-		public override bool Equals(object obj)
+		public override bool Equals(object? obj)
 		{
-			if(obj is null)
+			if (obj is null)
 			{
 				return false;
 			}
-			if(!(obj is RpcRequestSignature other))
+			if (!(obj is RpcRequestSignature other))
 			{
 				return false;
 			}
-			if(this.values.Length != other.values.Length)
+			if (this.values.Length != other.values.Length)
 			{
 				return false;
 			}
 			for (int i = 0; i < this.values.Length; i++)
 			{
-				if(this.values[i] != other.values[i])
+				if (this.values[i] != other.values[i])
 				{
 					return false;
 				}
@@ -191,7 +191,7 @@ namespace EdjCase.JsonRpc.Router
 							requestSignatureArray[signatureLength++] = delimiter;
 							requestSignatureArray[signatureLength++] = RpcRequestSignature.GetCharFromType(parameter.Value);
 						}
-						if(signatureLength + 1 == parameterStartIndex)
+						if (signatureLength + 1 == parameterStartIndex)
 						{
 							//There were no parameters
 							parameterStartIndex = null;
@@ -199,19 +199,19 @@ namespace EdjCase.JsonRpc.Router
 						break;
 					case IEnumerable<RpcParameterType> listParam:
 						requestSignatureArray[signatureLength++] = RpcRequestSignature.arrayType;
-							requestSignatureArray[signatureLength++] = delimiter;
-							parameterStartIndex = signatureLength;
-							foreach (RpcParameterType type in listParam)
-							{
-								char c = RpcRequestSignature.GetCharFromType(type);
-								requestSignatureArray[signatureLength++] = c;
-							}
-							if(parameterStartIndex == signatureLength)
-							{
-								//No parameters, remove the delimeter
-								signatureLength--;
-								parameterStartIndex = null;
-							}
+						requestSignatureArray[signatureLength++] = delimiter;
+						parameterStartIndex = signatureLength;
+						foreach (RpcParameterType type in listParam)
+						{
+							char c = RpcRequestSignature.GetCharFromType(type);
+							requestSignatureArray[signatureLength++] = c;
+						}
+						if (parameterStartIndex == signatureLength)
+						{
+							//No parameters, remove the delimeter
+							signatureLength--;
+							parameterStartIndex = null;
+						}
 						break;
 					case null:
 						requestSignatureArray[signatureLength++] = RpcRequestSignature.arrayType;
