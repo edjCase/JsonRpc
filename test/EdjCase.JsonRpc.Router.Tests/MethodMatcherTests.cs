@@ -80,7 +80,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		{
 			string methodName = nameof(MethodMatcherController.GuidTypeMethod);
 
-			DefaultRequestMatcher matcher = this.GetMatcher();
+			DefaultRequestMatcher matcher = this.GetMatcher(path: typeof(MethodMatcherController).GetTypeInfo().Name);
 			var requestSignature = RpcRequestSignature.Create(methodName, new[] { RpcParameterType.String });
 			IRpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
 
@@ -99,7 +99,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		[Fact]
 		public void GetMatchingMethod_SimpleMulitParam_DictMatch()
 		{
-			DefaultRequestMatcher matcher = this.GetMatcher();
+			DefaultRequestMatcher matcher = this.GetMatcher(path: typeof(MethodMatcherController).GetTypeInfo().Name);
 
 			var parameters = new Dictionary<string, RpcParameterType>
 			{
@@ -146,7 +146,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		[Fact]
 		public void GetMatchingMethod_SimpleMulitParam_ListMatch()
 		{
-			DefaultRequestMatcher matcher = this.GetMatcher();
+			DefaultRequestMatcher matcher = this.GetMatcher(path: typeof(MethodMatcherController).GetTypeInfo().Name);
 
 			RpcParameterType[] parameters = new[] { RpcParameterType.Number, RpcParameterType.Boolean, RpcParameterType.String, RpcParameterType.Object, RpcParameterType.Null };
 			string methodName = nameof(MethodMatcherController.SimpleMulitParam);
@@ -186,7 +186,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		[Fact]
 		public void GetMatchingMethod_ListParam_Match()
 		{
-			DefaultRequestMatcher matcher = this.GetMatcher();
+			DefaultRequestMatcher matcher = this.GetMatcher(path: typeof(MethodMatcherController).GetTypeInfo().Name);
 
 			RpcParameterType[] parameters = new[] { RpcParameterType.Object };
 			string methodName = nameof(MethodMatcherController.List);
@@ -207,7 +207,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		[Fact]
 		public void GetMatchingMethod_CulturallyInvariantComparison()
 		{
-			DefaultRequestMatcher matcher = this.GetMatcher();
+			DefaultRequestMatcher matcher = this.GetMatcher(path: typeof(MethodMatcherController).GetTypeInfo().Name);
 
 			RpcParameterType[] parameters = Array.Empty<RpcParameterType>();
 			string methodName = nameof(MethodMatcherController.IsLunchTime);
@@ -233,7 +233,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		[InlineData("PARAMETER-ONE")]
 		public void GetMatchingMethod_ListParam_Match_Snake_Case(string parameterNameCase)
 		{
-			DefaultRequestMatcher matcher = this.GetMatcher();
+			DefaultRequestMatcher matcher = this.GetMatcher(path: typeof(MethodMatcherController).GetTypeInfo().Name);
 
 			IEnumerable<KeyValuePair<string, RpcParameterType>> parameters = new[]
 			{
