@@ -89,8 +89,8 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 	internal class DefaultRequestMatcher : IRpcRequestMatcher
 	{
-		private static ConcurrentDictionary<RpcPath?, ConcurrentDictionary<RpcRequestSignature, RpcMethodInfo[]>> requestToMethodCache { get; } 
-			= new ConcurrentDictionary<RpcPath?, ConcurrentDictionary<RpcRequestSignature, RpcMethodInfo[]>>();
+		private static ConcurrentDictionary<RpcPath?, ConcurrentDictionary<RpcRequestSignature, IRpcMethodInfo[]>> requestToMethodCache { get; }
+			= new ConcurrentDictionary<RpcPath?, ConcurrentDictionary<RpcRequestSignature, IRpcMethodInfo[]>>();
 
 		private ILogger<DefaultRequestMatcher> logger { get; }
 		private IRpcMethodProvider methodProvider { get; }
@@ -99,7 +99,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			IRpcMethodProvider methodProvider,
 			IRpcContextAccessor contextAccessor)
 		{
-			this.rpcContextAccessor = rpcContextAccessor;
+			this.contextAccessor = contextAccessor;
 			this.logger = logger;
 			this.methodProvider = methodProvider;
 			this.contextAccessor = contextAccessor;
@@ -156,14 +156,11 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		private IRpcMethodInfo[] FilterAndBuildMethodInfoByRequest(IReadOnlyList<IRpcMethodInfo> methods, RpcRequestSignature requestSignature)
 		{
 			//If the request signature is found, it means we have the methods cached already
-			//TODO make a cache that uses spans/char array and not strings
-			//TODO does the entire method info need to be cached?
-			
-			var rpcPath = this.rpcContextAccessor.Value?.Path;
-			var rpcPathMethodsCache = DefaultRequestMatcher.requestToMethodCache.GetOrAdd(rpcPath,
-				new ConcurrentDictionary<RpcRequestSignature, RpcMethodInfo[]>());
+
+			var rpcPath = this.contextAccessor.Get()?.Path;
+			var rpcPathMethodsCache = DefaultRequestMatcher.requestToMethodCache.GetOrAdd(rpcPath, path => new ConcurrentDictionary<RpcRequestSignature, IRpcMethodInfo[]>());
 			return rpcPathMethodsCache.GetOrAdd(requestSignature, BuildMethodCache);
-			RpcMethodInfo[] BuildMethodCache(RpcRequestSignature s)
+			IRpcMethodInfo[] BuildMethodCache(RpcRequestSignature s)
 			{
 				return this.GetMatchingMethods(s, methods);
 			}

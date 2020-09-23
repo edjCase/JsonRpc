@@ -17,7 +17,11 @@ namespace EdjCase.JsonRpc.Router
 
 		public RpcRouteMetaData Get()
 		{
-			return this.dataAccessor.Value!;
+			if (this.dataAccessor.Value == null)
+			{
+				throw new RpcConfigurationException("Rpc routes are not configured.");
+			}
+			return this.dataAccessor.Value;
 		}
 	}
 

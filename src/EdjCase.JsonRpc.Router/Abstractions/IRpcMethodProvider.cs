@@ -30,6 +30,7 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 		IReadOnlyList<IRpcParameterInfo> Parameters { get; }
 		bool AllowAnonymous { get; }
 		IReadOnlyList<IAuthorizeData> AuthorizeDataList { get; }
+		Type RawReturnType { get; }
 
 		object? Invoke(object[] parameters, IServiceProvider serviceProvider);
 	}
@@ -47,11 +48,11 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 		public static IReadOnlyList<IRpcMethodInfo>? GetByPath(this IRpcMethodProvider methodProvider, RpcPath? path)
 		{
 			RpcRouteMetaData metaData = methodProvider.Get();
-			if(path == null)
+			if (path == null)
 			{
 				return metaData.BaseRoute;
 			}
-			if(metaData.PathRoutes.TryGetValue(path, out IReadOnlyList<IRpcMethodInfo> methods))
+			if (metaData.PathRoutes.TryGetValue(path, out IReadOnlyList<IRpcMethodInfo> methods))
 			{
 				return methods;
 			}

@@ -7,6 +7,7 @@ using Microsoft.AspNetCore;
 using System.Reflection;
 using System.Text.Json;
 using EdjCase.JsonRpc.Router.Swagger.Extensions;
+using Microsoft.Extensions.Configuration;
 
 namespace EdjCase.JsonRpc.Router.Sample
 {
@@ -18,7 +19,7 @@ namespace EdjCase.JsonRpc.Router.Sample
 		{
 			this.configuration = configuration;
 		}
-		
+
 		// This method gets called by a runtime.
 		// Use this method to add services to the container
 		public void ConfigureServices(IServiceCollection services)
@@ -29,42 +30,44 @@ namespace EdjCase.JsonRpc.Router.Sample
 				IgnoreNullValues = false,
 				WriteIndented = true
 			};
-			
-			services
-				.AddJsonRpc(config =>
+			void ConfigureRpc(RpcServerConfiguration config)
+			{
+				//(Optional) Hard cap on batch size, will block requests will larger sizes, defaults to no limit
+				config.BatchRequestLimit = 5;
+				//(Optional) If true returns full error messages in response, defaults to false
+				config.ShowServerExceptions = false;
+				//(Optional) Configure how the router serializes requests
+				config.JsonSerializerSettings = globalJsonSerializerOptions;
+				//(Optional) Configure custom exception handling for exceptions during invocation of the method
+				config.OnInvokeException = (context) =>
 				{
-					//(Optional) Hard cap on batch size, will block requests will larger sizes, defaults to no limit
-					config.BatchRequestLimit = 5;
-					//(Optional) If true returns full error messages in response, defaults to false
-					config.ShowServerExceptions = false;
-					//(Optional) Configure how the router serializes requests
-					config.JsonSerializerSettings = globalJsonSerializerOptions;
-					//(Optional) Configure custom exception handling for exceptions during invocation of the method
-					config.OnInvokeException = (context) =>
+					if (context.Exception is InvalidOperationException)
 					{
-						if (context.Exception is InvalidOperationException)
+						//Handle a certain type of exception and return a custom response instead
+						//of an internal server error
+						int customErrorCode = 1;
+						var customData = new
 						{
-							//Handle a certain type of exception and return a custom response instead
-							//of an internal server error
-							int customErrorCode = 1;
-							var customData = new
-							{
-								Field = "Value"
-							};
-							var response = new RpcMethodErrorResult(customErrorCode, "Custom message", customData);
-							return OnExceptionResult.UseObjectResponse(response);
-						}
-						//Continue to throw the exception
-						return OnExceptionResult.DontHandle();
-					};
-				})
-				.AddJrpcSwaggerDocumentaion(globalJsonSerializerOptions);
+							Field = "Value"
+						};
+						var response = new RpcMethodErrorResult(customErrorCode, "Custom message", customData);
+						return OnExceptionResult.UseObjectResponse(response);
+					}
+					//Continue to throw the exception
+					return OnExceptionResult.DontHandle();
+				};
+			}
+
+
+			services
+				.AddJsonRpcWithSwagger(ConfigureRpc, globalJsonSerializerOptions);
 		}
+
+
 
 		// Configure is called after ConfigureServices is called.
 		public void Configure(IApplicationBuilder app)
 		{
-			app.AddJrpcSwaggerUI();
 			app
 				.Map("/BaseController", b =>
 				{
@@ -101,7 +104,7 @@ namespace EdjCase.JsonRpc.Router.Sample
 
 				})
 				//Will make all public classes deriving from `RpcController` available to the rpc router
-				.UseJsonRpc();
+				.UseJsonRpcWithSwaggerUI();
 
 		}
 	}

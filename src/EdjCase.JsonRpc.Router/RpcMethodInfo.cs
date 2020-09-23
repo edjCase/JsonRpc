@@ -25,6 +25,8 @@ namespace EdjCase.JsonRpc.Router
 
 		public IReadOnlyList<IAuthorizeData> AuthorizeDataList { get; }
 
+		public Type RawReturnType => this.methodInfo.ReturnType;
+
 		private DefaultRpcMethodInfo(
 			MethodInfo methodInfo,
 			IReadOnlyList<RpcParameterInfo> parameters,

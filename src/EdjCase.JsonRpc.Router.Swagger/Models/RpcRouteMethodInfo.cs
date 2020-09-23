@@ -1,11 +1,17 @@
 using System.Reflection;
+using EdjCase.JsonRpc.Router.Abstractions;
 
 namespace EdjCase.JsonRpc.Router.Swagger.Models
 {
-    public class RpcRouteMethodInfo
-    {
-        public string UniqueUrl { get; set; }
-        public string MethodName { get; set; }
-        public MethodInfo MethodInfo { get; set; }
-    }
+	public class UniqueMethod
+	{
+		public string UniqueUrl { get; }
+		public IRpcMethodInfo Info { get; }
+
+		public UniqueMethod(string uniqueUrl, IRpcMethodInfo info)
+		{
+			this.UniqueUrl = uniqueUrl;
+			this.Info = info;
+		}
+	}
 }
