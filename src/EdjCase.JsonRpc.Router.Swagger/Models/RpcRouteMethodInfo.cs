@@ -1,13 +1,7 @@
 using System.Reflection;
 
-namespace EdjCase.JsonRpc.Router.Swagger.Documentation.Models
+namespace EdjCase.JsonRpc.Router.Swagger.Models
 {
-    public class RouteInfo
-    {
-        public string Path { get; set; }
-        public MethodInfo[] MethodInfos { get; set; }
-    }
-
     public class RpcRouteMethodInfo
     {
         public string UniqueUrl { get; set; }

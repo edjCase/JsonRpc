@@ -3,7 +3,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 
-namespace EdjCase.JsonRpc.Router.Swagger.Documentation.Extensions
+namespace EdjCase.JsonRpc.Router.Swagger.Extensions
 {
     public static class Extensions
     {

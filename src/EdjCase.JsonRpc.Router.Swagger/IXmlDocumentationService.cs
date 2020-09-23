@@ -4,7 +4,7 @@ using System.Reflection;
 using System.Xml.XPath;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
-namespace EdjCase.JsonRpc.Router.Swagger.Documentation
+namespace EdjCase.JsonRpc.Router.Swagger
 {
     public interface IXmlDocumentationService
     {

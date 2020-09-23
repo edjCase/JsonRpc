@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
-using EdjCase.JsonRpc.Router.Swagger.Documentation.Extensions;
-using EdjCase.JsonRpc.Router.Swagger.Documentation.Models;
+using EdjCase.JsonRpc.Router.Swagger.Extensions;
+using EdjCase.JsonRpc.Router.Swagger.Models;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.Swagger;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
-namespace EdjCase.JsonRpc.Router.Swagger.Documentation
+namespace EdjCase.JsonRpc.Router.Swagger
 {
     public class JsonRpcSwaggerProvider : ISwaggerProvider
     {
@@ -109,7 +109,8 @@ namespace EdjCase.JsonRpc.Router.Swagger.Documentation
             
             foreach (var uniqueRouteMethodInfo in uniqueRouteMethodInfos)
             {
-                var operation = this.GetOpenApiOperation(uniqueRouteMethodInfo.UniqueUrl,
+                var operationKey = uniqueRouteMethodInfo.UniqueUrl.Replace("/", "_").Replace("#", "|");
+                var operation = this.GetOpenApiOperation(operationKey, 
                     uniqueRouteMethodInfo.MethodInfo, schemaRepository);
 
                 var pathItem = new OpenApiPathItem()
@@ -143,16 +144,12 @@ namespace EdjCase.JsonRpc.Router.Swagger.Documentation
                 },
                 Summary = methodAnnotation,
                 RequestBody = this.GetOpenApiRequestBody(key, methodInfo, schemaRepository),
-                Responses = this.GetOpenApiResponses(returnMethodType, schemaRepository)
+                Responses = this.GetOpenApiResponses(key, returnMethodType, schemaRepository)
             };
         }
 
-        private OpenApiResponses GetOpenApiResponses(Type returnMethodType, SchemaRepository schemaRepository)
+        private OpenApiResponses GetOpenApiResponses(string key, Type returnMethodType, SchemaRepository schemaRepository)
         {
-            var responseType = returnMethodType == typeof(void)
-                ? typeof(JsonRpcResponse<object>)
-                : typeof(JsonRpcResponse<>).MakeGenericType(returnMethodType);
-            
             return new OpenApiResponses()
             {
                 ["200"] = new OpenApiResponse()
@@ -161,7 +158,7 @@ namespace EdjCase.JsonRpc.Router.Swagger.Documentation
                     {
                         ["application/json"] = new OpenApiMediaType
                         {
-                            Schema = this.GeResposeSchema(responseType, schemaRepository)
+                            Schema = this.GeResposeSchema(key, returnMethodType, schemaRepository)
                         }
                     }
                 }
@@ -185,15 +182,7 @@ namespace EdjCase.JsonRpc.Router.Swagger.Documentation
 
         private OpenApiSchema GetBodyParamsSchema(string key, SchemaRepository schemaRepository, MethodInfo methodInfo)
         {
-            key = key.Replace("/", "_").Replace("#", "|");
-            
-            var paramsObjectSchema = new OpenApiSchema
-            {
-                Type = "object",
-                Properties = new Dictionary<string, OpenApiSchema>(),
-                Required = new SortedSet<string>(),
-                AdditionalPropertiesAllowed = false
-            };
+            var paramsObjectSchema = this.GetOpenApiEmptyObject();
             
             foreach (var p in methodInfo.GetParameters())
             {
@@ -202,14 +191,8 @@ namespace EdjCase.JsonRpc.Router.Swagger.Documentation
             }
             
             paramsObjectSchema = schemaRepository.AddDefinition($"{key}", paramsObjectSchema);
-            
-            var requestSchema = new OpenApiSchema
-            {
-                Type = "object",
-                Properties = new Dictionary<string, OpenApiSchema>(),
-                Required = new SortedSet<string>(),
-                AdditionalPropertiesAllowed = false
-            };
+
+            var requestSchema = this.GetOpenApiEmptyObject();
             
             requestSchema.Properties.Add("id", this.schemaGenerator.GenerateSchema(typeof(string), schemaRepository));
             requestSchema.Properties.Add("jsonrpc", this.schemaGenerator.GenerateSchema(typeof(string), schemaRepository));
@@ -223,11 +206,29 @@ namespace EdjCase.JsonRpc.Router.Swagger.Documentation
             return requestSchema;
         }
 
-        private OpenApiSchema GeResposeSchema(Type type, SchemaRepository schemaRepository)
+        private OpenApiSchema GeResposeSchema(string key, Type returnMethodType, SchemaRepository schemaRepository)
         {
-            var responseSchema = this.schemaGenerator.GenerateSchema(type, schemaRepository);
+            var resultSchema = this.schemaGenerator.GenerateSchema(returnMethodType, schemaRepository);
+
+            var responseSchema = this.GetOpenApiEmptyObject();
+            responseSchema.Properties.Add("id", this.schemaGenerator.GenerateSchema(typeof(string), schemaRepository));
+            responseSchema.Properties.Add("jsonrpc", this.schemaGenerator.GenerateSchema(typeof(string), schemaRepository));
+            responseSchema.Properties.Add("result", resultSchema);
+
+            responseSchema = schemaRepository.AddDefinition($"response_{key}", responseSchema);
             this.RewriteJrpcAttributesExamples(responseSchema, schemaRepository);
             return responseSchema;
+        }
+
+        private OpenApiSchema GetOpenApiEmptyObject()
+        {
+            return new OpenApiSchema
+            {
+                Type = "object",
+                Properties = new Dictionary<string, OpenApiSchema>(),
+                Required = new SortedSet<string>(),
+                AdditionalPropertiesAllowed = false
+            };
         }
 
         private void RewriteJrpcAttributesExamples(OpenApiSchema schema, SchemaRepository schemaRepository, string method = "method_name")

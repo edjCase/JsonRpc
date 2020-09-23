@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using EdjCase.JsonRpc.Router.Swagger.Documentation.Models;
+using EdjCase.JsonRpc.Router.Swagger.Models;
 
-namespace EdjCase.JsonRpc.Router.Swagger.Documentation
+namespace EdjCase.JsonRpc.Router.Swagger
 {
     public interface IJsonRpcMetadataProvider
     {

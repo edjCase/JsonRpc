@@ -22,7 +22,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore;
 using System.Reflection;
 using System.Text.Json;
-using EdjCase.JsonRpc.Router.Swagger.Documentation.Extensions;
+using EdjCase.JsonRpc.Router.Swagger.Extensions;
 
 namespace EdjCase.JsonRpc.Router.Sample
 {
