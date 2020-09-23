@@ -89,7 +89,8 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 	internal class DefaultRequestMatcher : IRpcRequestMatcher
 	{
-		private static ConcurrentDictionary<RpcRequestSignature, IRpcMethodInfo[]> requestToMethodCache { get; } = new ConcurrentDictionary<RpcRequestSignature, IRpcMethodInfo[]>();
+		private static ConcurrentDictionary<RpcPath?, ConcurrentDictionary<RpcRequestSignature, RpcMethodInfo[]>> requestToMethodCache { get; } 
+			= new ConcurrentDictionary<RpcPath?, ConcurrentDictionary<RpcRequestSignature, RpcMethodInfo[]>>();
 
 		private ILogger<DefaultRequestMatcher> logger { get; }
 		private IRpcMethodProvider methodProvider { get; }
@@ -98,6 +99,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			IRpcMethodProvider methodProvider,
 			IRpcContextAccessor contextAccessor)
 		{
+			this.rpcContextAccessor = rpcContextAccessor;
 			this.logger = logger;
 			this.methodProvider = methodProvider;
 			this.contextAccessor = contextAccessor;
@@ -154,9 +156,14 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		private IRpcMethodInfo[] FilterAndBuildMethodInfoByRequest(IReadOnlyList<IRpcMethodInfo> methods, RpcRequestSignature requestSignature)
 		{
 			//If the request signature is found, it means we have the methods cached already
-			return DefaultRequestMatcher.requestToMethodCache.GetOrAdd(requestSignature, GetMatchingMethodsWrapper);
-
-			IRpcMethodInfo[] GetMatchingMethodsWrapper(RpcRequestSignature s)
+			//TODO make a cache that uses spans/char array and not strings
+			//TODO does the entire method info need to be cached?
+			
+			var rpcPath = this.rpcContextAccessor.Value?.Path;
+			var rpcPathMethodsCache = DefaultRequestMatcher.requestToMethodCache.GetOrAdd(rpcPath,
+				new ConcurrentDictionary<RpcRequestSignature, RpcMethodInfo[]>());
+			return rpcPathMethodsCache.GetOrAdd(requestSignature, BuildMethodCache);
+			RpcMethodInfo[] BuildMethodCache(RpcRequestSignature s)
 			{
 				return this.GetMatchingMethods(s, methods);
 			}

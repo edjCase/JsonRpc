@@ -49,8 +49,8 @@ namespace Benchmarks
 		{
 			var logger = new FakeLogger<DefaultRequestMatcher>();
 			var methodProvider = new FakeMethodProvider();
-			var contextAccessor = new FakeContextAccessor();
-			this.requestMatcher = new DefaultRequestMatcher(logger, methodProvider, contextAccessor);
+			var fakeRpcContextAccessor = new FakeRpcContextAccessor();
+			this.requestMatcher = new DefaultRequestMatcher(logger, fakeRpcContextAccessor, methodProvider);
 		}
 
 		private RpcRequestSignature requestsignature;
@@ -126,19 +126,11 @@ namespace Benchmarks
 #pragma warning restore IDE0060 // Remove unused parameter
 	}
 
-
-	internal class FakeContextAccessor : IRpcContextAccessor
+	public class FakeRpcContextAccessor : IRpcContextAccessor
 	{
-		public RpcContext Get()
-		{
-			return new RpcContext(null, null);
-		}
-
-		public void Set(RpcContext context)
-		{
-
-		}
+		IRpcContext? IRpcContextAccessor.Value { get; set; } = new DefaultRpcContext(null, "/api/v1/controller_name");
 	}
+
 	internal class FakeMethodProvider : IRpcMethodProvider
 	{
 		private static readonly List<DefaultRpcMethodInfo> methods = typeof(RequestMatcherTester.MethodClass)
