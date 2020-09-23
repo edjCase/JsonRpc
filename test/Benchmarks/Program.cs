@@ -49,7 +49,8 @@ namespace Benchmarks
 		{
 			var logger = new FakeLogger<DefaultRequestMatcher>();
 			var methodProvider = new FakeMethodProvider();
-			this.requestMatcher = new DefaultRequestMatcher(logger, methodProvider);
+			var fakeRpcContextAccessor = new FakeRpcContextAccessor();
+			this.requestMatcher = new DefaultRequestMatcher(logger, fakeRpcContextAccessor, methodProvider);
 		}
 
 		private RpcRequestSignature requestsignature;
@@ -123,6 +124,11 @@ namespace Benchmarks
 			}
 		}
 #pragma warning restore IDE0060 // Remove unused parameter
+	}
+
+	public class FakeRpcContextAccessor : IRpcContextAccessor
+	{
+		IRpcContext? IRpcContextAccessor.Value { get; set; } = new DefaultRpcContext(null, "/api/v1/controller_name");
 	}
 
 	internal class FakeMethodProvider : IRpcMethodProvider
