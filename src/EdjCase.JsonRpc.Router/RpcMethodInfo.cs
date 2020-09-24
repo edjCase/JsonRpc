@@ -27,6 +27,8 @@ namespace EdjCase.JsonRpc.Router
 
 		public Type RawReturnType => this.methodInfo.ReturnType;
 
+		public Type DeclaringType => this.methodInfo.DeclaringType;
+
 		private DefaultRpcMethodInfo(
 			MethodInfo methodInfo,
 			IReadOnlyList<RpcParameterInfo> parameters,

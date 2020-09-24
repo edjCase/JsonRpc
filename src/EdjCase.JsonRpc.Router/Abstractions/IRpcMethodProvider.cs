@@ -31,7 +31,7 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 		bool AllowAnonymous { get; }
 		IReadOnlyList<IAuthorizeData> AuthorizeDataList { get; }
 		Type RawReturnType { get; }
-
+		Type DeclaringType { get; }
 		object? Invoke(object[] parameters, IServiceProvider serviceProvider);
 	}
 

@@ -131,10 +131,17 @@ namespace EdjCase.JsonRpc.Router.Swagger
 		{
 			string methodAnnotation = this.xmlDocumentationService.GetSummaryForMethod(methodInfo);
 			Type trueReturnType = this.GetReturnType(methodInfo.RawReturnType);
+			var summaryForType = this.xmlDocumentationService.GetSummaryForType(methodInfo.DeclaringType);
+			var methodGroupAnatation = !string.IsNullOrWhiteSpace(summaryForType)
+				? summaryForType
+				: "Other";
 
 			return new OpenApiOperation()
 			{
-				Tags = new List<OpenApiTag>(),
+				Tags = new List<OpenApiTag>()
+				{
+					new OpenApiTag() {Name = methodGroupAnatation}
+				},
 				Summary = methodAnnotation,
 				RequestBody = this.GetOpenApiRequestBody(key, methodInfo, schemaRepository),
 				Responses = this.GetOpenApiResponses(key, trueReturnType, schemaRepository)
