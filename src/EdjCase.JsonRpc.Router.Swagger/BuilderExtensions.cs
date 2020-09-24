@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -58,16 +60,44 @@ namespace EdjCase.JsonRpc.Router.Swagger.Extensions
 
 		private static Action<SwaggerGenOptions> GetDefaultSwaggerGenOptions()
 		{
-			return c => c.SwaggerDoc("v1", new OpenApiInfo
+			return c =>
 			{
-				Title = "My API V1",
-				Version = "v1"
-			});
+				c.SwaggerDoc("v1", new OpenApiInfo
+				{
+					Title = "My API V1",
+					Version = "v1"
+				});
+
+				var authSchemaKey = "basicAuth";
+				c.AddSecurityDefinition(authSchemaKey, 
+					new OpenApiSecurityScheme()
+					{
+						In = ParameterLocation.Header,
+						Type = SecuritySchemeType.Http,
+						Scheme = "basic"
+					});
+				
+				c.AddSecurityRequirement(new OpenApiSecurityRequirement()
+				{
+					{new OpenApiSecurityScheme()
+					{
+						Reference = new OpenApiReference()
+						{
+							Id	= authSchemaKey,
+							Type = ReferenceType.SecurityScheme
+						},
+						In = ParameterLocation.Header,
+						Name = "basic",
+						Scheme = "basic"
+					}, new List<string>()}
+				});
+			};
 		}
 
 		private static Action<SwaggerUIOptions> GetDefaultSwaggerUIOptions()
 		{
 			return c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+			
 		}
 	}
 }

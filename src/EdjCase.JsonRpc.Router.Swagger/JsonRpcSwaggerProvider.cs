@@ -18,9 +18,9 @@ namespace EdjCase.JsonRpc.Router.Swagger
 	public class JsonRpcSwaggerProvider : ISwaggerProvider
 	{
 		private readonly ISchemaGenerator schemaGenerator;
-		private readonly SwaggerConfiguration swagerOptions;
 		private readonly IRpcMethodProvider methodProvider;
 		private readonly IXmlDocumentationService xmlDocumentationService;
+		private readonly IOptions<SwaggerGenOptions> swaggerGenOptionsAccessor;
 		private OpenApiDocument? cacheDocument;
 		private JsonNamingPolicy namePolicy;
 
@@ -28,14 +28,15 @@ namespace EdjCase.JsonRpc.Router.Swagger
 			ISchemaGenerator schemaGenerator,
 			IRpcMethodProvider methodProvider,
 			IXmlDocumentationService xmlDocumentationService,
-			IOptions<SwaggerConfiguration> swaggerOptions
+			IOptions<SwaggerConfiguration> swaggerOptions,
+			IOptions<SwaggerGenOptions> swaggerGenOptionsAccessor
 		)
 		{
 			this.schemaGenerator = schemaGenerator;
-			this.swagerOptions = swaggerOptions.Value;
 			this.namePolicy = swaggerOptions.Value.NamingPolicy;
 			this.methodProvider = methodProvider;
 			this.xmlDocumentationService = xmlDocumentationService;
+			this.swaggerGenOptionsAccessor = swaggerGenOptionsAccessor;
 		}
 
 		private List<UniqueMethod> GetUniqueKeyMethodPairs(RpcRouteMetaData metaData)
@@ -84,18 +85,17 @@ namespace EdjCase.JsonRpc.Router.Swagger
 
 			this.cacheDocument = new OpenApiDocument()
 			{
+				SecurityRequirements = this.swaggerGenOptionsAccessor.Value.SwaggerGeneratorOptions.SecurityRequirements,
 				Info = new OpenApiInfo()
 				{
 					Title = Assembly.GetEntryAssembly().GetName().Name,
 					Version = "v1"
 				},
-				Servers = this.swagerOptions.Endpoints.Select(x => new OpenApiServer()
-				{
-					Url = x
-				}).ToList(),
+				Servers = this.swaggerGenOptionsAccessor.Value.SwaggerGeneratorOptions.Servers,
 				Components = new OpenApiComponents()
 				{
-					Schemas = schemaRepository.Schemas
+					Schemas = schemaRepository.Schemas,
+					SecuritySchemes = this.swaggerGenOptionsAccessor.Value.SwaggerGeneratorOptions.SecuritySchemes
 				},
 				Paths = paths
 			};
