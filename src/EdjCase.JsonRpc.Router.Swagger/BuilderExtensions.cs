@@ -43,6 +43,7 @@ namespace EdjCase.JsonRpc.Router.Swagger.Extensions
 				.UseSwagger(configureSwagger)
 				.UseJsonRpc(configureRpc);
 		}
+
 		public static IApplicationBuilder UseJsonRpcWithSwaggerUI(this IApplicationBuilder app,
 			Action<RpcEndpointBuilder>? configureRpc = null,
 			Action<SwaggerOptions>? configureSwagger = null,
@@ -62,34 +63,33 @@ namespace EdjCase.JsonRpc.Router.Swagger.Extensions
 		{
 			return c =>
 			{
-				c.SwaggerDoc("v1", new OpenApiInfo
-				{
-					Title = "My API V1",
-					Version = "v1"
-				});
+				c.SwaggerDoc("v1", new OpenApiInfo {Title = "My API V1", Version = "v1"});
 
 				var authSchemaKey = "basicAuth";
-				c.AddSecurityDefinition(authSchemaKey, 
+				c.AddSecurityDefinition(authSchemaKey,
 					new OpenApiSecurityScheme()
 					{
 						In = ParameterLocation.Header,
 						Type = SecuritySchemeType.Http,
 						Scheme = "basic"
 					});
-				
+
 				c.AddSecurityRequirement(new OpenApiSecurityRequirement()
 				{
-					{new OpenApiSecurityScheme()
 					{
-						Reference = new OpenApiReference()
+						new OpenApiSecurityScheme()
 						{
-							Id	= authSchemaKey,
-							Type = ReferenceType.SecurityScheme
+							Reference = new OpenApiReference()
+							{
+								Id = authSchemaKey,
+								Type = ReferenceType.SecurityScheme
+							},
+							In = ParameterLocation.Header,
+							Name = "basic",
+							Scheme = "basic"
 						},
-						In = ParameterLocation.Header,
-						Name = "basic",
-						Scheme = "basic"
-					}, new List<string>()}
+						new List<string>()
+					}
 				});
 			};
 		}
@@ -97,7 +97,6 @@ namespace EdjCase.JsonRpc.Router.Swagger.Extensions
 		private static Action<SwaggerUIOptions> GetDefaultSwaggerUIOptions()
 		{
 			return c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
-			
 		}
 	}
 }
