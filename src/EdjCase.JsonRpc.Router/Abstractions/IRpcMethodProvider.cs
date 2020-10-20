@@ -27,11 +27,11 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 	public interface IRpcMethodInfo
 	{
 		string Name { get; }
+		MethodInfo SourceMethodInfo { get; }
 		IReadOnlyList<IRpcParameterInfo> Parameters { get; }
 		bool AllowAnonymous { get; }
 		IReadOnlyList<IAuthorizeData> AuthorizeDataList { get; }
 		Type RawReturnType { get; }
-		Type DeclaringType { get; }
 		object? Invoke(object[] parameters, IServiceProvider serviceProvider);
 	}
 

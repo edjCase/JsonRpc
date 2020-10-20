@@ -48,7 +48,8 @@ namespace EdjCase.JsonRpc.Router.Swagger
 
 		public string GetSummaryForMethod(IRpcMethodInfo methodInfo)
 		{
-			var methodNode = this.xpathNavigator.SelectSingleNode($"/doc/members/member[@name='{methodInfo.Name}']");
+			var methodMemberName = XmlCommentsNodeNameHelper.GetMemberNameForMethod(methodInfo.SourceMethodInfo);
+			var methodNode = this.xpathNavigator.SelectSingleNode($"/doc/members/member[@name='{methodMemberName}']");
 			var summaryNode = methodNode?.SelectSingleNode("summary");
 			return summaryNode != null ? XmlCommentsTextHelper.Humanize(summaryNode.InnerXml) : string.Empty;
 		}

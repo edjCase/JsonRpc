@@ -18,6 +18,7 @@ namespace EdjCase.JsonRpc.Router
 		private readonly MethodInfo methodInfo;
 		private readonly ObjectFactory objectFactory;
 		public string Name => this.methodInfo.Name;
+		public MethodInfo SourceMethodInfo => this.methodInfo;
 
 		public IReadOnlyList<IRpcParameterInfo> Parameters { get; }
 
@@ -26,8 +27,6 @@ namespace EdjCase.JsonRpc.Router
 		public IReadOnlyList<IAuthorizeData> AuthorizeDataList { get; }
 
 		public Type RawReturnType => this.methodInfo.ReturnType;
-
-		public Type DeclaringType => this.methodInfo.DeclaringType;
 
 		private DefaultRpcMethodInfo(
 			MethodInfo methodInfo,

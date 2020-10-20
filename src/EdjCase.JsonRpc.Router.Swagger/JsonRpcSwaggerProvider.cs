@@ -131,7 +131,7 @@ namespace EdjCase.JsonRpc.Router.Swagger
 		{
 			string methodAnnotation = this.xmlDocumentationService.GetSummaryForMethod(methodInfo);
 			Type trueReturnType = this.GetReturnType(methodInfo.RawReturnType);
-			var summaryForType = this.xmlDocumentationService.GetSummaryForType(methodInfo.DeclaringType);
+			var summaryForType = this.xmlDocumentationService.GetSummaryForType(methodInfo.SourceMethodInfo.DeclaringType);
 			var methodGroupAnatation = !string.IsNullOrWhiteSpace(summaryForType)
 				? summaryForType
 				: "Other";
