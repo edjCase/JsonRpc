@@ -351,6 +351,39 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.Equal(1, endCalledCount);
 
 		}
+		
+		//error on configuration:
+		// .NET Core SDK (reflecting any global.json):
+		// 	Version:   3.1.401
+		// Commit:    39d17847db
+		//
+		// 	Runtime Environment:
+		// OS Name:     Mac OS X
+		// 	OS Version:  10.16
+		// OS Platform: Darwin
+		// 	RID:         osx-x64
+		// 	Base Path:   /usr/local/share/dotnet/sdk/3.1.401/
+		//additional check 3.1.405 and 5.0.100-rc.1.20452.10 - problem not fixed
+		[Fact]
+		public async Task InvokeRequest_WithMemoryProblem()
+		{
+			DefaultRpcInvoker invoker = this.GetInvoker("TestDeserializeProblem", configure: (config) =>
+			{
+			});
+			
+			const string json =
+				"{\"jsonrpc\":\"2.0\",\"method\":\"TestDeserializeProblem\",\"params\":{\"text\":\"\",\"attributes\":\"{\\\"metrics\\\":\\\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\\"}\"},\"id\":1}";
+			
+			IRpcParser parser = new DefaultRpcParser(new FakeLogger<DefaultRpcParser>(), Options.Create(new RpcServerConfiguration()));
+			ParsingResult result = parser.ParseRequests(json);
+				
+			RpcResponse? stringResponse = await invoker.InvokeRequestAsync(
+				new RpcRequest(new RpcId(1), "TestDeserializeProblem", result.Requests.Single().Parameters));
+			
+			//Error message: Unable to parse parameter 'text' to type 'System.String'
+			//because changed bytes for parameter "text"
+			Assert.False(stringResponse.HasError, stringResponse?.Error?.Message);
+		}
 	}
 
 
@@ -393,6 +426,12 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public (bool, string, object, TestComplexParam, int) AllTypes(bool a, string bb, object ccc, TestComplexParam dddd, int eeeee)
 		{
 			return (a, bb, ccc, dddd, eeeee);
+		}
+		
+		public void TestDeserializeProblem(
+			string attributes,
+			string text)
+		{
 		}
 	}
 

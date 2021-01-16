@@ -218,6 +218,8 @@ namespace EdjCase.JsonRpc.Router.Defaults
 							badParams.Add(parameterInfo);
 							continue;
 						}
+						//before first iteration, for parameter with key "text" array bytes contains vaules [34, 34]
+						//after first iteration, for parameter with key "text" array bytes contains values [0,0]
 						paramCache[i] = value!;
 					}
 					if (badParams != null)
