@@ -91,6 +91,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				}
 				finally
 				{
+					//may be this code return memory, bytes magic eraises on next code use property "bytes" in object of type RpcParamter
 					ArrayPool<byte>.Shared.Return(jsonBytes, clearArray: false);
 				}
 
