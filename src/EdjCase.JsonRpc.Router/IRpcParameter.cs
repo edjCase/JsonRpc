@@ -87,13 +87,13 @@ namespace EdjCase.JsonRpc.Router
 	internal class JsonBytesRpcParameter : IRpcParameter
 	{
 		public RpcParameterType Type { get; }
-		private Memory<byte> bytes { get; }
+		private byte[] bytes { get; }
 		private JsonSerializerOptions? serializerOptions { get; }
 
 		public JsonBytesRpcParameter(RpcParameterType type, Memory<byte> bytes, JsonSerializerOptions? serializerOptions = null)
 		{
 			this.Type = type;
-			this.bytes = bytes;
+			this.bytes = bytes.ToArray();
 			this.serializerOptions = serializerOptions;
 		}
 
@@ -107,7 +107,7 @@ namespace EdjCase.JsonRpc.Router
 			
 			try
 			{
-				value = JsonSerializer.Deserialize(this.bytes.Span, type, this.serializerOptions);
+				value = JsonSerializer.Deserialize(this.bytes, type, this.serializerOptions);
 				return true;
 			}
 			catch (Exception)
