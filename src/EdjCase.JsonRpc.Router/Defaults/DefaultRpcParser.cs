@@ -54,22 +54,15 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			bool isBulkRequest = false;
 			try
 			{
-				if (jsonStream.Length > int.MaxValue)
-				{
-					throw new RpcException(RpcErrorCode.ParseError, "Json body is too large to parse.");
-				}
-				byte[] jsonBytes = ArrayPool<byte>.Shared.Rent((int)jsonStream.Length);
 				try
 				{
-					jsonStream.Read(jsonBytes, 0, (int)jsonStream.Length);
-					var jsonReader = new Utf8JsonReader(jsonBytes);
 					if (jsonReader.Read())
 					{
 						switch (jsonReader.TokenType)
 						{
 							case JsonTokenType.StartObject:
 								jsonReader.Read();
-								RpcRequestParseResult result = this.ParseResult(ref jsonReader, jsonBytes);
+								RpcRequestParseResult result = this.ParseResult(ref jsonReader);
 								rpcRequests = new List<RpcRequestParseResult> { result };
 								break;
 							case JsonTokenType.StartArray:
@@ -78,7 +71,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 								rpcRequests = new List<RpcRequestParseResult>();
 								while (jsonReader.TokenType != JsonTokenType.EndArray)
 								{
-									RpcRequestParseResult r = this.ParseResult(ref jsonReader, jsonBytes);
+									RpcRequestParseResult r = this.ParseResult(ref jsonReader);
 									rpcRequests.Add(r);
 									jsonReader.Read();
 								}
@@ -118,8 +111,22 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 			return ParsingResult.FromResults(rpcRequests, isBulkRequest);
 		}
+	}
 
-		private RpcRequestParseResult ParseResult(ref Utf8JsonReader jsonReader, Memory<byte> bytes)
+	internal class JsonParsingHelper
+	{
+		private Stream jsonStream;
+		private JsonSerializerOptions jsonSerializerOptions;
+		private bool showServerExceptions;
+		public JsonParsingHelper(Stream jsonStream, JsonSerializerOptions jsonSerializerOptions, bool showServerExceptions)
+		{
+			this.jsonStream = jsonStream;
+			this.jsonSerializerOptions = jsonSerializerOptions;
+			this.showServerExceptions = showServerExceptions;
+		}
+
+
+		private RpcRequestParseResult ParseResult(ref Utf8JsonReader jsonReader)
 		{
 			RpcId id = default;
 			string? method = null;
@@ -171,7 +178,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 									var list = new List<IRpcParameter>();
 									while (jsonReader.TokenType != JsonTokenType.EndArray)
 									{
-										IRpcParameter parameter = this.GetParameter(ref jsonReader, bytes);
+										IRpcParameter parameter = this.GetParameter(ref jsonReader);
 										list.Add(parameter);
 									}
 									//TODO array vs list?
@@ -184,7 +191,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 									{
 										string key = jsonReader.GetString();
 										jsonReader.Read();
-										IRpcParameter parameter = this.GetParameter(ref jsonReader, bytes);
+										IRpcParameter parameter = this.GetParameter(ref jsonReader);
 										dict.Add(key, parameter);
 									}
 									ps = new RpcParameters(dict);
@@ -218,7 +225,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				RpcError error;
 				if (ex is RpcException rpcException)
 				{
-					error = rpcException.ToRpcError(this.serverConfig.Value.ShowServerExceptions);
+					error = rpcException.ToRpcError(this.showServerExceptions);
 				}
 				else
 				{
@@ -228,18 +235,20 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 		}
 
-		private JsonBytesRpcParameter GetParameter(ref Utf8JsonReader jsonReader, Memory<byte> bytes)
+		private JsonBytesRpcParameter GetParameter()
 		{
 			int start = (int)jsonReader.TokenStartIndex;
-			RpcParameterType paramType = GetParameters(ref jsonReader);
+			(RpcParameterType paramType, byte[] value) = this.GetParameters();
 			int length = (int)jsonReader.BytesConsumed - start;
 			jsonReader.Read();
-			return new JsonBytesRpcParameter(paramType, bytes.Slice(start, length), this.serverConfig.Value.JsonSerializerSettings);
+			return new JsonBytesRpcParameter(paramType, value, this.jsonSerializerSettings);
 		}
 
-		private static RpcParameterType GetParameters(ref Utf8JsonReader jsonReader)
+		private static (RpcParameterType Type, byte[] Value) GetParameters()
 		{
 			RpcParameterType type;
+			byte[] value;
+			JsonTokenType? endTokenType = null;
 			switch (jsonReader.TokenType)
 			{
 				case JsonTokenType.Number:
@@ -256,38 +265,22 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					type = RpcParameterType.String;
 					break;
 				case JsonTokenType.StartObject:
-					{
-						type = RpcParameterType.Object;
-						int originalDepth = jsonReader.CurrentDepth;
-						while (jsonReader.TokenType != JsonTokenType.EndObject || jsonReader.CurrentDepth != originalDepth)
-						{
-							jsonReader.Read();
-						}
-						break;
-					}
+					type = RpcParameterType.Object;
+					break;
 				case JsonTokenType.StartArray:
-					{
-						type = RpcParameterType.Array;
-						int originalDepths = jsonReader.CurrentDepth;
-						while (jsonReader.TokenType != JsonTokenType.EndArray || jsonReader.CurrentDepth != originalDepths)
-						{
-							jsonReader.Read();
-						}
-						break;
-					}
+					type = RpcParameterType.Array;
+					break;
 				default:
 					throw new RpcException(RpcErrorCode.ParseError, "Invalid json");
 			}
-			return type;
-		}
-	}
 
-	internal class JsonBytesSequenceSegment : ReadOnlySequenceSegment<byte>
-	{
-		public JsonBytesSequenceSegment(Memory<byte> bytes, JsonBytesSequenceSegment? next = null)
-		{
-			this.Memory = bytes;
-			this.Next = next;
+			value = new byte[0];
+			int originalDepth = jsonReader.CurrentDepth;
+			while (jsonReader.TokenType != endTokenType || jsonReader.CurrentDepth != originalDepth)
+			{
+				jsonReader.Read();
+			}
+			return (type, value);
 		}
 	}
 }
