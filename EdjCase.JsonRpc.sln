@@ -28,11 +28,13 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "EdjCase.JsonRpc.Common", "s
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Benchmarks", "test\Benchmarks\Benchmarks.csproj", "{08608574-6625-40D4-85EC-953B1E889A5B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EdjCase.JsonRpc.Router.Swagger", "src\EdjCase.JsonRpc.Router.Swagger\EdjCase.JsonRpc.Router.Swagger.csproj", "{93369553-1DA3-47A1-B46B-23858B68099D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdjCase.JsonRpc.Router.Swagger", "src\EdjCase.JsonRpc.Router.Swagger\EdjCase.JsonRpc.Router.Swagger.csproj", "{93369553-1DA3-47A1-B46B-23858B68099D}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		src\EdjCase.JsonRpc.Common\EdjCase.JsonRpc.Common.projitems*{1546452e-2db4-421c-90cd-b4b310ce9ad9}*SharedItemsImports = 13
+		src\EdjCase.JsonRpc.Common\EdjCase.JsonRpc.Common.projitems*{87ed8b44-b59a-440c-a377-565effb2691a}*SharedItemsImports = 5
+		src\EdjCase.JsonRpc.Common\EdjCase.JsonRpc.Common.projitems*{f89e9e51-0d7a-4a82-a899-14c886c4f384}*SharedItemsImports = 5
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

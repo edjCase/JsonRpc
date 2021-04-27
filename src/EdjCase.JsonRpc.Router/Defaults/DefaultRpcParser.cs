@@ -58,42 +58,26 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				{
 					throw new RpcException(RpcErrorCode.ParseError, "Json body is too large to parse.");
 				}
-				byte[] jsonBytes = ArrayPool<byte>.Shared.Rent((int)jsonStream.Length);
-				try
+				var jsonDocument = JsonDocument.Parse(jsonStream);
+				switch (jsonDocument.RootElement.ValueKind)
 				{
-					jsonStream.Read(jsonBytes, 0, (int)jsonStream.Length);
-					var jsonReader = new Utf8JsonReader(jsonBytes);
-					if (jsonReader.Read())
-					{
-						switch (jsonReader.TokenType)
+					case JsonValueKind.Object:
+						RpcRequestParseResult result = this.ParseResult(jsonDocument.RootElement.EnumerateObject());
+						rpcRequests = new List<RpcRequestParseResult> { result };
+						break;
+					case JsonValueKind.Array:
+						isBulkRequest = true;
+						rpcRequests = new List<RpcRequestParseResult>();
+						foreach(JsonElement element in jsonDocument.RootElement.EnumerateArray())
 						{
-							case JsonTokenType.StartObject:
-								jsonReader.Read();
-								RpcRequestParseResult result = this.ParseResult(ref jsonReader, jsonBytes);
-								rpcRequests = new List<RpcRequestParseResult> { result };
-								break;
-							case JsonTokenType.StartArray:
-								isBulkRequest = true;
-								jsonReader.Read();
-								rpcRequests = new List<RpcRequestParseResult>();
-								while (jsonReader.TokenType != JsonTokenType.EndArray)
-								{
-									RpcRequestParseResult r = this.ParseResult(ref jsonReader, jsonBytes);
-									rpcRequests.Add(r);
-									jsonReader.Read();
-								}
-								break;
-							default:
-								throw new RpcException(RpcErrorCode.InvalidRequest, "Json request was invalid");
+							RpcRequestParseResult r = this.ParseResult(element.EnumerateObject());
+							rpcRequests.Add(r);
 						}
-
-					}
+						break;
+					default:
+						throw new RpcException(RpcErrorCode.InvalidRequest, "Json request was invalid");
 				}
-				finally
-				{
-					ArrayPool<byte>.Shared.Return(jsonBytes, clearArray: false);
-				}
-
+				
 			}
 			catch (Exception ex) when (!(ex is RpcException))
 			{
@@ -119,7 +103,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			return ParsingResult.FromResults(rpcRequests, isBulkRequest);
 		}
 
-		private RpcRequestParseResult ParseResult(ref Utf8JsonReader jsonReader, Memory<byte> bytes)
+		private RpcRequestParseResult ParseResult(JsonElement.ObjectEnumerator objectEnumerator)
 		{
 			RpcId id = default;
 			string? method = null;
@@ -127,24 +111,18 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			string? rpcVersion = null;
 			try
 			{
-				if (jsonReader.TokenType == JsonTokenType.StartObject)
+				foreach (JsonProperty property in objectEnumerator)
 				{
-					jsonReader.Read();
-				}
-				while (jsonReader.TokenType != JsonTokenType.EndObject)
-				{
-					string propertyName = jsonReader.GetString();
-					jsonReader.Read();
-					switch (propertyName)
+					switch (property.Name)
 					{
 						case JsonRpcContants.IdPropertyName:
-							switch (jsonReader.TokenType)
+							switch (property.Value.ValueKind)
 							{
-								case JsonTokenType.String:
-									id = new RpcId(jsonReader.GetString());
+								case JsonValueKind.String:
+									id = new RpcId(property.Value.GetString());
 									break;
-								case JsonTokenType.Number:
-									if (!jsonReader.TryGetInt64(out long longId))
+								case JsonValueKind.Number:
+									if (!property.Value.TryGetInt64(out long longId))
 									{
 										var idError = new RpcError(RpcErrorCode.ParseError, "Unable to parse rpc id as an integer");
 										return RpcRequestParseResult.Fail(id, idError);
@@ -157,36 +135,28 @@ namespace EdjCase.JsonRpc.Router.Defaults
 							}
 							break;
 						case JsonRpcContants.VersionPropertyName:
-							rpcVersion = jsonReader.GetString();
+							rpcVersion = property.Value.GetString();
 							break;
 						case JsonRpcContants.MethodPropertyName:
-							method = jsonReader.GetString();
+							method = property.Value.GetString();
 							break;
 						case JsonRpcContants.ParamsPropertyName:
 							RpcParameters ps;
-							switch (jsonReader.TokenType)
+							switch (property.Value.ValueKind)
 							{
-								case JsonTokenType.StartArray:
-									jsonReader.Read();
-									var list = new List<IRpcParameter>();
-									while (jsonReader.TokenType != JsonTokenType.EndArray)
-									{
-										IRpcParameter parameter = this.GetParameter(ref jsonReader, bytes);
-										list.Add(parameter);
-									}
+								case JsonValueKind.Array:
+									IRpcParameter[] items = property.Value
+										.EnumerateArray()
+										.Select(this.GetParameter)
+										.Cast<IRpcParameter>()
+										.ToArray();
 									//TODO array vs list?
-									ps = new RpcParameters(list.ToArray());
+									ps = new RpcParameters(items);
 									break;
-								case JsonTokenType.StartObject:
-									jsonReader.Read();
-									var dict = new Dictionary<string, IRpcParameter>();
-									while (jsonReader.TokenType != JsonTokenType.EndObject)
-									{
-										string key = jsonReader.GetString();
-										jsonReader.Read();
-										IRpcParameter parameter = this.GetParameter(ref jsonReader, bytes);
-										dict.Add(key, parameter);
-									}
+								case JsonValueKind.Object:
+									Dictionary<string, IRpcParameter> dict = property.Value
+										.EnumerateObject()
+										.ToDictionary(j => j.Name, j => (IRpcParameter)this.GetParameter(j.Value));
 									ps = new RpcParameters(dict);
 									break;
 								default:
@@ -195,7 +165,6 @@ namespace EdjCase.JsonRpc.Router.Defaults
 							parameters = ps;
 							break;
 					}
-					jsonReader.Read();
 				}
 
 				if (string.IsNullOrWhiteSpace(method))
@@ -228,57 +197,24 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 		}
 
-		private JsonBytesRpcParameter GetParameter(ref Utf8JsonReader jsonReader, Memory<byte> bytes)
+		private JsonBytesRpcParameter GetParameter(JsonElement element)
 		{
-			int start = (int)jsonReader.TokenStartIndex;
-			RpcParameterType paramType = GetParameters(ref jsonReader);
-			int length = (int)jsonReader.BytesConsumed - start;
-			jsonReader.Read();
-			return new JsonBytesRpcParameter(paramType, bytes.Slice(start, length), this.serverConfig.Value.JsonSerializerSettings);
+			RpcParameterType paramType = GetParameters(element);
+			return new JsonBytesRpcParameter(paramType, element, this.serverConfig.Value.JsonSerializerSettings);
 		}
 
-		private static RpcParameterType GetParameters(ref Utf8JsonReader jsonReader)
+		private static RpcParameterType GetParameters(JsonElement element)
 		{
-			RpcParameterType type;
-			switch (jsonReader.TokenType)
+			return element.ValueKind switch
 			{
-				case JsonTokenType.Number:
-					type = RpcParameterType.Number;
-					break;
-				case JsonTokenType.True:
-				case JsonTokenType.False:
-					type = RpcParameterType.Boolean;
-					break;
-				case JsonTokenType.Null:
-					type = RpcParameterType.Null;
-					break;
-				case JsonTokenType.String:
-					type = RpcParameterType.String;
-					break;
-				case JsonTokenType.StartObject:
-					{
-						type = RpcParameterType.Object;
-						int originalDepth = jsonReader.CurrentDepth;
-						while (jsonReader.TokenType != JsonTokenType.EndObject || jsonReader.CurrentDepth != originalDepth)
-						{
-							jsonReader.Read();
-						}
-						break;
-					}
-				case JsonTokenType.StartArray:
-					{
-						type = RpcParameterType.Array;
-						int originalDepths = jsonReader.CurrentDepth;
-						while (jsonReader.TokenType != JsonTokenType.EndArray || jsonReader.CurrentDepth != originalDepths)
-						{
-							jsonReader.Read();
-						}
-						break;
-					}
-				default:
-					throw new RpcException(RpcErrorCode.ParseError, "Invalid json");
-			}
-			return type;
+				JsonValueKind.Number => RpcParameterType.Number,
+				JsonValueKind.True or JsonValueKind.False => RpcParameterType.Boolean,
+				JsonValueKind.Null or JsonValueKind.Undefined => RpcParameterType.Null,
+				JsonValueKind.String => RpcParameterType.String,
+				JsonValueKind.Object => RpcParameterType.Object,
+				JsonValueKind.Array => RpcParameterType.Array,
+				_ => throw new NotImplementedException($"Uninplemented json value type: '{element.ValueKind}'"),
+			};
 		}
 	}
 

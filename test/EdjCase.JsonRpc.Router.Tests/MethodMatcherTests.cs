@@ -51,7 +51,9 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			rpcContextAccessor
 			.Setup(p => p.Get())
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
 			.Returns(new RpcContext(null, path));
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
 
 
 			var methodProvider = new StaticRpcMethodProvider(this.GetMethodDataAccessor());

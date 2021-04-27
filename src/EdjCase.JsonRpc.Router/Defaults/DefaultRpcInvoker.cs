@@ -208,6 +208,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					{
 						IRpcParameterInfo parameterInfo = methodParameters[i];
 						IRpcParameter parameter = parameterList[i];
+						// TODO optimize to utilize parameterInfo.Type for performance
 						if (!parameter.TryGetValue(parameterInfo.RawType, out object? value))
 						{
 							if (badParams == null)

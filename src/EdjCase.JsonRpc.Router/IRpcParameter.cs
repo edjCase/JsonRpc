@@ -87,13 +87,13 @@ namespace EdjCase.JsonRpc.Router
 	internal class JsonBytesRpcParameter : IRpcParameter
 	{
 		public RpcParameterType Type { get; }
-		private Memory<byte> bytes { get; }
+		private JsonElement json { get; }
 		private JsonSerializerOptions? serializerOptions { get; }
 
-		public JsonBytesRpcParameter(RpcParameterType type, Memory<byte> bytes, JsonSerializerOptions? serializerOptions = null)
+		public JsonBytesRpcParameter(RpcParameterType type, JsonElement json, JsonSerializerOptions? serializerOptions = null)
 		{
 			this.Type = type;
-			this.bytes = bytes;
+			this.json = json;
 			this.serializerOptions = serializerOptions;
 		}
 
@@ -107,7 +107,8 @@ namespace EdjCase.JsonRpc.Router
 			
 			try
 			{
-				value = JsonSerializer.Deserialize(this.bytes.Span, type, this.serializerOptions);
+				// TODO this is not efficient. How can JsonElement be deserialized?
+				value = JsonSerializer.Deserialize(this.json.GetRawText(), type, this.serializerOptions);
 				return true;
 			}
 			catch (Exception)
@@ -115,13 +116,6 @@ namespace EdjCase.JsonRpc.Router
 				value = default;
 				return false;
 			}
-		}
-
-		public static JsonBytesRpcParameter FromRaw(object? value, JsonSerializerOptions? serializerOptions = null)
-		{
-			byte[] jsonBytes = JsonSerializer.SerializeToUtf8Bytes(value);
-			RpcParameterType type = value != null ? RpcParameterUtil.GetRpcType(value.GetType()) : RpcParameterType.Null;
-			return new JsonBytesRpcParameter(type, jsonBytes, serializerOptions);
 		}
 	}
 }

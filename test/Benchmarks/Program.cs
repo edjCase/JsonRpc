@@ -31,7 +31,9 @@ namespace Benchmarks
 			_ = BenchmarkRunner.Run<RequestMatcherTester>();
 		}
 
+#pragma warning disable CA1822 // Mark members as static
 		public void Test()
+#pragma warning restore CA1822 // Mark members as static
 		{
 
 		}
@@ -118,9 +120,13 @@ namespace Benchmarks
 
 			public class ComplexParam
 			{
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 				public string A { get; set; }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 				public bool B { get; set; }
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 				public ComplexParam C { get; set; }
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
 			}
 		}
 #pragma warning restore IDE0060 // Remove unused parameter
@@ -131,7 +137,9 @@ namespace Benchmarks
 
 		public RpcContext Get()
 		{
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
 			return new RpcContext(null, "/api/v1/controller_name");
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
 		}
 
 		public void Set(RpcContext context)

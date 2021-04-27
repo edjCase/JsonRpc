@@ -16,6 +16,7 @@ using EdjCase.JsonRpc.Router;
 using System.Text;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 
 namespace EdjCase.JsonRpc.Router.Tests
 {
@@ -88,7 +89,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public async Task InvokeRequest_StringParam_ParseAsGuidType()
 		{
 			Guid randomGuid = Guid.NewGuid();
-			var parameters = new RpcParameters(JsonBytesRpcParameter.FromRaw(randomGuid.ToString()));
+			var parameters = new RpcParameters(InvokerTests.FromRaw(randomGuid.ToString()));
 			string methodName = nameof(TestRouteClass.GuidTypeMethod);
 			var stringRequest = new RpcRequest("1", methodName, parameters);
 
@@ -103,7 +104,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		[Fact]
 		public async Task InvokeRequest_MethodNotFound_ErrorResponse()
 		{
-			var parameters = new RpcParameters(JsonBytesRpcParameter.FromRaw(1));
+			var parameters = new RpcParameters(InvokerTests.FromRaw(1));
 			var stringRequest = new RpcRequest("1", "MethodNotFound", parameters);
 			DefaultRpcInvoker invoker = this.GetInvoker(methodInfo: null);
 			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
@@ -116,7 +117,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		[Fact]
 		public async Task InvokeRequest_AsyncMethod_Valid()
 		{
-			var parameters = new RpcParameters(JsonBytesRpcParameter.FromRaw(1), JsonBytesRpcParameter.FromRaw(1));
+			var parameters = new RpcParameters(InvokerTests.FromRaw(1), InvokerTests.FromRaw(1));
 			string methodName = nameof(TestRouteClass.AddAsync);
 			var stringRequest = new RpcRequest("1", methodName, parameters);
 
@@ -132,7 +133,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		[Fact]
 		public async Task InvokeRequest_Int64RequestParam_ConvertToInt32Param()
 		{
-			var parameters = new RpcParameters(JsonBytesRpcParameter.FromRaw(1L));
+			var parameters = new RpcParameters(InvokerTests.FromRaw(1L));
 			string methodName = nameof(TestRouteClass.IntParameter);
 			var stringRequest = new RpcRequest("1", methodName, parameters);
 
@@ -173,7 +174,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			//Param is a string
 			const string value = "Test";
-			parameters = new RpcParameters(new IRpcParameter[] { JsonBytesRpcParameter.FromRaw(value) });
+			parameters = new RpcParameters(new IRpcParameter[] { InvokerTests.FromRaw(value) });
 			stringRequest = new RpcRequest("1", methodName, parameters: parameters);
 			response = await invoker.InvokeRequestAsync(stringRequest);
 
@@ -194,7 +195,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 				A = "Test",
 				B = 5
 			};
-			var rpcParameter = JsonBytesRpcParameter.FromRaw(param);
+			var rpcParameter = InvokerTests.FromRaw(param);
 			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new RpcParameters(rpcParameter));
 			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
 
@@ -217,7 +218,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 					B = 5
 				}
 			};
-			var rpcParameter = JsonBytesRpcParameter.FromRaw(param);
+			var rpcParameter = InvokerTests.FromRaw(param);
 			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new RpcParameters(rpcParameter));
 			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
 
@@ -233,7 +234,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			DefaultRpcInvoker invoker = this.GetInvoker(methodName);
 
 			bool expectedValue = true;
-			var param = JsonBytesRpcParameter.FromRaw(expectedValue);
+			var param = InvokerTests.FromRaw(expectedValue);
 			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new RpcParameters(param));
 			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
 
@@ -249,7 +250,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			DefaultRpcInvoker invoker = this.GetInvoker(methodName);
 
 			bool expectedValue = true;
-			var param = JsonBytesRpcParameter.FromRaw(expectedValue);
+			var param = InvokerTests.FromRaw(expectedValue);
 			var paramDict = new Dictionary<string, IRpcParameter>
 			{
 				["a"] = param
@@ -275,11 +276,11 @@ namespace EdjCase.JsonRpc.Router.Tests
 			int eeeee = 1;
 			var paramDict = new Dictionary<string, IRpcParameter>
 			{
-				["a"] = JsonBytesRpcParameter.FromRaw(a),
-				["bb"] = JsonBytesRpcParameter.FromRaw(bb),
-				["ccc"] = JsonBytesRpcParameter.FromRaw(ccc),
-				["dddd"] = JsonBytesRpcParameter.FromRaw(dddd),
-				["eeeee"] = JsonBytesRpcParameter.FromRaw(eeeee)
+				["a"] = InvokerTests.FromRaw(a),
+				["bb"] = InvokerTests.FromRaw(bb),
+				["ccc"] = InvokerTests.FromRaw(ccc),
+				["dddd"] = InvokerTests.FromRaw(dddd),
+				["eeeee"] = InvokerTests.FromRaw(eeeee)
 			};
 			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new RpcParameters(paramDict));
 			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
@@ -298,7 +299,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			async Task Test(TestComplexParam param)
 			{
-				var rpcParameter = JsonBytesRpcParameter.FromRaw(param);
+				var rpcParameter = InvokerTests.FromRaw(param);
 				RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new RpcParameters(rpcParameter));
 				RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
 
@@ -324,7 +325,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public async Task InvokeRequest_WithAudit()
 		{
 			Guid randomGuid = Guid.NewGuid();
-			var parameters = new RpcParameters(JsonBytesRpcParameter.FromRaw(randomGuid.ToString()));
+			var parameters = new RpcParameters(InvokerTests.FromRaw(randomGuid.ToString()));
 			string methodName = nameof(TestRouteClass.GuidTypeMethod);
 			var stringRequest = new RpcRequest("1", methodName, parameters);
 
@@ -350,6 +351,16 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.Equal(1, startCalledCount);
 			Assert.Equal(1, endCalledCount);
 
+		}
+
+
+		static JsonBytesRpcParameter FromRaw(object? value, JsonSerializerOptions? serializerOptions = null)
+		{
+
+			string json = JsonSerializer.Serialize(value, serializerOptions);
+			RpcParameterType type = value != null ? RpcParameterUtil.GetRpcType(value.GetType()) : RpcParameterType.Null;
+			JsonElement element = JsonDocument.Parse(json).RootElement;
+			return new JsonBytesRpcParameter(type, element, serializerOptions);
 		}
 	}
 

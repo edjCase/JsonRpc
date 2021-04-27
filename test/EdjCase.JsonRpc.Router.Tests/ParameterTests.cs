@@ -11,8 +11,8 @@ namespace EdjCase.JsonRpc.Router.Tests
 	{
 		private JsonBytesRpcParameter BuildParam(string json)
 		{
-			var bytes = new Memory<byte>(Encoding.UTF8.GetBytes(json));
-			return new JsonBytesRpcParameter(RpcParameterType.Object, bytes);
+			var doc = JsonDocument.Parse(json);
+			return new JsonBytesRpcParameter(RpcParameterType.Object, doc.RootElement);
 		}
 
 		[Fact]
