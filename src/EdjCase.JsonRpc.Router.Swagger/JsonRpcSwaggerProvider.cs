@@ -15,26 +15,28 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace EdjCase.JsonRpc.Router.Swagger
 {
+	using Microsoft.Extensions.DependencyInjection;
+
 	public class JsonRpcSwaggerProvider : ISwaggerProvider
 	{
 		private readonly ISchemaGenerator schemaGenerator;
 		private readonly SwaggerConfiguration swagerOptions;
-		private readonly IRpcMethodProvider methodProvider;
+		private readonly IServiceScopeFactory scopeFactory;
 		private readonly IXmlDocumentationService xmlDocumentationService;
 		private OpenApiDocument? cacheDocument;
 		private JsonNamingPolicy namePolicy;
 
 		public JsonRpcSwaggerProvider(
 			ISchemaGenerator schemaGenerator,
-			IRpcMethodProvider methodProvider,
 			IXmlDocumentationService xmlDocumentationService,
-			IOptions<SwaggerConfiguration> swaggerOptions
+			IOptions<SwaggerConfiguration> swaggerOptions,
+			IServiceScopeFactory scopeFactory
 		)
 		{
 			this.schemaGenerator = schemaGenerator;
 			this.swagerOptions = swaggerOptions.Value;
 			this.namePolicy = swaggerOptions.Value.NamingPolicy;
-			this.methodProvider = methodProvider;
+			this.scopeFactory = scopeFactory;
 			this.xmlDocumentationService = xmlDocumentationService;
 		}
 
@@ -79,7 +81,9 @@ namespace EdjCase.JsonRpc.Router.Swagger
 			}
 
 			var schemaRepository = new SchemaRepository();
-			RpcRouteMetaData metaData = this.methodProvider.Get();
+			var methodProvider =
+				this.scopeFactory.CreateScope().ServiceProvider.GetRequiredService<IRpcMethodProvider>();
+			RpcRouteMetaData metaData = methodProvider.Get();
 			OpenApiPaths paths = this.GetOpenApiPaths(metaData, schemaRepository);
 
 			this.cacheDocument = new OpenApiDocument()
