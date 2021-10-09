@@ -31,7 +31,9 @@ namespace Benchmarks
 			_ = BenchmarkRunner.Run<RequestMatcherTester>();
 		}
 
+#pragma warning disable CA1822 // Mark members as static
 		public void Test()
+#pragma warning restore CA1822 // Mark members as static
 		{
 
 		}
@@ -50,7 +52,12 @@ namespace Benchmarks
 			var logger = new FakeLogger<DefaultRequestMatcher>();
 			var methodProvider = new FakeMethodProvider();
 			var fakeRpcContextAccessor = new FakeRpcContextAccessor();
-			this.requestMatcher = new DefaultRequestMatcher(logger, methodProvider, fakeRpcContextAccessor);
+			var options = Options.Create(new RpcServerConfiguration
+			{
+				JsonSerializerSettings = null
+			});
+			var rpcParameterConverter = new DefaultRpcParameterConverter(options, new FakeLogger<DefaultRpcParameterConverter>());
+			this.requestMatcher = new DefaultRequestMatcher(logger, methodProvider, fakeRpcContextAccessor, rpcParameterConverter);
 		}
 
 		private RpcRequestSignature? requestsignature;
@@ -118,9 +125,9 @@ namespace Benchmarks
 
 			public class ComplexParam
 			{
-				public string A { get; set; }
+				public string? A { get; set; }
 				public bool B { get; set; }
-				public ComplexParam C { get; set; }
+				public ComplexParam? C { get; set; }
 			}
 		}
 #pragma warning restore IDE0060 // Remove unused parameter
@@ -131,7 +138,9 @@ namespace Benchmarks
 
 		public RpcContext Get()
 		{
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
 			return new RpcContext(null, "/api/v1/controller_name");
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
 		}
 
 		public void Set(RpcContext context)

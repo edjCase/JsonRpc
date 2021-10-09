@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using EdjCase.JsonRpc.Router.Tests.Controllers;
 using EdjCase.JsonRpc.Router.Utilities;
 using Xunit;
+using Microsoft.Extensions.Options;
 
 namespace EdjCase.JsonRpc.Router.Tests
 {
@@ -48,14 +49,23 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			var logger = new Mock<ILogger<DefaultRequestMatcher>>(MockBehavior.Loose);
 			var rpcContextAccessor = new Mock<IRpcContextAccessor>(MockBehavior.Strict);
+			var options = new Mock<IOptions<RpcServerConfiguration>>();
+			options.Setup(o => o.Value).Returns(new RpcServerConfiguration
+			{
+				JsonSerializerSettings = null
+			});
+			var logger2 = new Mock<ILogger<DefaultRpcParameterConverter>>();
+			var rpcParameterConverter = new DefaultRpcParameterConverter(options.Object, logger2.Object);
 
 			rpcContextAccessor
 			.Setup(p => p.Get())
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
 			.Returns(new RpcContext(null, path));
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
 
 
 			var methodProvider = new StaticRpcMethodProvider(this.GetMethodDataAccessor());
-			return new DefaultRequestMatcher(logger.Object, methodProvider, rpcContextAccessor.Object);
+			return new DefaultRequestMatcher(logger.Object, methodProvider, rpcContextAccessor.Object, rpcParameterConverter);
 		}
 
 		[Fact]
@@ -89,7 +99,6 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.Single(methodInfo.Parameters);
 			Assert.False(methodInfo.Parameters[0].IsOptional);
 			Assert.Equal(typeof(Guid), methodInfo.Parameters[0].RawType);
-			Assert.Equal(RpcParameterType.Object, methodInfo.Parameters[0].Type);
 			Assert.Equal("guid", methodInfo.Parameters[0].Name);
 		}
 
@@ -120,27 +129,22 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			Assert.False(methodInfo.Parameters[0].IsOptional);
 			Assert.Equal(typeof(int), methodInfo.Parameters[0].RawType);
-			Assert.Equal(RpcParameterType.Number, methodInfo.Parameters[0].Type);
 			Assert.Equal("a", methodInfo.Parameters[0].Name);
 
 			Assert.False(methodInfo.Parameters[1].IsOptional);
 			Assert.Equal(typeof(bool), methodInfo.Parameters[1].RawType);
-			Assert.Equal(RpcParameterType.Boolean, methodInfo.Parameters[1].Type);
 			Assert.Equal("b", methodInfo.Parameters[1].Name);
 
 			Assert.False(methodInfo.Parameters[2].IsOptional);
 			Assert.Equal(typeof(string), methodInfo.Parameters[2].RawType);
-			Assert.Equal(RpcParameterType.String, methodInfo.Parameters[2].Type);
 			Assert.Equal("c", methodInfo.Parameters[2].Name);
 
 			Assert.False(methodInfo.Parameters[3].IsOptional);
 			Assert.Equal(typeof(object), methodInfo.Parameters[3].RawType);
-			Assert.Equal(RpcParameterType.Object, methodInfo.Parameters[3].Type);
 			Assert.Equal("d", methodInfo.Parameters[3].Name);
 
 			Assert.True(methodInfo.Parameters[4].IsOptional);
 			Assert.Equal(typeof(int?), methodInfo.Parameters[4].RawType);
-			Assert.Equal(RpcParameterType.Object, methodInfo.Parameters[4].Type);
 			Assert.Equal("e", methodInfo.Parameters[4].Name);
 		}
 		[Fact]
@@ -160,27 +164,22 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			Assert.False(methodInfo.Parameters[0].IsOptional);
 			Assert.Equal(typeof(int), methodInfo.Parameters[0].RawType);
-			Assert.Equal(RpcParameterType.Number, methodInfo.Parameters[0].Type);
 			Assert.Equal("a", methodInfo.Parameters[0].Name);
 
 			Assert.False(methodInfo.Parameters[1].IsOptional);
 			Assert.Equal(typeof(bool), methodInfo.Parameters[1].RawType);
-			Assert.Equal(RpcParameterType.Boolean, methodInfo.Parameters[1].Type);
 			Assert.Equal("b", methodInfo.Parameters[1].Name);
 
 			Assert.False(methodInfo.Parameters[2].IsOptional);
 			Assert.Equal(typeof(string), methodInfo.Parameters[2].RawType);
-			Assert.Equal(RpcParameterType.String, methodInfo.Parameters[2].Type);
 			Assert.Equal("c", methodInfo.Parameters[2].Name);
 
 			Assert.False(methodInfo.Parameters[3].IsOptional);
 			Assert.Equal(typeof(object), methodInfo.Parameters[3].RawType);
-			Assert.Equal(RpcParameterType.Object, methodInfo.Parameters[3].Type);
 			Assert.Equal("d", methodInfo.Parameters[3].Name);
 
 			Assert.True(methodInfo.Parameters[4].IsOptional);
 			Assert.Equal(typeof(int?), methodInfo.Parameters[4].RawType);
-			Assert.Equal(RpcParameterType.Object, methodInfo.Parameters[4].Type);
 			Assert.Equal("e", methodInfo.Parameters[4].Name);
 		}
 		[Fact]
@@ -200,7 +199,6 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			Assert.False(methodInfo.Parameters[0].IsOptional);
 			Assert.Equal(typeof(List<string>), methodInfo.Parameters[0].RawType);
-			Assert.Equal(RpcParameterType.Object, methodInfo.Parameters[0].Type);
 			Assert.Equal("values", methodInfo.Parameters[0].Name);
 		}
 
@@ -251,7 +249,6 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			Assert.False(methodInfo.Parameters[0].IsOptional);
 			Assert.Equal(typeof(string), methodInfo.Parameters[0].RawType);
-			Assert.Equal(RpcParameterType.String, methodInfo.Parameters[0].Type);
 			Assert.True(RpcUtil.NamesMatch(methodInfo.Parameters[0].Name, parameterNameCase));
 		}
 	}

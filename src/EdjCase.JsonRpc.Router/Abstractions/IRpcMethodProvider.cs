@@ -38,7 +38,6 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 	public interface IRpcParameterInfo
 	{
 		string Name { get; }
-		RpcParameterType Type { get; }
 		Type RawType { get; }
 		bool IsOptional { get; }
 	}

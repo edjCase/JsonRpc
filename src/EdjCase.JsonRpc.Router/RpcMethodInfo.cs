@@ -91,14 +91,12 @@ namespace EdjCase.JsonRpc.Router
 	internal class RpcParameterInfo : IRpcParameterInfo
 	{
 		public string Name { get; }
-		public RpcParameterType Type { get; }
 		public Type RawType { get; }
 		public bool IsOptional { get; }
 
-		public RpcParameterInfo(string name, RpcParameterType type, Type rawType, bool isOptional)
+		public RpcParameterInfo(string name, Type rawType, bool isOptional)
 		{
 			this.Name = name;
-			this.Type = type;
 			this.RawType = rawType;
 			this.IsOptional = isOptional;
 		}
@@ -106,8 +104,8 @@ namespace EdjCase.JsonRpc.Router
 		public static RpcParameterInfo FromParameter(ParameterInfo parameterInfo)
 		{
 			Type parameterType = parameterInfo.ParameterType;
-			RpcParameterType type = RpcParameterUtil.GetRpcType(parameterType);
-			return new RpcParameterInfo(parameterInfo.Name!, type, parameterInfo.ParameterType, parameterInfo.IsOptional);
+			return new RpcParameterInfo(parameterInfo.Name!, parameterInfo.ParameterType, parameterInfo.IsOptional);
 		}
+
 	}
 }
