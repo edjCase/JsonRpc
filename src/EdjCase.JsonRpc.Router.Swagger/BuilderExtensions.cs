@@ -27,7 +27,7 @@ namespace EdjCase.JsonRpc.Router.Swagger.Extensions
 			return services
 				//enable xml documentation generation in project options (release and debug)
 				.AddSingleton<IXmlDocumentationService, XmlDocumentationService>()
-				.AddScoped<ISwaggerProvider, JsonRpcSwaggerProvider>()
+				.AddSingleton<ISwaggerProvider, JsonRpcSwaggerProvider>()
 				.AddSwaggerGen(configureSwaggerGen)
 				.AddJsonRpc(configureRpc);
 		}

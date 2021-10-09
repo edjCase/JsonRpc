@@ -16,6 +16,7 @@ using EdjCase.JsonRpc.Router;
 using System.Text;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 
 namespace EdjCase.JsonRpc.Router.Tests
 {
