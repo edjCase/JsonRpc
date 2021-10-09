@@ -187,7 +187,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		{
 			DefaultRequestMatcher matcher = this.GetMatcher(path: typeof(MethodMatcherController).GetTypeInfo().Name);
 
-			RpcParameterType[] parameters = new[] { RpcParameterType.Object };
+			RpcParameterType[] parameters = new[] { RpcParameterType.Array };
 			string methodName = nameof(MethodMatcherController.List);
 			var requestSignature = RpcRequestSignature.Create(methodName, parameters);
 			IRpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
@@ -250,6 +250,76 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.False(methodInfo.Parameters[0].IsOptional);
 			Assert.Equal(typeof(string), methodInfo.Parameters[0].RawType);
 			Assert.True(RpcUtil.NamesMatch(methodInfo.Parameters[0].Name, parameterNameCase));
+		}
+
+		[Fact]
+		public void GetMatchingMethod_Optional_NullListParam__Valid()
+		{
+			DefaultRequestMatcher matcher = this.GetMatcher(path: typeof(MethodMatcherController).GetTypeInfo().Name);
+			string methodName = nameof(MethodMatcherController.Optional);
+
+			RpcParameterType[] parameters = new[] { RpcParameterType.String, RpcParameterType.Null };
+			var requestSignature = RpcRequestSignature.Create(methodName, parameters);
+			IRpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
+			Validate(methodInfo);
+
+
+			RpcParameterType[] parameters2 = new[] { RpcParameterType.String, RpcParameterType.String };
+			var requestSignature2 = RpcRequestSignature.Create(methodName, parameters2);
+			IRpcMethodInfo methodInfo2 = matcher.GetMatchingMethod(requestSignature2);
+			Validate(methodInfo2);
+
+			void Validate(IRpcMethodInfo methodInfo)
+			{
+				Assert.NotNull(methodInfo);
+				Assert.Equal(methodName, methodInfo.Name);
+				Assert.Equal(2, methodInfo.Parameters.Count);
+				Assert.False(methodInfo.Parameters[0].IsOptional);
+				Assert.True(methodInfo.Parameters[1].IsOptional);
+				Assert.Equal(typeof(string), methodInfo.Parameters[0].RawType);
+				Assert.Equal(typeof(string), methodInfo.Parameters[1].RawType);
+				Assert.Equal("required", methodInfo.Parameters[0].Name);
+				Assert.Equal("optional", methodInfo.Parameters[1].Name);
+			}
+		}
+
+		[Fact]
+		public void GetMatchingMethod_Optional_NullDictParam__Valid()
+		{
+			DefaultRequestMatcher matcher = this.GetMatcher(path: typeof(MethodMatcherController).GetTypeInfo().Name);
+			string methodName = nameof(MethodMatcherController.Optional);
+
+			var parameters = new Dictionary<string, RpcParameterType>
+			{
+				{ "required", RpcParameterType.String },
+				{ "optional", RpcParameterType.Null }
+			};
+			var requestSignature = RpcRequestSignature.Create(methodName, parameters);
+			IRpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
+			Validate(methodInfo);
+
+
+			var parameters2 = new Dictionary<string, RpcParameterType>
+			{
+				{ "required", RpcParameterType.String },
+				{ "optional", RpcParameterType.String }
+			};
+			var requestSignature2 = RpcRequestSignature.Create(methodName, parameters2);
+			IRpcMethodInfo methodInfo2 = matcher.GetMatchingMethod(requestSignature2);
+			Validate(methodInfo2);
+
+			void Validate(IRpcMethodInfo methodInfo)
+			{
+				Assert.NotNull(methodInfo);
+				Assert.Equal(methodName, methodInfo.Name);
+				Assert.Equal(2, methodInfo.Parameters.Count);
+				Assert.False(methodInfo.Parameters[0].IsOptional);
+				Assert.True(methodInfo.Parameters[1].IsOptional);
+				Assert.Equal(typeof(string), methodInfo.Parameters[0].RawType);
+				Assert.Equal(typeof(string), methodInfo.Parameters[1].RawType);
+				Assert.Equal("required", methodInfo.Parameters[0].Name);
+				Assert.Equal("optional", methodInfo.Parameters[1].Name);
+			}
 		}
 	}
 

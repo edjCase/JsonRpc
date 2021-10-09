@@ -3,7 +3,7 @@
   <PropertyGroup>
     <!--No warn on xml comments empty-->
     <NoWarn>1591</NoWarn>
-    <TargetFrameworks>netcoreapp3.0</TargetFrameworks>
+		<TargetFramework>net5.0</TargetFramework>
     <AssemblyName>EdjCase.JsonRpc.Router.Sample</AssemblyName>
     <PackageId>EdjCase.JsonRpc.Router.Sample</PackageId>
     <UserSecretsId>bd997694-63b3-4cf8-8798-f7274f180573</UserSecretsId>

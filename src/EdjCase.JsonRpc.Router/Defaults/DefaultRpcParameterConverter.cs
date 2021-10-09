@@ -3,6 +3,7 @@ using EdjCase.JsonRpc.Router.Utilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -29,7 +30,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			Type destinationRawType,
 			out object? destinationValue)
 		{
-			TryConvertFunc? func = this.TryGetConveterFunc(destinationType, sourceValue.Type);
+			TryConvertFunc? func = this.TryGetConveterFunc(sourceValue.Type, destinationType);
 			if (func == null)
 			{
 				destinationValue = false;
@@ -112,6 +113,8 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			[(RpcParameterType.String, RpcParameterType.Boolean)] = TryGetBooleanFromString,
 			[(RpcParameterType.String, RpcParameterType.Number)] = TryGetNumberFromString,
 			[(RpcParameterType.String, RpcParameterType.String)] = TryGetStringFromString,
+			//Useful for string values like Guids
+			[(RpcParameterType.String, RpcParameterType.Object)] = TryGetObjectFromString,
 		};
 
 		private TryConvertFunc? TryGetConveterFunc(RpcParameterType sourceType, RpcParameterType destinationType)
@@ -124,29 +127,41 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		}
 
 
+		private static bool TryGetObjectFromString(Context context, out object? destinationValue)
+		{
+			string json = context.SourceValue.GetStringValue();
+			//Convert to list so it can be deserialized as proper json
+			json = $"[\"{json}\"]";
+			Type listDestinationType = typeof(List<>);
+			listDestinationType = listDestinationType.MakeGenericType(context.DestinationType);
+			var newContext = new Context(context.SourceValue, listDestinationType, context.Logger, context.SerializerOptions);
+
+			bool canParse = TryDeserializeJson(json, newContext, out destinationValue);
+			if (canParse)
+			{
+				destinationValue = ((IList)destinationValue!)[0];
+			}
+			return canParse;
+		}
+
 		private static bool TryGetObjectFromObject(Context context, out object? destinationValue)
 		{
 			Dictionary<string, RpcParameter> obj = context.SourceValue.GetObjectValue();
 			string json = JsonStringGeneratorUtil.FromObject(obj);
-			try
-			{
-				destinationValue = JsonSerializer.Deserialize(json, context.DestinationType, context.SerializerOptions);
-				return true;
-			}
-			catch (Exception ex)
-			{
-				context.Logger.LogWarning(ex, $"Failed to convert parameter value '{json}' to type '{context.DestinationType.Name}' ");
-				destinationValue = null;
-				return false;
-			}
+			return TryDeserializeJson(json, context, out destinationValue);
 		}
 
 		private static bool TryGetArrayFromArray(Context context, out object? destinationValue)
 		{
 			RpcParameter[] array = context.SourceValue.GetArrayValue();
 			string json = JsonStringGeneratorUtil.FromArray(array);
+			return TryDeserializeJson(json, context, out destinationValue);
+		}
+
+		private static bool TryDeserializeJson(string json, Context context, out object? destinationValue)
+		{
 			try
-			{
+			{				
 				destinationValue = JsonSerializer.Deserialize(json, context.DestinationType, context.SerializerOptions);
 				return true;
 			}

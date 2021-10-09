@@ -96,9 +96,9 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			DefaultRpcInvoker invoker = this.GetInvoker(methodName);
 			RpcResponse? stringResponse = await invoker.InvokeRequestAsync(stringRequest);
-
-
 			Assert.NotNull(stringResponse);
+			Assert.False(stringResponse!.HasError);
+
 			Assert.Equal(randomGuid, stringResponse!.Result);
 		}
 
@@ -202,7 +202,9 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.False(resultResponse.HasError);
-			Assert.Equal(param, resultResponse.Result);
+			var obj = Assert.IsType<TestComplexParam>(resultResponse.Result);
+			Assert.Equal("Test", obj.A);
+			Assert.Equal(5, obj.B);
 		}
 
 		[Fact]
@@ -217,7 +219,12 @@ namespace EdjCase.JsonRpc.Router.Tests
 				{
 					["A"] = RpcParameter.String("Test"),
 					["B"] = RpcParameter.Number(5)
-				})
+				}),
+				RpcParameter.Object(new Dictionary<string, RpcParameter>
+				{
+					["A"] = RpcParameter.String("Test2"),
+					["B"] = RpcParameter.Number(6)
+				}),
 			};
 			var rpcParameter = RpcParameter.Array(param);
 			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new  TopLevelRpcParameters(rpcParameter));
@@ -225,7 +232,12 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.False(resultResponse.HasError);
-			Assert.Equal(param, resultResponse.Result);
+			var obj = Assert.IsType<List<TestComplexParam>>(resultResponse.Result);
+			Assert.Equal(2, obj.Count);
+			Assert.Equal("Test", obj[0].A);
+			Assert.Equal(5, obj[0].B);
+			Assert.Equal("Test2", obj[1].A);
+			Assert.Equal(6, obj[1].B);
 		}
 
 		[Fact]

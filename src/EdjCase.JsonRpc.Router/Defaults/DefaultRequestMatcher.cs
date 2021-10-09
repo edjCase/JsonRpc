@@ -195,7 +195,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			int parameterCount = 0;
 			if (requestSignature.IsDictionary)
 			{
-				foreach ((Memory<char> name, RpcParameterType type) in requestSignature.ParametersAsDict)
+				foreach ((Memory<char> name, RpcParameterType sourceType) in requestSignature.ParametersAsDict)
 				{
 					bool found = false;
 					for (int paramIndex = 0; paramIndex < parameters.Count; paramIndex++)
@@ -205,8 +205,8 @@ namespace EdjCase.JsonRpc.Router.Defaults
 						{
 							continue;
 						}
-						RpcParameterType parameterType = this.rpcParameterConverter.GetRpcParameterType(parameter.RawType);
-						if (!this.rpcParameterConverter.AreTypesCompatible(parameterType, type))
+						RpcParameterType destinationType = this.rpcParameterConverter.GetRpcParameterType(parameter.RawType);
+						if (!this.rpcParameterConverter.AreTypesCompatible(sourceType, destinationType))
 						{
 							continue;
 						}
@@ -222,15 +222,15 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 			else
 			{
-				foreach (RpcParameterType parameterType in requestSignature.ParametersAsList)
+				foreach (RpcParameterType sourceType in requestSignature.ParametersAsList)
 				{
 					if (parameters.Count <= parameterCount)
 					{
 						return false;
 					}
 					IRpcParameterInfo info = parameters[parameterCount];
-					RpcParameterType type = this.rpcParameterConverter.GetRpcParameterType(info.RawType);
-					if (!this.rpcParameterConverter.AreTypesCompatible(type, parameterType))
+					RpcParameterType destinationType = this.rpcParameterConverter.GetRpcParameterType(info.RawType);
+					if (!this.rpcParameterConverter.AreTypesCompatible(sourceType, destinationType))
 					{
 						return false;
 					}
