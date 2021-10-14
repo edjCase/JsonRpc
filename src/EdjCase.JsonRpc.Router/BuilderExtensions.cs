@@ -64,6 +64,8 @@ namespace Microsoft.AspNetCore.Builder
 			serviceCollection
 				.TryAddScoped<IRpcMethodProvider, StaticRpcMethodProvider>();
 			serviceCollection
+				.TryAddScoped<IRpcParameterConverter, DefaultRpcParameterConverter>();
+			serviceCollection
 				.TryAddSingleton<StaticRpcMethodDataAccessor>();
 			serviceCollection.AddHttpContextAccessor();
 
