@@ -29,5 +29,10 @@ namespace EdjCase.JsonRpc.Router.Tests.Controllers
         {
             return true;
         }
+
+        public (string, string?) Optional(string required, string? optional = null)
+		{
+            return (required, optional);
+		}
     }
 }

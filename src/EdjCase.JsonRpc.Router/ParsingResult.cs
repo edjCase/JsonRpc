@@ -61,9 +61,9 @@ namespace EdjCase.JsonRpc.Router
 	{
 		public RpcId Id { get; }
 		public string? Method { get; }
-		public RpcParameters? Parameters { get; }
+		public TopLevelRpcParameters? Parameters { get; }
 		public RpcError? Error { get; }
-		private RpcRequestParseResult(RpcId id, string? method, RpcParameters? parameters, RpcError? error)
+		private RpcRequestParseResult(RpcId id, string? method, TopLevelRpcParameters? parameters, RpcError? error)
 		{
 			this.Id = id;
 			this.Method = method;
@@ -71,7 +71,7 @@ namespace EdjCase.JsonRpc.Router
 			this.Error = error;
 		}
 
-		public static RpcRequestParseResult Success(RpcId id, string method, RpcParameters? parameters)
+		public static RpcRequestParseResult Success(RpcId id, string method, TopLevelRpcParameters? parameters)
 		{
 			return new RpcRequestParseResult(id, method, parameters, null);
 		}

@@ -68,7 +68,9 @@ namespace EdjCase.JsonRpc.Router.Tests
 				.Setup(h => h.IsAuthorizedAsync(It.IsAny<IRpcMethodInfo>()))
 				.Returns(Task.FromResult(true));
 
-			return new DefaultRpcInvoker(logger.Object, options.Object, matcher.Object, accessor.Object, authHandler.Object);
+			var logger2 = new Mock<ILogger<DefaultRpcParameterConverter>>();
+			var parameterConverter = new DefaultRpcParameterConverter(options.Object, logger2.Object);
+			return new DefaultRpcInvoker(logger.Object, options.Object, matcher.Object, accessor.Object, authHandler.Object, parameterConverter);
 		}
 
 		private IServiceProvider GetServiceProvider()
@@ -89,22 +91,22 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public async Task InvokeRequest_StringParam_ParseAsGuidType()
 		{
 			Guid randomGuid = Guid.NewGuid();
-			var parameters = new RpcParameters(InvokerTests.FromRaw(randomGuid.ToString()));
+			var parameters = new  TopLevelRpcParameters(RpcParameter.String(randomGuid.ToString()));
 			string methodName = nameof(TestRouteClass.GuidTypeMethod);
 			var stringRequest = new RpcRequest("1", methodName, parameters);
 
 			DefaultRpcInvoker invoker = this.GetInvoker(methodName);
 			RpcResponse? stringResponse = await invoker.InvokeRequestAsync(stringRequest);
-
-
 			Assert.NotNull(stringResponse);
+			Assert.False(stringResponse!.HasError);
+
 			Assert.Equal(randomGuid, stringResponse!.Result);
 		}
 
 		[Fact]
 		public async Task InvokeRequest_MethodNotFound_ErrorResponse()
 		{
-			var parameters = new RpcParameters(InvokerTests.FromRaw(1));
+			var parameters = new TopLevelRpcParameters(RpcParameter.Number(1));
 			var stringRequest = new RpcRequest("1", "MethodNotFound", parameters);
 			DefaultRpcInvoker invoker = this.GetInvoker(methodInfo: null);
 			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
@@ -117,7 +119,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		[Fact]
 		public async Task InvokeRequest_AsyncMethod_Valid()
 		{
-			var parameters = new RpcParameters(InvokerTests.FromRaw(1), InvokerTests.FromRaw(1));
+			var parameters = new  TopLevelRpcParameters(RpcParameter.Number(1), RpcParameter.Number(1));
 			string methodName = nameof(TestRouteClass.AddAsync);
 			var stringRequest = new RpcRequest("1", methodName, parameters);
 
@@ -133,7 +135,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		[Fact]
 		public async Task InvokeRequest_Int64RequestParam_ConvertToInt32Param()
 		{
-			var parameters = new RpcParameters(InvokerTests.FromRaw(1L));
+			var parameters = new  TopLevelRpcParameters(RpcParameter.Number(1L));
 			string methodName = nameof(TestRouteClass.IntParameter);
 			var stringRequest = new RpcRequest("1", methodName, parameters);
 
@@ -163,7 +165,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.False(resultResponse.HasError, resultResponse.Error?.Message);
 
 			//Param is empty
-			var parameters = new RpcParameters(new IRpcParameter[0]);
+			var parameters = new  TopLevelRpcParameters();
 			stringRequest = new RpcRequest("1", methodName, parameters: parameters);
 			response = await invoker.InvokeRequestAsync(stringRequest);
 
@@ -174,7 +176,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			//Param is a string
 			const string value = "Test";
-			parameters = new RpcParameters(new IRpcParameter[] { InvokerTests.FromRaw(value) });
+			parameters = new  TopLevelRpcParameters(RpcParameter.String(value));
 			stringRequest = new RpcRequest("1", methodName, parameters: parameters);
 			response = await invoker.InvokeRequestAsync(stringRequest);
 
@@ -190,18 +192,20 @@ namespace EdjCase.JsonRpc.Router.Tests
 			string methodName = nameof(TestRouteClass.ComplexParam);
 			DefaultRpcInvoker invoker = this.GetInvoker(methodName);
 
-			TestComplexParam param = new TestComplexParam
+			var param = new Dictionary<string, RpcParameter>
 			{
-				A = "Test",
-				B = 5
+				["A"] = RpcParameter.String("Test"),
+				["B"] = RpcParameter.Number(5)
 			};
-			var rpcParameter = InvokerTests.FromRaw(param);
-			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new RpcParameters(rpcParameter));
+			var rpcParameter = RpcParameter.Object(param);
+			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new  TopLevelRpcParameters(rpcParameter));
 			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.False(resultResponse.HasError);
-			Assert.Equal(param, resultResponse.Result);
+			var obj = Assert.IsType<TestComplexParam>(resultResponse.Result);
+			Assert.Equal("Test", obj.A);
+			Assert.Equal(5, obj.B);
 		}
 
 		[Fact]
@@ -210,21 +214,31 @@ namespace EdjCase.JsonRpc.Router.Tests
 			string methodName = nameof(TestRouteClass.ListParam);
 			DefaultRpcInvoker invoker = this.GetInvoker(methodName);
 
-			var param = new TestComplexParam[]
+			var param = new RpcParameter[]
 			{
-				new TestComplexParam
+				RpcParameter.Object(new Dictionary<string, RpcParameter>
 				{
-					A = "Test",
-					B = 5
-				}
+					["A"] = RpcParameter.String("Test"),
+					["B"] = RpcParameter.Number(5)
+				}),
+				RpcParameter.Object(new Dictionary<string, RpcParameter>
+				{
+					["A"] = RpcParameter.String("Test2"),
+					["B"] = RpcParameter.Number(6)
+				}),
 			};
-			var rpcParameter = InvokerTests.FromRaw(param);
-			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new RpcParameters(rpcParameter));
+			var rpcParameter = RpcParameter.Array(param);
+			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new  TopLevelRpcParameters(rpcParameter));
 			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.False(resultResponse.HasError);
-			Assert.Equal(param, resultResponse.Result);
+			var obj = Assert.IsType<List<TestComplexParam>>(resultResponse.Result);
+			Assert.Equal(2, obj.Count);
+			Assert.Equal("Test", obj[0].A);
+			Assert.Equal(5, obj[0].B);
+			Assert.Equal("Test2", obj[1].A);
+			Assert.Equal(6, obj[1].B);
 		}
 
 		[Fact]
@@ -234,8 +248,8 @@ namespace EdjCase.JsonRpc.Router.Tests
 			DefaultRpcInvoker invoker = this.GetInvoker(methodName);
 
 			bool expectedValue = true;
-			var param = InvokerTests.FromRaw(expectedValue);
-			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new RpcParameters(param));
+			var param = RpcParameter.Boolean(expectedValue);
+			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new  TopLevelRpcParameters(param));
 			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
@@ -250,12 +264,12 @@ namespace EdjCase.JsonRpc.Router.Tests
 			DefaultRpcInvoker invoker = this.GetInvoker(methodName);
 
 			bool expectedValue = true;
-			var param = InvokerTests.FromRaw(expectedValue);
-			var paramDict = new Dictionary<string, IRpcParameter>
+			var param = RpcParameter.Boolean(expectedValue);
+			var paramDict = new Dictionary<string, RpcParameter>
 			{
 				["a"] = param
 			};
-			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new RpcParameters(paramDict));
+			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new  TopLevelRpcParameters(paramDict));
 			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
@@ -271,24 +285,28 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			bool a = true;
 			string bb = "Test";
-			object? ccc = null;
-			var dddd = new TestComplexParam();
+			var dddd = new Dictionary<string, RpcParameter>();
 			int eeeee = 1;
-			var paramDict = new Dictionary<string, IRpcParameter>
+			var paramDict = new Dictionary<string, RpcParameter>
 			{
-				["a"] = InvokerTests.FromRaw(a),
-				["bb"] = InvokerTests.FromRaw(bb),
-				["ccc"] = InvokerTests.FromRaw(ccc),
-				["dddd"] = InvokerTests.FromRaw(dddd),
-				["eeeee"] = InvokerTests.FromRaw(eeeee)
+				["a"] = RpcParameter.Boolean(a),
+				["bb"] = RpcParameter.String(bb),
+				["ccc"] = RpcParameter.Null(),
+				["dddd"] = RpcParameter.Object(dddd),
+				["eeeee"] = RpcParameter.Number(eeeee)
 			};
-			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new RpcParameters(paramDict));
+			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new  TopLevelRpcParameters(paramDict));
 			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
 
 			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 			Assert.False(resultResponse.HasError);
-			var value = Assert.IsType<ValueTuple<bool, string, object, TestComplexParam, int>>(resultResponse.Result);
-			Assert.Equal((a, bb, ccc, dddd, eeeee), value);
+			(bool, string, object, TestComplexParam, int) value = Assert.IsType<ValueTuple<bool, string, object, TestComplexParam, int>>(resultResponse.Result);
+			Assert.Equal(a, value.Item1);
+			Assert.Equal(bb, value.Item2);
+			Assert.Null(value.Item3);
+			Assert.Null(value.Item4.A);
+			Assert.Equal(0, value.Item4.B);
+			Assert.Equal(eeeee, value.Item5);
 		}
 
 		[Fact]
@@ -297,26 +315,30 @@ namespace EdjCase.JsonRpc.Router.Tests
 			string methodName = nameof(TestRouteClass.ComplexParam);
 			DefaultRpcInvoker invoker = this.GetInvoker(methodName);
 
-			async Task Test(TestComplexParam param)
+			async Task Test(Dictionary<string, RpcParameter> param)
 			{
-				var rpcParameter = InvokerTests.FromRaw(param);
-				RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new RpcParameters(rpcParameter));
+				var rpcParameter = RpcParameter.Object(param);
+				RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: new  TopLevelRpcParameters(rpcParameter));
 				RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
 
 				RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
 				Assert.False(resultResponse.HasError);
-				Assert.Equal(param, resultResponse.Result);
+				var obj = Assert.IsType<TestComplexParam>(resultResponse.Result);
+				Assert.Equal(param["A"].GetStringValue(), obj.A);
+				Assert.True(param["B"].GetNumberValue().TryGetInteger(out int v));
+				Assert.Equal(v, obj.B);
 			}
-			TestComplexParam param1 = new TestComplexParam
+			var param1 = new Dictionary<string, RpcParameter>
 			{
-				A = "Test",
-				B = 5
+				["A"] = RpcParameter.String("Test"),
+				["B"] = RpcParameter.Number(5)
 			};
 			await Test(param1);
-			TestComplexParam param2 = new TestComplexParam
+
+			var param2 = new Dictionary<string, RpcParameter>
 			{
-				A = "Test2",
-				B = 6
+				["A"] = RpcParameter.String("Test2"),
+				["B"] = RpcParameter.Number(6)
 			};
 			await Test(param2);
 		}
@@ -325,7 +347,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		public async Task InvokeRequest_WithAudit()
 		{
 			Guid randomGuid = Guid.NewGuid();
-			var parameters = new RpcParameters(InvokerTests.FromRaw(randomGuid.ToString()));
+			var parameters = new  TopLevelRpcParameters(RpcParameter.String(randomGuid.ToString()));
 			string methodName = nameof(TestRouteClass.GuidTypeMethod);
 			var stringRequest = new RpcRequest("1", methodName, parameters);
 
@@ -351,16 +373,6 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.Equal(1, startCalledCount);
 			Assert.Equal(1, endCalledCount);
 
-		}
-
-
-		static JsonBytesRpcParameter FromRaw(object? value, JsonSerializerOptions? serializerOptions = null)
-		{
-
-			string json = JsonSerializer.Serialize(value, serializerOptions);
-			RpcParameterType type = value != null ? RpcParameterUtil.GetRpcType(value.GetType()) : RpcParameterType.Null;
-			JsonElement element = JsonDocument.Parse(json).RootElement;
-			return new JsonBytesRpcParameter(type, element, serializerOptions);
 		}
 	}
 

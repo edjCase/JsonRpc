@@ -116,7 +116,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.False(result.IsBulkRequest);
 		}
 
-		private static void CompareParameters(object[] parameters, RpcParameters? jParameters)
+		private static void CompareParameters(object[] parameters, TopLevelRpcParameters? jParameters)
 		{
 			if (parameters != null)
 			{
@@ -127,7 +127,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			}
 			else
 			{
-				Assert.Equal(default(RpcParameters), jParameters);
+				Assert.Equal(default(TopLevelRpcParameters), jParameters);
 			}
 		}
 
@@ -297,7 +297,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.Single(result.Requests);
 			Assert.Equal("1", result.Requests[0].Id);
 			Assert.Equal("datetime", result.Requests[0].Method);
-			Assert.Equal(default(RpcParameters), result.Requests[0].Parameters);
+			Assert.Equal(default(TopLevelRpcParameters), result.Requests[0].Parameters);
 			Assert.False(result.IsBulkRequest);
 		}
 

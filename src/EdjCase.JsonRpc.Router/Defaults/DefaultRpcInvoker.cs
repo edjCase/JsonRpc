@@ -41,6 +41,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		private IRpcRequestMatcher rpcRequestMatcher { get; }
 		private IRpcContextAccessor contextAccessor { get; }
 		private IRpcAuthorizationHandler authorizationHandler { get; }
+		private IRpcParameterConverter parameterConverter { get; }
 
 		/// <param name="authorizationService">Service that authorizes each method for use if configured</param>
 		/// <param name="policyProvider">Provides authorization policies for the authroziation service</param>
@@ -51,13 +52,15 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			IOptions<RpcServerConfiguration> serverConfig,
 			IRpcRequestMatcher rpcRequestMatcher,
 			IRpcContextAccessor contextAccessor,
-			IRpcAuthorizationHandler authorizationHandler)
+			IRpcAuthorizationHandler authorizationHandler,
+			IRpcParameterConverter parameterConverter)
 		{
 			this.logger = logger;
 			this.serverConfig = serverConfig;
 			this.rpcRequestMatcher = rpcRequestMatcher;
 			this.contextAccessor = contextAccessor;
 			this.authorizationHandler = authorizationHandler;
+			this.parameterConverter = parameterConverter;
 		}
 
 
@@ -182,19 +185,19 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			return null;
 		}
 
-		private object[] ParseParameters(RpcParameters? requestParameters, IReadOnlyList<IRpcParameterInfo> methodParameters)
+		private object[] ParseParameters(TopLevelRpcParameters? requestParameters, IReadOnlyList<IRpcParameterInfo> methodParameters)
 		{
 			object[] paramCache = ArrayPool<object>.Shared.Rent(methodParameters.Count);
 			try
 			{
 				if (requestParameters != null && requestParameters.Any())
 				{
-					IRpcParameter[] parameterList;
+					RpcParameter[] parameterList;
 					if (requestParameters.IsDictionary)
 					{
-						if (!this.TryParseParameterList(methodParameters, requestParameters.AsDictionary, out IRpcParameter[]? pList))
+						if (!this.TryParseParameterList(methodParameters, requestParameters.AsDictionary, out RpcParameter[]? pList))
 						{
-							string message = "Unable to parse the ";
+							string message = "Unable to parse the parameter dictionary as a list";
 							throw new RpcException(RpcErrorCode.InternalError, message);
 						}
 						parameterList = pList!;
@@ -207,9 +210,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					for (int i = 0; i < parameterList!.Length; i++)
 					{
 						IRpcParameterInfo parameterInfo = methodParameters[i];
-						IRpcParameter parameter = parameterList[i];
-						// TODO optimize to utilize parameterInfo.Type for performance
-						if (!parameter.TryGetValue(parameterInfo.RawType, out object? value))
+						RpcParameter parameter = parameterList[i];
+						RpcParameterType type = this.parameterConverter.GetRpcParameterType(parameterInfo.RawType);
+						bool matches = this.parameterConverter.TryConvertValue(parameter, type, parameterInfo.RawType, out object? value);
+						if (!matches)
 						{
 							if (badParams == null)
 							{
@@ -244,7 +248,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 		}
 
-		private bool TryParseParameterList(IReadOnlyList<IRpcParameterInfo> methodParameters, Dictionary<string, IRpcParameter> requestParameters, out IRpcParameter[]? parameterList)
+		private bool TryParseParameterList(IReadOnlyList<IRpcParameterInfo> methodParameters, Dictionary<string, RpcParameter> requestParameters, out RpcParameter[]? parameterList)
 		{
 			if (methodParameters.Count > requestParameters.Count)
 			{
@@ -260,12 +264,12 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					return false;
 				}
 			}
-			parameterList = new IRpcParameter[requestParameters.Count];
+			parameterList = new RpcParameter[requestParameters.Count];
 			for (int i = 0; i < requestParameters.Count; i++)
 			{
 				IRpcParameterInfo parameterInfo = methodParameters[i];
 
-				foreach (KeyValuePair<string, IRpcParameter> requestParameter in requestParameters)
+				foreach (KeyValuePair<string, RpcParameter> requestParameter in requestParameters)
 				{
 					if (RpcUtil.NamesMatch(parameterInfo.Name.AsSpan(), requestParameter.Key.AsSpan()))
 					{

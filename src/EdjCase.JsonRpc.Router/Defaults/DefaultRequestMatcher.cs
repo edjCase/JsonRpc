@@ -14,79 +14,6 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace EdjCase.JsonRpc.Router.Defaults
 {
-	internal class RpcEndpointInfo
-	{
-		public Dictionary<RpcPath, List<MethodInfo>> Routes { get; }
-
-		public RpcEndpointInfo(Dictionary<RpcPath, List<MethodInfo>> routes)
-		{
-			this.Routes = routes ?? throw new ArgumentNullException(nameof(routes));
-		}
-	}
-
-	internal class MethodInfoEqualityComparer : IEqualityComparer<MethodInfo>
-	{
-		public static MethodInfoEqualityComparer Instance = new MethodInfoEqualityComparer();
-
-		public bool Equals(MethodInfo? x, MethodInfo? y)
-		{
-			if (x == null || y == null)
-			{
-				return x == null && y == null;
-			}
-			if (object.ReferenceEquals(x, y))
-			{
-				return true;
-			}
-			if (x.Name != y.Name)
-			{
-				return false;
-			}
-			if (x.DeclaringType != y.DeclaringType)
-			{
-				return false;
-			}
-			ParameterInfo[] xParameters = x.GetParameters();
-			ParameterInfo[] yParameters = y.GetParameters();
-			if (!xParameters.SequenceEqual(yParameters, ParameterInfoEqualityComparer.Instance))
-			{
-				return false;
-			}
-			return true;
-		}
-
-		public int GetHashCode(MethodInfo obj)
-		{
-			return obj.Name.GetHashCode();
-		}
-	}
-
-	internal class ParameterInfoEqualityComparer : IEqualityComparer<ParameterInfo>
-	{
-		public static ParameterInfoEqualityComparer Instance = new ParameterInfoEqualityComparer();
-		public bool Equals(ParameterInfo? x, ParameterInfo? y)
-		{
-			if (x == null || y == null)
-			{
-				return x == null && y == null;
-			}
-			if (x.ParameterType != y.ParameterType)
-			{
-				return false;
-			}
-			if (x.Name != y.Name)
-			{
-				return false;
-			}
-			return true;
-		}
-
-		public int GetHashCode(ParameterInfo obj)
-		{
-			return obj.Name?.GetHashCode() ?? 0;
-		}
-	}
-
 	internal class DefaultRequestMatcher : IRpcRequestMatcher
 	{
 		private static ConcurrentDictionary<RpcPath?, ConcurrentDictionary<RpcRequestSignature, IRpcMethodInfo[]>> requestToMethodCache { get; }
@@ -95,14 +22,18 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		private ILogger<DefaultRequestMatcher> logger { get; }
 		private IRpcMethodProvider methodProvider { get; }
 		private IRpcContextAccessor contextAccessor { get; }
+		private IRpcParameterConverter rpcParameterConverter { get; }
+
 		public DefaultRequestMatcher(ILogger<DefaultRequestMatcher> logger,
 			IRpcMethodProvider methodProvider,
-			IRpcContextAccessor contextAccessor)
+			IRpcContextAccessor contextAccessor,
+			IRpcParameterConverter rpcParameterConverter)
 		{
 			this.contextAccessor = contextAccessor;
 			this.logger = logger;
 			this.methodProvider = methodProvider;
 			this.contextAccessor = contextAccessor;
+			this.rpcParameterConverter = rpcParameterConverter;
 		}
 
 		public IRpcMethodInfo GetMatchingMethod(RpcRequestSignature requestSignature)
@@ -132,7 +63,8 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					var parameterTypeList = new List<string>();
 					foreach (IRpcParameterInfo parameterInfo in matchedMethod.Parameters)
 					{
-						string parameterType = parameterInfo.Name + ": " + parameterInfo.Type;
+						RpcParameterType type = this.rpcParameterConverter.GetRpcParameterType(parameterInfo.RawType);
+						string parameterType = parameterInfo.Name + ": " + type;
 						if (parameterInfo.IsOptional)
 						{
 							parameterType += "(Optional)";
@@ -263,14 +195,18 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			int parameterCount = 0;
 			if (requestSignature.IsDictionary)
 			{
-				foreach ((Memory<char> name, RpcParameterType type) in requestSignature.ParametersAsDict)
+				foreach ((Memory<char> name, RpcParameterType sourceType) in requestSignature.ParametersAsDict)
 				{
 					bool found = false;
 					for (int paramIndex = 0; paramIndex < parameters.Count; paramIndex++)
 					{
 						IRpcParameterInfo parameter = parameters[paramIndex];
-						if (!RpcUtil.NamesMatch(parameter.Name.AsSpan(), name.Span) ||
-							!RpcParameterUtil.TypesCompatible(parameter.Type, type))
+						if (!RpcUtil.NamesMatch(parameter.Name.AsSpan(), name.Span))
+						{
+							continue;
+						}
+						RpcParameterType destinationType = this.rpcParameterConverter.GetRpcParameterType(parameter.RawType);
+						if (!this.rpcParameterConverter.AreTypesCompatible(sourceType, destinationType))
 						{
 							continue;
 						}
@@ -286,14 +222,15 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			}
 			else
 			{
-				foreach (RpcParameterType parameterType in requestSignature.ParametersAsList)
+				foreach (RpcParameterType sourceType in requestSignature.ParametersAsList)
 				{
 					if (parameters.Count <= parameterCount)
 					{
 						return false;
 					}
 					IRpcParameterInfo info = parameters[parameterCount];
-					if (!RpcParameterUtil.TypesCompatible(info.Type, parameterType))
+					RpcParameterType destinationType = this.rpcParameterConverter.GetRpcParameterType(info.RawType);
+					if (!this.rpcParameterConverter.AreTypesCompatible(sourceType, destinationType))
 					{
 						return false;
 					}
@@ -321,4 +258,78 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		}
 
 	}
+
+	internal class RpcEndpointInfo
+	{
+		public Dictionary<RpcPath, List<MethodInfo>> Routes { get; }
+
+		public RpcEndpointInfo(Dictionary<RpcPath, List<MethodInfo>> routes)
+		{
+			this.Routes = routes ?? throw new ArgumentNullException(nameof(routes));
+		}
+	}
+
+	internal class MethodInfoEqualityComparer : IEqualityComparer<MethodInfo>
+	{
+		public static MethodInfoEqualityComparer Instance = new MethodInfoEqualityComparer();
+
+		public bool Equals(MethodInfo? x, MethodInfo? y)
+		{
+			if (x == null || y == null)
+			{
+				return x == null && y == null;
+			}
+			if (object.ReferenceEquals(x, y))
+			{
+				return true;
+			}
+			if (x.Name != y.Name)
+			{
+				return false;
+			}
+			if (x.DeclaringType != y.DeclaringType)
+			{
+				return false;
+			}
+			ParameterInfo[] xParameters = x.GetParameters();
+			ParameterInfo[] yParameters = y.GetParameters();
+			if (!xParameters.SequenceEqual(yParameters, ParameterInfoEqualityComparer.Instance))
+			{
+				return false;
+			}
+			return true;
+		}
+
+		public int GetHashCode(MethodInfo obj)
+		{
+			return obj.Name.GetHashCode();
+		}
+	}
+
+	internal class ParameterInfoEqualityComparer : IEqualityComparer<ParameterInfo>
+	{
+		public static ParameterInfoEqualityComparer Instance = new ParameterInfoEqualityComparer();
+		public bool Equals(ParameterInfo? x, ParameterInfo? y)
+		{
+			if (x == null || y == null)
+			{
+				return x == null && y == null;
+			}
+			if (x.ParameterType != y.ParameterType)
+			{
+				return false;
+			}
+			if (x.Name != y.Name)
+			{
+				return false;
+			}
+			return true;
+		}
+
+		public int GetHashCode(ParameterInfo obj)
+		{
+			return obj.Name?.GetHashCode() ?? 0;
+		}
+	}
+
 }

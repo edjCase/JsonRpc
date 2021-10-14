@@ -1,3 +1,4 @@
 {
-    "editor.insertSpaces": false
+    "editor.insertSpaces": false,
+    "dotnet-test-explorer.testProjectPath": "**/*Tests.@(csproj|vbproj|fsproj)"
 }

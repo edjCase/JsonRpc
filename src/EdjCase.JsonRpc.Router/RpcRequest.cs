@@ -13,8 +13,8 @@ namespace EdjCase.JsonRpc.Router
 	{
 		public RpcId Id { get; }
 		public string Method { get; }
-		public RpcParameters? Parameters { get; }
-		public RpcRequest(RpcId id, string method, RpcParameters? parameters = null)
+		public TopLevelRpcParameters? Parameters { get; }
+		public RpcRequest(RpcId id, string method, TopLevelRpcParameters? parameters = null)
 		{
 			this.Id = id;
 			this.Method = method;
@@ -22,48 +22,38 @@ namespace EdjCase.JsonRpc.Router
 		}
 	}
 
-	public class RpcParameters
+	public class TopLevelRpcParameters
 	{
 		public object Value { get; }
 		public bool IsDictionary { get; }
 
-		public RpcParameters(Dictionary<string, IRpcParameter> parameters)
+		public TopLevelRpcParameters(Dictionary<string, RpcParameter> parameters)
 		{
 			this.Value = parameters ?? throw new ArgumentNullException(nameof(parameters));
 			this.IsDictionary = true;
 		}
 
-		public RpcParameters(IRpcParameter parameter)
-		{
-			if (parameter == null)
-			{
-				throw new ArgumentNullException(nameof(parameter));
-			}
-			this.Value = new IRpcParameter[1] { parameter };
-			this.IsDictionary = false;
-		}
-
-		public RpcParameters(params IRpcParameter[] parameters)
+		public TopLevelRpcParameters(params RpcParameter[] parameters)
 		{
 			this.Value = parameters ?? throw new ArgumentNullException(nameof(parameters));
 			this.IsDictionary = false;
 		}
 
-		public Dictionary<string, IRpcParameter> AsDictionary
+		public Dictionary<string, RpcParameter> AsDictionary
 		{
 			get
 			{
 				this.CheckValue(isDictionary: true);
-				return (Dictionary<string, IRpcParameter>)this.Value;
+				return (Dictionary<string, RpcParameter>)this.Value;
 			}
 		}
 
-		public IRpcParameter[] AsArray
+		public RpcParameter[] AsArray
 		{
 			get
 			{
 				this.CheckValue(isDictionary: false);
-				return (IRpcParameter[])this.Value;
+				return (RpcParameter[])this.Value;
 			}
 		}
 

@@ -1,14 +1,14 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<Description>A AspNet Core IRouter implementation for Json Rpc v2 requests for Microsoft.AspNetCore.Routing.</Description>
-		<Version>5.0.0</Version>
+		<Version>5.1.1</Version>
 		<Authors>Gekctek</Authors>
 		<TargetFramework>netstandard2.1</TargetFramework>
 		<AssemblyName>EdjCase.JsonRpc.Router</AssemblyName>
 		<PackageId>EdjCase.JsonRpc.Router</PackageId>
 		<PackageTags>JsonRpc Rpc AspNet Json-Rpc .Net Core</PackageTags>
-		<PackageReleaseNotes>Allowing access to method info provider</PackageReleaseNotes>
+		<PackageReleaseNotes>Fixing DI</PackageReleaseNotes>
 		<PackageProjectUrl>https://github.com/edjCase/JsonRpc</PackageProjectUrl>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 		<RepositoryType>git</RepositoryType>

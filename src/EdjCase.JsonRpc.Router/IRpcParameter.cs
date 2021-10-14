@@ -7,10 +7,82 @@ using System.Text.Json;
 
 namespace EdjCase.JsonRpc.Router
 {
-	public interface IRpcParameter
+	public class RpcParameter
 	{
-		RpcParameterType Type { get; }
-		bool TryGetValue(Type type, out object? value);
+		public RpcParameterType Type { get; }
+		private object? value { get; }
+
+		private RpcParameter(RpcParameterType type, object? value)
+		{
+			this.Type = type;
+			this.value = value;
+		}
+
+		public bool GetBooleanValue()
+		{
+			this.ThrowIfNoType(RpcParameterType.Boolean);
+			return (bool)this.value!;
+		}
+		public RpcNumber GetNumberValue()
+		{
+			this.ThrowIfNoType(RpcParameterType.Number);
+			return (RpcNumber)this.value!;
+		}
+		public string GetStringValue()
+		{
+			this.ThrowIfNoType(RpcParameterType.String);
+			return (string)this.value!;
+		}
+
+		public Dictionary<string, RpcParameter> GetObjectValue()
+		{
+			this.ThrowIfNoType(RpcParameterType.Object);
+			return (Dictionary<string, RpcParameter>)this.value!;
+		}
+
+		public RpcParameter[] GetArrayValue()
+		{
+			this.ThrowIfNoType(RpcParameterType.Array);
+			return (RpcParameter[])this.value!;
+		}
+
+		private void ThrowIfNoType(RpcParameterType type)
+		{
+			if (this.Type != type)
+			{
+				throw new InvalidOperationException($"Cannot get a {type} value from a {this.Type} value");
+			}
+		}
+
+		public static RpcParameter String(string value)
+		{
+			return new RpcParameter(RpcParameterType.String, value);
+		}
+
+		public static RpcParameter Number(RpcNumber value)
+		{
+			return new RpcParameter(RpcParameterType.Number, value);
+		}
+
+		public static RpcParameter Boolean(bool value)
+		{
+			return new RpcParameter(RpcParameterType.Boolean, value);
+		}
+
+		public static RpcParameter Null()
+		{
+			return new RpcParameter(RpcParameterType.Null, null);
+		}
+
+		public static RpcParameter Object(Dictionary<string, RpcParameter> value)
+		{
+			return new RpcParameter(RpcParameterType.Object, value);
+		}
+
+		public static RpcParameter Array(RpcParameter[] value)
+		{
+			return new RpcParameter(RpcParameterType.Array, value);
+		}
 	}
 
 	public enum RpcParameterType
@@ -23,99 +95,4 @@ namespace EdjCase.JsonRpc.Router
 		Array
 	}
 
-	public static class RpcParameterUtil
-	{
-		public static bool TryGetValue<T>(this IRpcParameter parameter, out T value)
-		{
-			bool parsed = parameter.TryGetValue(typeof(T), out object? v);
-			if (parsed)
-			{
-				value = (T)v!;
-				return true;
-			}
-			value = default!;
-			return false;
-		}
-
-		public static bool TypesCompatible(RpcParameterType actualType, RpcParameterType requestedType)
-		{
-			switch (requestedType)
-			{
-				case RpcParameterType.Boolean:
-					return actualType == RpcParameterType.Boolean || actualType == RpcParameterType.Object;
-				case RpcParameterType.Number:
-					//Almost anything can be converted from a number
-					return actualType != RpcParameterType.Array;
-				case RpcParameterType.Object:
-					return actualType == RpcParameterType.Object;
-				case RpcParameterType.Null:
-				case RpcParameterType.String:
-					return actualType == RpcParameterType.String || actualType == RpcParameterType.Object;
-				case RpcParameterType.Array:
-					return actualType == RpcParameterType.Object || actualType == RpcParameterType.Array;
-				default:
-					throw new ArgumentOutOfRangeException(nameof(requestedType));
-			}
-		}
-
-		internal static RpcParameterType GetRpcType(Type parameterType)
-		{
-			if (parameterType == typeof(short)
-				|| parameterType == typeof(ushort)
-				|| parameterType == typeof(int)
-				|| parameterType == typeof(uint)
-				|| parameterType == typeof(long)
-				|| parameterType == typeof(ulong)
-				|| parameterType == typeof(float)
-				|| parameterType == typeof(double)
-				|| parameterType == typeof(decimal))
-			{
-				return RpcParameterType.Number;
-			}
-			if (parameterType == typeof(string))
-			{
-				return RpcParameterType.String;
-			}
-			if (parameterType == typeof(bool))
-			{
-				return RpcParameterType.Boolean;
-			}
-			return RpcParameterType.Object;
-		}
-	}
-
-	internal class JsonBytesRpcParameter : IRpcParameter
-	{
-		public RpcParameterType Type { get; }
-		private JsonElement json { get; }
-		private JsonSerializerOptions? serializerOptions { get; }
-
-		public JsonBytesRpcParameter(RpcParameterType type, JsonElement json, JsonSerializerOptions? serializerOptions = null)
-		{
-			this.Type = type;
-			this.json = json;
-			this.serializerOptions = serializerOptions;
-		}
-
-		public bool TryGetValue(Type type, out object? value)
-		{
-			if (this.Type == RpcParameterType.Null)
-			{
-				value = null;
-				return type.IsNullableType();
-			}
-			
-			try
-			{
-				// TODO this is not efficient. How can JsonElement be deserialized?
-				value = JsonSerializer.Deserialize(this.json.GetRawText(), type, this.serializerOptions);
-				return true;
-			}
-			catch (Exception)
-			{
-				value = default;
-				return false;
-			}
-		}
-	}
 }

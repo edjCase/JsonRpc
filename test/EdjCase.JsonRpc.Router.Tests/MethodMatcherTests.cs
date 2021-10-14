@@ -13,6 +13,7 @@ using System.Threading.Tasks;
 using EdjCase.JsonRpc.Router.Tests.Controllers;
 using EdjCase.JsonRpc.Router.Utilities;
 using Xunit;
+using Microsoft.Extensions.Options;
 
 namespace EdjCase.JsonRpc.Router.Tests
 {
@@ -48,6 +49,13 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			var logger = new Mock<ILogger<DefaultRequestMatcher>>(MockBehavior.Loose);
 			var rpcContextAccessor = new Mock<IRpcContextAccessor>(MockBehavior.Strict);
+			var options = new Mock<IOptions<RpcServerConfiguration>>();
+			options.Setup(o => o.Value).Returns(new RpcServerConfiguration
+			{
+				JsonSerializerSettings = null
+			});
+			var logger2 = new Mock<ILogger<DefaultRpcParameterConverter>>();
+			var rpcParameterConverter = new DefaultRpcParameterConverter(options.Object, logger2.Object);
 
 			rpcContextAccessor
 			.Setup(p => p.Get())
@@ -57,7 +65,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 
 			var methodProvider = new StaticRpcMethodProvider(this.GetMethodDataAccessor());
-			return new DefaultRequestMatcher(logger.Object, methodProvider, rpcContextAccessor.Object);
+			return new DefaultRequestMatcher(logger.Object, methodProvider, rpcContextAccessor.Object, rpcParameterConverter);
 		}
 
 		[Fact]
@@ -91,7 +99,6 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.Single(methodInfo.Parameters);
 			Assert.False(methodInfo.Parameters[0].IsOptional);
 			Assert.Equal(typeof(Guid), methodInfo.Parameters[0].RawType);
-			Assert.Equal(RpcParameterType.Object, methodInfo.Parameters[0].Type);
 			Assert.Equal("guid", methodInfo.Parameters[0].Name);
 		}
 
@@ -122,27 +129,22 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			Assert.False(methodInfo.Parameters[0].IsOptional);
 			Assert.Equal(typeof(int), methodInfo.Parameters[0].RawType);
-			Assert.Equal(RpcParameterType.Number, methodInfo.Parameters[0].Type);
 			Assert.Equal("a", methodInfo.Parameters[0].Name);
 
 			Assert.False(methodInfo.Parameters[1].IsOptional);
 			Assert.Equal(typeof(bool), methodInfo.Parameters[1].RawType);
-			Assert.Equal(RpcParameterType.Boolean, methodInfo.Parameters[1].Type);
 			Assert.Equal("b", methodInfo.Parameters[1].Name);
 
 			Assert.False(methodInfo.Parameters[2].IsOptional);
 			Assert.Equal(typeof(string), methodInfo.Parameters[2].RawType);
-			Assert.Equal(RpcParameterType.String, methodInfo.Parameters[2].Type);
 			Assert.Equal("c", methodInfo.Parameters[2].Name);
 
 			Assert.False(methodInfo.Parameters[3].IsOptional);
 			Assert.Equal(typeof(object), methodInfo.Parameters[3].RawType);
-			Assert.Equal(RpcParameterType.Object, methodInfo.Parameters[3].Type);
 			Assert.Equal("d", methodInfo.Parameters[3].Name);
 
 			Assert.True(methodInfo.Parameters[4].IsOptional);
 			Assert.Equal(typeof(int?), methodInfo.Parameters[4].RawType);
-			Assert.Equal(RpcParameterType.Object, methodInfo.Parameters[4].Type);
 			Assert.Equal("e", methodInfo.Parameters[4].Name);
 		}
 		[Fact]
@@ -162,27 +164,22 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			Assert.False(methodInfo.Parameters[0].IsOptional);
 			Assert.Equal(typeof(int), methodInfo.Parameters[0].RawType);
-			Assert.Equal(RpcParameterType.Number, methodInfo.Parameters[0].Type);
 			Assert.Equal("a", methodInfo.Parameters[0].Name);
 
 			Assert.False(methodInfo.Parameters[1].IsOptional);
 			Assert.Equal(typeof(bool), methodInfo.Parameters[1].RawType);
-			Assert.Equal(RpcParameterType.Boolean, methodInfo.Parameters[1].Type);
 			Assert.Equal("b", methodInfo.Parameters[1].Name);
 
 			Assert.False(methodInfo.Parameters[2].IsOptional);
 			Assert.Equal(typeof(string), methodInfo.Parameters[2].RawType);
-			Assert.Equal(RpcParameterType.String, methodInfo.Parameters[2].Type);
 			Assert.Equal("c", methodInfo.Parameters[2].Name);
 
 			Assert.False(methodInfo.Parameters[3].IsOptional);
 			Assert.Equal(typeof(object), methodInfo.Parameters[3].RawType);
-			Assert.Equal(RpcParameterType.Object, methodInfo.Parameters[3].Type);
 			Assert.Equal("d", methodInfo.Parameters[3].Name);
 
 			Assert.True(methodInfo.Parameters[4].IsOptional);
 			Assert.Equal(typeof(int?), methodInfo.Parameters[4].RawType);
-			Assert.Equal(RpcParameterType.Object, methodInfo.Parameters[4].Type);
 			Assert.Equal("e", methodInfo.Parameters[4].Name);
 		}
 		[Fact]
@@ -190,7 +187,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		{
 			DefaultRequestMatcher matcher = this.GetMatcher(path: typeof(MethodMatcherController).GetTypeInfo().Name);
 
-			RpcParameterType[] parameters = new[] { RpcParameterType.Object };
+			RpcParameterType[] parameters = new[] { RpcParameterType.Array };
 			string methodName = nameof(MethodMatcherController.List);
 			var requestSignature = RpcRequestSignature.Create(methodName, parameters);
 			IRpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
@@ -202,7 +199,6 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			Assert.False(methodInfo.Parameters[0].IsOptional);
 			Assert.Equal(typeof(List<string>), methodInfo.Parameters[0].RawType);
-			Assert.Equal(RpcParameterType.Object, methodInfo.Parameters[0].Type);
 			Assert.Equal("values", methodInfo.Parameters[0].Name);
 		}
 
@@ -253,8 +249,77 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			Assert.False(methodInfo.Parameters[0].IsOptional);
 			Assert.Equal(typeof(string), methodInfo.Parameters[0].RawType);
-			Assert.Equal(RpcParameterType.String, methodInfo.Parameters[0].Type);
 			Assert.True(RpcUtil.NamesMatch(methodInfo.Parameters[0].Name, parameterNameCase));
+		}
+
+		[Fact]
+		public void GetMatchingMethod_Optional_NullListParam__Valid()
+		{
+			DefaultRequestMatcher matcher = this.GetMatcher(path: typeof(MethodMatcherController).GetTypeInfo().Name);
+			string methodName = nameof(MethodMatcherController.Optional);
+
+			RpcParameterType[] parameters = new[] { RpcParameterType.String, RpcParameterType.Null };
+			var requestSignature = RpcRequestSignature.Create(methodName, parameters);
+			IRpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
+			Validate(methodInfo);
+
+
+			RpcParameterType[] parameters2 = new[] { RpcParameterType.String, RpcParameterType.String };
+			var requestSignature2 = RpcRequestSignature.Create(methodName, parameters2);
+			IRpcMethodInfo methodInfo2 = matcher.GetMatchingMethod(requestSignature2);
+			Validate(methodInfo2);
+
+			void Validate(IRpcMethodInfo methodInfo)
+			{
+				Assert.NotNull(methodInfo);
+				Assert.Equal(methodName, methodInfo.Name);
+				Assert.Equal(2, methodInfo.Parameters.Count);
+				Assert.False(methodInfo.Parameters[0].IsOptional);
+				Assert.True(methodInfo.Parameters[1].IsOptional);
+				Assert.Equal(typeof(string), methodInfo.Parameters[0].RawType);
+				Assert.Equal(typeof(string), methodInfo.Parameters[1].RawType);
+				Assert.Equal("required", methodInfo.Parameters[0].Name);
+				Assert.Equal("optional", methodInfo.Parameters[1].Name);
+			}
+		}
+
+		[Fact]
+		public void GetMatchingMethod_Optional_NullDictParam__Valid()
+		{
+			DefaultRequestMatcher matcher = this.GetMatcher(path: typeof(MethodMatcherController).GetTypeInfo().Name);
+			string methodName = nameof(MethodMatcherController.Optional);
+
+			var parameters = new Dictionary<string, RpcParameterType>
+			{
+				{ "required", RpcParameterType.String },
+				{ "optional", RpcParameterType.Null }
+			};
+			var requestSignature = RpcRequestSignature.Create(methodName, parameters);
+			IRpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
+			Validate(methodInfo);
+
+
+			var parameters2 = new Dictionary<string, RpcParameterType>
+			{
+				{ "required", RpcParameterType.String },
+				{ "optional", RpcParameterType.String }
+			};
+			var requestSignature2 = RpcRequestSignature.Create(methodName, parameters2);
+			IRpcMethodInfo methodInfo2 = matcher.GetMatchingMethod(requestSignature2);
+			Validate(methodInfo2);
+
+			void Validate(IRpcMethodInfo methodInfo)
+			{
+				Assert.NotNull(methodInfo);
+				Assert.Equal(methodName, methodInfo.Name);
+				Assert.Equal(2, methodInfo.Parameters.Count);
+				Assert.False(methodInfo.Parameters[0].IsOptional);
+				Assert.True(methodInfo.Parameters[1].IsOptional);
+				Assert.Equal(typeof(string), methodInfo.Parameters[0].RawType);
+				Assert.Equal(typeof(string), methodInfo.Parameters[1].RawType);
+				Assert.Equal("required", methodInfo.Parameters[0].Name);
+				Assert.Equal("optional", methodInfo.Parameters[1].Name);
+			}
 		}
 	}
 

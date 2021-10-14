@@ -52,7 +52,12 @@ namespace Benchmarks
 			var logger = new FakeLogger<DefaultRequestMatcher>();
 			var methodProvider = new FakeMethodProvider();
 			var fakeRpcContextAccessor = new FakeRpcContextAccessor();
-			this.requestMatcher = new DefaultRequestMatcher(logger, methodProvider, fakeRpcContextAccessor);
+			var options = Options.Create(new RpcServerConfiguration
+			{
+				JsonSerializerSettings = null
+			});
+			var rpcParameterConverter = new DefaultRpcParameterConverter(options, new FakeLogger<DefaultRpcParameterConverter>());
+			this.requestMatcher = new DefaultRequestMatcher(logger, methodProvider, fakeRpcContextAccessor, rpcParameterConverter);
 		}
 
 		private RpcRequestSignature? requestsignature;
@@ -120,13 +125,9 @@ namespace Benchmarks
 
 			public class ComplexParam
 			{
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-				public string A { get; set; }
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+				public string? A { get; set; }
 				public bool B { get; set; }
-#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
-				public ComplexParam C { get; set; }
-#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider declaring as nullable.
+				public ComplexParam? C { get; set; }
 			}
 		}
 #pragma warning restore IDE0060 // Remove unused parameter
