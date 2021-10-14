@@ -195,6 +195,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			int parameterCount = 0;
 			if (requestSignature.IsDictionary)
 			{
+				Dictionary<string, IRpcParameterInfo> remainingParameters = parameters.ToDictionary(p => p.Name, p => p);
 				foreach ((Memory<char> name, RpcParameterType sourceType) in requestSignature.ParametersAsDict)
 				{
 					bool found = false;
@@ -210,6 +211,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 						{
 							continue;
 						}
+						remainingParameters.Remove(parameter.Name);
 						found = true;
 						break;
 					}
@@ -218,6 +220,11 @@ namespace EdjCase.JsonRpc.Router.Defaults
 						return false;
 					}
 					parameterCount++;
+				}
+
+				if (remainingParameters.Any(p => !p.Value.IsOptional))
+				{
+					return false;
 				}
 			}
 			else
@@ -248,10 +255,6 @@ namespace EdjCase.JsonRpc.Router.Defaults
 						return false;
 					}
 				}
-			}
-			if (parameterCount != parameters.Count)
-			{
-				return false;
 			}
 			return true;
 

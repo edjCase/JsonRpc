@@ -321,6 +321,35 @@ namespace EdjCase.JsonRpc.Router.Tests
 				Assert.Equal("optional", methodInfo.Parameters[1].Name);
 			}
 		}
+
+		// https://github.com/edjCase/JsonRpc/issues/99
+		[Fact]
+		public void GetMatchingMethod__Dictionary_Request_With_Optional_Parameters__Matches()
+		{
+			DefaultRequestMatcher matcher = this.GetMatcher(path: typeof(MethodMatcherController).GetTypeInfo().Name);
+			string methodName = nameof(MethodMatcherController.CreateInfoHelperItem);
+
+			var parameters = new Dictionary<string, RpcParameterType>
+			{
+				{ "name", RpcParameterType.String },
+				{ "language", RpcParameterType.String },
+				{ "value", RpcParameterType.String },
+				{ "description", RpcParameterType.String },
+				{ "component", RpcParameterType.String },
+				{ "locationIndex", RpcParameterType.String },
+				{ "fontSize", RpcParameterType.Number },
+				{ "bold", RpcParameterType.Boolean },
+				{ "italic", RpcParameterType.Boolean },
+				{ "strikeout", RpcParameterType.Boolean },
+				{ "underline", RpcParameterType.Boolean },
+			};
+			var requestSignature = RpcRequestSignature.Create(methodName, parameters);
+			IRpcMethodInfo methodInfo = matcher.GetMatchingMethod(requestSignature);
+
+
+			Assert.NotNull(methodInfo);
+			Assert.Equal(methodName, methodInfo.Name);
+		}
 	}
 
 }

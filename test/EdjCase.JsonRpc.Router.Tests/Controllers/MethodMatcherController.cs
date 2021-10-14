@@ -1,9 +1,10 @@
+using EdjCase.JsonRpc.Router.Abstractions;
 using System;
 using System.Collections.Generic;
 
 namespace EdjCase.JsonRpc.Router.Tests.Controllers
 {
-    public class MethodMatcherController
+    public class MethodMatcherController : RpcController
     {
         public Guid GuidTypeMethod(Guid guid)
         {
@@ -34,5 +35,11 @@ namespace EdjCase.JsonRpc.Router.Tests.Controllers
 		{
             return (required, optional);
 		}
-    }
+
+        // https://github.com/edjCase/JsonRpc/issues/99
+        public IRpcMethodResult CreateInfoHelperItem(string name, string language, string value, string description, string component, string locationIndex, string fontFamily = "Arial", int fontSize = 12, bool bold = false, bool italic = false, bool strikeout = false, bool underline = false)
+		{
+            return Ok((name, language, value, description, component, locationIndex, fontFamily, fontSize, bold, italic, strikeout, underline)); ;
+		}
+	}
 }
