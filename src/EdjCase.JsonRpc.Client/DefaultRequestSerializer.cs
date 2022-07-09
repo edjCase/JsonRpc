@@ -73,11 +73,11 @@ namespace EdjCase.JsonRpc.Client
 					id = new RpcId();
 					break;
 				case JTokenType.Integer:
-					id = new RpcId(idToken.Value<long>());
+					id = new RpcId(idToken.Value<long>()!);
 					break;
 				case JTokenType.String:
 				case JTokenType.Guid:
-					id = new RpcId(idToken.Value<string>());
+					id = new RpcId(idToken.Value<string>()!);
 					break;
 				default:
 					throw new RpcClientParseException("Unable to parse rpc id as string or integer.");
@@ -90,7 +90,7 @@ namespace EdjCase.JsonRpc.Client
 			if (errorToken != null && errorToken.HasValues)
 			{
 				int code = errorToken.Value<int>(JsonRpcContants.ErrorCodePropertyName);
-				string message = errorToken.Value<string>(JsonRpcContants.ErrorMessagePropertyName);
+				string message = errorToken.Value<string>(JsonRpcContants.ErrorMessagePropertyName)!;
 				JToken? dataToken = errorToken[JsonRpcContants.ErrorDataPropertyName];
 
 				object? data = null;
