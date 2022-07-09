@@ -28,16 +28,18 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			RpcParameter sourceValue,
 			RpcParameterType destinationType,
 			Type destinationRawType,
-			out object? destinationValue)
+			out object? destinationValue,
+			out Exception? exception)
 		{
 			TryConvertFunc? func = this.TryGetConveterFunc(sourceValue.Type, destinationType);
 			if (func == null)
 			{
 				destinationValue = false;
+				exception = null;
 				return false;
 			}
 			var context = new Context(sourceValue, destinationRawType, this.logger, this.options.Value.JsonSerializerSettings);
-			return func(context, out destinationValue);
+			return func(context, out destinationValue, out exception);
 		}
 
 		public bool AreTypesCompatible(RpcParameterType sourceType, RpcParameterType destinationType)
@@ -98,7 +100,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 		}
 
-		private delegate bool TryConvertFunc(Context context, out object? destinationValue);
+		private delegate bool TryConvertFunc(Context context, out object? destinationValue,  out Exception? exception);
 
 		private static readonly Dictionary<(RpcParameterType Source, RpcParameterType Destination), TryConvertFunc> converterFuncs = new Dictionary<(RpcParameterType Source, RpcParameterType Destination), TryConvertFunc>
 		{
@@ -127,7 +129,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		}
 
 
-		private static bool TryGetObjectFromString(Context context, out object? destinationValue)
+		private static bool TryGetObjectFromString(Context context, out object? destinationValue,  out Exception? exception)
 		{
 			string json = context.SourceValue.GetStringValue();
 			//Convert to list so it can be deserialized as proper json
@@ -136,7 +138,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			listDestinationType = listDestinationType.MakeGenericType(context.DestinationType);
 			var newContext = new Context(context.SourceValue, listDestinationType, context.Logger, context.SerializerOptions);
 
-			bool canParse = TryDeserializeJson(json, newContext, out destinationValue);
+			bool canParse = TryDeserializeJson(json, newContext, out destinationValue, out exception);
 			if (canParse)
 			{
 				destinationValue = ((IList)destinationValue!)[0];
@@ -144,96 +146,107 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			return canParse;
 		}
 
-		private static bool TryGetObjectFromObject(Context context, out object? destinationValue)
+		private static bool TryGetObjectFromObject(Context context, out object? destinationValue,  out Exception? exception)
 		{
 			Dictionary<string, RpcParameter> obj = context.SourceValue.GetObjectValue();
 			string json = JsonStringGeneratorUtil.FromObject(obj);
-			return TryDeserializeJson(json, context, out destinationValue);
+			return TryDeserializeJson(json, context, out destinationValue, out exception);
 		}
 
-		private static bool TryGetArrayFromArray(Context context, out object? destinationValue)
+		private static bool TryGetArrayFromArray(Context context, out object? destinationValue, out Exception? exception)
 		{
 			RpcParameter[] array = context.SourceValue.GetArrayValue();
 			string json = JsonStringGeneratorUtil.FromArray(array);
-			return TryDeserializeJson(json, context, out destinationValue);
+			return TryDeserializeJson(json, context, out destinationValue, out exception);
 		}
 
-		private static bool TryDeserializeJson(string json, Context context, out object? destinationValue)
+		private static bool TryDeserializeJson(string json, Context context, out object? destinationValue, out Exception? exception)
 		{
 			try
 			{				
 				destinationValue = JsonSerializer.Deserialize(json, context.DestinationType, context.SerializerOptions);
+				exception = null;
 				return true;
 			}
 			catch (Exception ex)
 			{
 				context.Logger.LogWarning(ex, $"Failed to convert parameter value '{json}' to type '{context.DestinationType.Name}' ");
 				destinationValue = null;
+				exception = ex;
 				return false;
 			}
 		}
 
-		private static bool TryGetBooleanFromString(Context context, out object? destinationValue)
+		private static bool TryGetBooleanFromString(Context context, out object? destinationValue,  out Exception? exception)
 		{
 			string value = context.SourceValue.GetStringValue();
 			bool canParse = bool.TryParse(value, out bool boolValue);
 			destinationValue = boolValue;
+			exception = null;
 			return canParse;
 		}
 
-		private static bool TryGetStringFromString(Context context, out object? destinationValue)
+		private static bool TryGetStringFromString(Context context, out object? destinationValue,  out Exception? exception)
 		{
 			string value = context.SourceValue.GetStringValue();
 			destinationValue = value;
+			exception = null;
 			return true;
 		}
 
-		private static bool TryGetStringFromNumber(Context context, out object? destinationValue)
+		private static bool TryGetStringFromNumber(Context context, out object? destinationValue,  out Exception? exception)
 		{
 			RpcNumber value = context.SourceValue.GetNumberValue();
 			destinationValue = value.ToString();
+			exception = null;
 			return true;
 		}
 
-		private static bool TryGetNumberFromBoolean(Context context, out object? destinationValue)
+		private static bool TryGetNumberFromBoolean(Context context, out object? destinationValue,  out Exception? exception)
 		{
 			bool value = context.SourceValue.GetBooleanValue();
 			destinationValue = value ? 1 : 0;
+			exception = null;
 			return true;
 		}
 
-		private static bool TryGetBooleanFromBoolean(Context context, out object? destinationValue)
+		private static bool TryGetBooleanFromBoolean(Context context, out object? destinationValue,  out Exception? exception)
 		{
 			bool value = context.SourceValue.GetBooleanValue();
 			destinationValue = value;
+			exception = null;
 			return true;
 		}
 
-		private static bool TryGetNullFromAny(Context context, out object? destinationValue)
+		private static bool TryGetNullFromAny(Context context, out object? destinationValue,  out Exception? exception)
 		{
 			destinationValue = null;
 			bool canBeNull = !context.DestinationType.IsValueType
 				|| Nullable.GetUnderlyingType(context.DestinationType) != null;
+			exception = null;
 			return canBeNull;
 		}
 
-		private static bool TryGetStringFromBoolean(Context context, out object? destinationValue)
+		private static bool TryGetStringFromBoolean(Context context, out object? destinationValue,  out Exception? exception)
 		{
 			bool value = context.SourceValue.GetBooleanValue();
 			destinationValue = value ? "true" : "false";
+			exception = null;
 			return true;
 		}
 
-		private static bool TryGetNumberFromNumber(Context context, out object? destinationValue)
+		private static bool TryGetNumberFromNumber(Context context, out object? destinationValue,  out Exception? exception)
 		{
 			RpcNumber number = context.SourceValue.GetNumberValue();
+			exception = null;
 			return TryGetNumberInternal(number, context.DestinationType, out destinationValue);
 		}
 
-		private static bool TryGetNumberFromString(Context context, out object? destinationValue)
+		private static bool TryGetNumberFromString(Context context, out object? destinationValue,  out Exception? exception)
 		{
 			string numberString = context.SourceValue.GetStringValue();
 			var number = new RpcNumber(numberString);
+			exception = null;
 			return TryGetNumberInternal(number, context.DestinationType, out destinationValue);
 		}
 
