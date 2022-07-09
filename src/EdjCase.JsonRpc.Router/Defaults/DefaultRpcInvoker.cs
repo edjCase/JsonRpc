@@ -207,12 +207,15 @@ namespace EdjCase.JsonRpc.Router.Defaults
 						parameterList = requestParameters.AsArray;
 					}
 					List<IRpcParameterInfo>? badParams = null;
+					
+					Exception? exception = null;
+					
 					for (int i = 0; i < parameterList!.Length; i++)
 					{
 						IRpcParameterInfo parameterInfo = methodParameters[i];
 						RpcParameter parameter = parameterList[i];
 						RpcParameterType type = this.parameterConverter.GetRpcParameterType(parameterInfo.RawType);
-						bool matches = this.parameterConverter.TryConvertValue(parameter, type, parameterInfo.RawType, out object? value);
+						bool matches = this.parameterConverter.TryConvertValue(parameter, type, parameterInfo.RawType, out object? value, out exception);
 						if (!matches)
 						{
 							if (badParams == null)
@@ -227,7 +230,15 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					}
 					if (badParams != null)
 					{
-						string message = string.Join("\n", badParams.Select(p => $"Unable to parse parameter '{p.Name}' to type '{p.RawType}'"));
+						string message = string.Join(
+							"\n",
+							badParams.Select(p => $"Unable to parse parameter '{p.Name}' to type '{p.RawType}'"));
+
+						if (exception != null)
+						{
+							message = $"{message},\n{exception.Message}";
+						}
+
 						throw new RpcException(RpcErrorCode.InvalidParams, message);
 					}
 					//Only make an array if needed
