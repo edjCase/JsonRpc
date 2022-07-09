@@ -1,0 +1,28 @@
+name: Publish Release
+
+on:
+  release:
+    types: [published]
+jobs:
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Setup Dotnet
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: 6.0.x
+
+      - name: Pack Router
+        run: dotnet pack src/Candid/EdjCase.JsonRpc.Router.csproj --configuration Release /p:Version=${{ github.event.release.tag_name }} --output . --include-symbols --include-source
+
+      - name: Push Router
+        run: dotnet nuget push EdjCase.JsonRpc.Router.${{ github.event.release.tag_name }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+          
+      - name: Pack Client
+        run: dotnet pack src/Agent/EdjCase.JsonRpc.Client.csproj --configuration Release /p:Version=${{ github.event.release.tag_name }} --output . --include-symbols --include-source
+
+      - name: Push Client
+        run: dotnet nuget push EdjCase.JsonRpc.Client.${{ github.event.release.tag_name }}.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
