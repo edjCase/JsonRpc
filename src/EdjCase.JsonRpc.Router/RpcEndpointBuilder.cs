@@ -79,7 +79,9 @@ namespace EdjCase.JsonRpc.Router
 			return controllerType.Assembly.GetTypes()
 				.Where(t => t == controllerType)
 				.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Instance))
-				.Where(m => m.DeclaringType != typeof(object) && m.DeclaringType != typeof(RpcController));
+				.Where(m => m.DeclaringType != typeof(object) && m.DeclaringType != typeof(RpcController))
+				// Skip NonRpcMethod decorated method
+				.Where(m =>  m.GetCustomAttribute<NonRpcMethodAttribute>(true) == null);
 		}
 
 		private void Add(RpcPath? path, IRpcMethodInfo methodInfo)

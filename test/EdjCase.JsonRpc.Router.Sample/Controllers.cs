@@ -33,6 +33,18 @@ namespace EdjCase.JsonRpc.Router.Sample
 			return a;
 		}
 	}
+	public class Test : RpcController
+	{
+		public string Method1(string a)
+		{
+			return a;
+		}
+		[NonRpcMethod]
+		public string Method2(string a)
+		{
+			return a;
+		}
+	}
 
 	public class NonRpcController
 	{
