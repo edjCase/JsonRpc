@@ -263,11 +263,6 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		{
 			if (methodParameters.Count > requestParameters.Count)
 			{
-				parameterList = null;
-				return false;
-			}
-			if (methodParameters.Count > requestParameters.Count)
-			{
 				//The method param count can be larger as long as the diff is optional parameters
 				if (methodParameters.Count(p => !p.IsOptional) > requestParameters.Count)
 				{

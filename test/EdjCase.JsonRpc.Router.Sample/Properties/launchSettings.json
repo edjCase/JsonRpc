@@ -2,9 +2,10 @@
 	"profiles": {
 		"Web": {
 			"commandName": "Project",
-			"launchBrowser": false,
+			"launchBrowser": true,
+			"launchUrl": "http://localhost:5000/swagger/index.html",
 			"environmentVariables": {
-				"ASPNETCORE_URLS": "http://*:5000",
+				"ASPNETCORE_URLS": "http://localhost:5000",
 				"ASPNETCORE_ENVIRONMENT": "Development"
 			}
 		}

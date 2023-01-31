@@ -259,6 +259,11 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				canParse = number.TryGetInteger(out int v);
 				destinationValue = v;
 			}
+			else if (nonNullableType == typeof(long))
+			{
+				canParse = number.TryGetLong(out long v);
+				destinationValue = v;
+			}
 			else if (nonNullableType == typeof(float))
 			{
 				canParse = number.TryGetFloat(out float v);
