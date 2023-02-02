@@ -1,12 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29324.140
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33103.184
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{EB6CC2D7-ED2C-447F-A85B-5E204FD69352}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{41AD7143-8434-4ABE-92B7-70F448CFE634}"
 	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
 		Nuget.config = Nuget.config
 	EndProjectSection
 EndProject
@@ -31,11 +32,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EdjCase.JsonRpc.Router.Swagger", "src\EdjCase.JsonRpc.Router.Swagger\EdjCase.JsonRpc.Router.Swagger.csproj", "{93369553-1DA3-47A1-B46B-23858B68099D}"
 EndProject
 Global
-	GlobalSection(SharedMSBuildProjectFiles) = preSolution
-		src\EdjCase.JsonRpc.Common\EdjCase.JsonRpc.Common.projitems*{1546452e-2db4-421c-90cd-b4b310ce9ad9}*SharedItemsImports = 13
-		src\EdjCase.JsonRpc.Common\EdjCase.JsonRpc.Common.projitems*{87ed8b44-b59a-440c-a377-565effb2691a}*SharedItemsImports = 5
-		src\EdjCase.JsonRpc.Common\EdjCase.JsonRpc.Common.projitems*{f89e9e51-0d7a-4a82-a899-14c886c4f384}*SharedItemsImports = 5
-	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
 		Release|Any CPU = Release|Any CPU
@@ -90,5 +86,10 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {297BE26F-B61D-4A43-9A84-2442133FD45E}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		src\EdjCase.JsonRpc.Common\EdjCase.JsonRpc.Common.projitems*{1546452e-2db4-421c-90cd-b4b310ce9ad9}*SharedItemsImports = 13
+		src\EdjCase.JsonRpc.Common\EdjCase.JsonRpc.Common.projitems*{87ed8b44-b59a-440c-a377-565effb2691a}*SharedItemsImports = 5
+		src\EdjCase.JsonRpc.Common\EdjCase.JsonRpc.Common.projitems*{f89e9e51-0d7a-4a82-a899-14c886c4f384}*SharedItemsImports = 5
 	EndGlobalSection
 EndGlobal
