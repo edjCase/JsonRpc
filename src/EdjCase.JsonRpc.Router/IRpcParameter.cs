@@ -1,4 +1,4 @@
-﻿using EdjCase.JsonRpc.Router.Utilities;
+using EdjCase.JsonRpc.Router.Utilities;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -18,6 +18,11 @@ namespace EdjCase.JsonRpc.Router
 			this.value = value;
 		}
 
+		public bool GetIfNullIsSpecified()
+		{
+			this.ThrowIfNoType(RpcParameterType.Null);
+			return (bool)this.value!;
+		}
 		public bool GetBooleanValue()
 		{
 			this.ThrowIfNoType(RpcParameterType.Boolean);
@@ -69,9 +74,9 @@ namespace EdjCase.JsonRpc.Router
 			return new RpcParameter(RpcParameterType.Boolean, value);
 		}
 
-		public static RpcParameter Null()
+		public static RpcParameter Null(bool isSpecified)
 		{
-			return new RpcParameter(RpcParameterType.Null, null);
+			return new RpcParameter(RpcParameterType.Null, isSpecified);
 		}
 
 		public static RpcParameter Object(Dictionary<string, RpcParameter> value)

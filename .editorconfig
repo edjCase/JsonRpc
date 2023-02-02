@@ -1,0 +1,10 @@
+﻿[*]
+charset = utf-8
+end_of_line = lf
+
+[*.{cs,razor}]
+dotnet_style_qualification_for_property = true:error
+dotnet_style_qualification_for_field = true:error
+dotnet_style_qualification_for_event = true:error
+dotnet_style_qualification_for_method = true:error
+indent_style = tab

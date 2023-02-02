@@ -1,4 +1,4 @@
-﻿using EdjCase.JsonRpc.Router.Abstractions;
+using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Utilities;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -31,6 +31,14 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			out object? destinationValue,
 			out Exception? exception)
 		{
+			if(sourceValue.Type == RpcParameterType.Null
+				&& !sourceValue.GetIfNullIsSpecified())
+			{
+				// Any unspecified type is 'missing'
+				destinationValue = Type.Missing;
+				exception = null;
+				return true;
+			}
 			TryConvertFunc? func = this.TryGetConveterFunc(sourceValue.Type, destinationType);
 			if (func == null)
 			{
@@ -92,10 +100,10 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				ILogger<DefaultRpcParameterConverter> logger,
 				JsonSerializerOptions? serializerOptions)
 			{
-				SourceValue = sourceValue ?? throw new ArgumentNullException(nameof(sourceValue));
-				DestinationType = destinationType ?? throw new ArgumentNullException(nameof(destinationType));
-				Logger = logger ?? throw new ArgumentNullException(nameof(logger));
-				SerializerOptions = serializerOptions;
+				this.SourceValue = sourceValue ?? throw new ArgumentNullException(nameof(sourceValue));
+				this.DestinationType = destinationType ?? throw new ArgumentNullException(nameof(destinationType));
+				this.Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+				this.SerializerOptions = serializerOptions;
 			}
 
 		}

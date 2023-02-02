@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -190,68 +190,72 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			object[] paramCache = ArrayPool<object>.Shared.Rent(methodParameters.Count);
 			try
 			{
-				if (requestParameters != null && requestParameters.Any())
+				if (requestParameters == null || !requestParameters.Any())
 				{
-					RpcParameter[] parameterList;
-					if (requestParameters.IsDictionary)
+					// Create missing values array
+					return Enumerable.Repeat(Type.Missing, methodParameters.Count).ToArray();
+				}
+				RpcParameter[] requestParameterArray;
+				if (requestParameters.IsDictionary)
+				{
+					if (!this.TryParseParameterList(methodParameters, requestParameters.AsDictionary, out RpcParameter[]? pList))
 					{
-						if (!this.TryParseParameterList(methodParameters, requestParameters.AsDictionary, out RpcParameter[]? pList))
-						{
-							string message = "Unable to parse the parameter dictionary as a list";
-							throw new RpcException(RpcErrorCode.InternalError, message);
-						}
-						parameterList = pList!;
+						string message = "Unable to parse the parameter dictionary as a list";
+						throw new RpcException(RpcErrorCode.InternalError, message);
 					}
-					else
-					{
-						parameterList = requestParameters.AsArray;
-					}
-					List<IRpcParameterInfo>? badParams = null;
-					
-					Exception? exception = null;
-					
-					for (int i = 0; i < parameterList!.Length; i++)
-					{
-						IRpcParameterInfo parameterInfo = methodParameters[i];
-						RpcParameter parameter = parameterList[i];
-						RpcParameterType type = this.parameterConverter.GetRpcParameterType(parameterInfo.RawType);
-						bool matches = this.parameterConverter.TryConvertValue(parameter, type, parameterInfo.RawType, out object? value, out exception);
-						if (!matches)
-						{
-							if (badParams == null)
-							{
-								int parametersRemaining = parameterList.Length - i;
-								badParams = new List<IRpcParameterInfo>(parametersRemaining);
-							}
-							badParams.Add(parameterInfo);
-							continue;
-						}
-						paramCache[i] = value!;
-					}
-					if (badParams != null)
-					{
-						string message = string.Join(
-							"\n",
-							badParams.Select(p => $"Unable to parse parameter '{p.Name}' to type '{p.RawType}'"));
-
-						if (exception != null)
-						{
-							message = $"{message},\n{exception.Message}";
-						}
-
-						throw new RpcException(RpcErrorCode.InvalidParams, message);
-					}
-					//Only make an array if needed
-					var deserializedParameters = new object[methodParameters.Count];
-					paramCache
-						.AsSpan(0, methodParameters.Count)
-						.CopyTo(deserializedParameters);
-					return deserializedParameters;
+					requestParameterArray = pList!;
 				}
 				else
 				{
-					return new object[methodParameters.Count];
+					requestParameterArray = requestParameters.AsArray;
 				}
+				List<IRpcParameterInfo>? badParams = null;
+
+				Exception? exception = null;
+
+				for (int i = 0; i < requestParameterArray!.Length; i++)
+				{
+					IRpcParameterInfo parameterInfo = methodParameters[i];
+					RpcParameter requsetParam = requestParameterArray[i];
+					RpcParameterType type = this.parameterConverter.GetRpcParameterType(parameterInfo.RawType);
+					bool matches = this.parameterConverter.TryConvertValue(requsetParam, type, parameterInfo.RawType, out object? value, out exception);
+					if (!matches)
+					{
+						if (badParams == null)
+						{
+							int parametersRemaining = requestParameterArray.Length - i;
+							badParams = new List<IRpcParameterInfo>(parametersRemaining);
+						}
+						badParams.Add(parameterInfo);
+						continue;
+					}
+					paramCache[i] = value!;
+				}
+				if (badParams != null)
+				{
+					string message = string.Join(
+						"\n",
+						badParams.Select(p => $"Unable to parse parameter '{p.Name}' to type '{p.RawType}'"));
+
+					if (exception != null)
+					{
+						message = $"{message},\n{exception.Message}";
+					}
+
+					throw new RpcException(RpcErrorCode.InvalidParams, message);
+				}
+				//Only make an array if needed
+				var deserializedParameters = new object[methodParameters.Count];
+				paramCache
+					.AsSpan(0, requestParameterArray.Length)
+					.CopyTo(deserializedParameters);
+				int missingParametersCount = methodParameters.Count - requestParameterArray.Length;
+				if (missingParametersCount > 0)
+				{
+					// If missing, fill missing with Type.Missing value for invokation
+					Array.Fill(deserializedParameters, Type.Missing, requestParameterArray.Length, missingParametersCount);
+				}
+				return deserializedParameters;
 			}
 			finally
 			{
@@ -284,11 +288,19 @@ namespace EdjCase.JsonRpc.Router.Defaults
 						break;
 					}
 				}
-				if (parameterList[i] == null)
+				if (parameterList[i] != null)
 				{
-					//Doesn't match the names of any
+					// If found a match, continue
+					continue;
+				}
+				if (!parameterInfo.IsOptional)
+				{
+					// If there is no specified matching param and the method param 
+					// is not optional, fail the matching
 					return false;
 				}
+				// Set an unspecified value if its optional
+				parameterList[i] = RpcParameter.Null(isSpecified: false);
 			}
 			return true;
 		}

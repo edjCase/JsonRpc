@@ -39,7 +39,7 @@ namespace EdjCase.JsonRpc.Router.Tests.Controllers
         // https://github.com/edjCase/JsonRpc/issues/99
         public IRpcMethodResult CreateInfoHelperItem(string name, string language, string value, string description, string component, string locationIndex, string fontFamily = "Arial", int fontSize = 12, bool bold = false, bool italic = false, bool strikeout = false, bool underline = false)
 		{
-            return Ok((name, language, value, description, component, locationIndex, fontFamily, fontSize, bold, italic, strikeout, underline)); ;
+            return this.Ok((name, language, value, description, component, locationIndex, fontFamily, fontSize, bold, italic, strikeout, underline)); ;
 		}
 	}
 }
