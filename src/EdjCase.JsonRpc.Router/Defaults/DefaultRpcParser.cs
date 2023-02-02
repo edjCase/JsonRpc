@@ -218,7 +218,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					parameter = RpcParameter.Boolean(jsonReader.GetBoolean());
 					break;
 				case JsonTokenType.Null:
-					parameter = RpcParameter.Null();
+					parameter = RpcParameter.Null(true);
 					break;
 				case JsonTokenType.String:
 					parameter = RpcParameter.String(jsonReader.GetString());

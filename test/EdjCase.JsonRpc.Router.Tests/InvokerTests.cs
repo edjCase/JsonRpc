@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using EdjCase.JsonRpc.Common;
 using EdjCase.JsonRpc.Router.Abstractions;
@@ -165,7 +165,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.False(resultResponse.HasError, resultResponse.Error?.Message);
 
 			//Param is empty
-			var parameters = new  TopLevelRpcParameters();
+			var parameters = new TopLevelRpcParameters();
 			stringRequest = new RpcRequest("1", methodName, parameters: parameters);
 			response = await invoker.InvokeRequestAsync(stringRequest);
 
@@ -176,7 +176,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			//Param is a string
 			const string value = "Test";
-			parameters = new  TopLevelRpcParameters(RpcParameter.String(value));
+			parameters = new TopLevelRpcParameters(RpcParameter.String(value));
 			stringRequest = new RpcRequest("1", methodName, parameters: parameters);
 			response = await invoker.InvokeRequestAsync(stringRequest);
 
@@ -184,6 +184,94 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Assert.NotNull(resultResponse.Result);
 			Assert.IsType<string>(resultResponse.Result);
 			Assert.Equal(value, (string)resultResponse.Result!);
+		}
+
+		[Fact]
+		public async Task InvokeRequest_DefaultValueParameter_Valid()
+		{
+			string methodName = nameof(TestRouteClass.DefaultValue);
+			DefaultRpcInvoker invoker = this.GetInvoker(methodName);
+
+
+			//No params specified
+			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: null);
+			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
+
+			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
+			Assert.Equal("tezt", resultResponse.Result);
+			Assert.False(resultResponse.HasError, resultResponse.Error?.Message);
+
+			//Param is empty
+			var parameters = new TopLevelRpcParameters();
+			stringRequest = new RpcRequest("1", methodName, parameters: parameters);
+			response = await invoker.InvokeRequestAsync(stringRequest);
+
+			resultResponse = Assert.IsType<RpcResponse>(response);
+			Assert.Equal("tezt", resultResponse.Result);
+			Assert.False(resultResponse.HasError);
+
+
+			//Param is a string
+			const string value = "Test";
+			parameters = new TopLevelRpcParameters(RpcParameter.String(value));
+			stringRequest = new RpcRequest("1", methodName, parameters: parameters);
+			response = await invoker.InvokeRequestAsync(stringRequest);
+
+			resultResponse = Assert.IsType<RpcResponse>(response);
+			Assert.NotNull(resultResponse.Result);
+			Assert.IsType<string>(resultResponse.Result);
+			Assert.Equal(value, (string)resultResponse.Result!);
+		}
+
+
+		[Fact]
+		public async Task InvokeRequest_DefaultValue2Parameter_Valid()
+		{
+			string methodName = nameof(TestRouteClass.DefaultValue2);
+			DefaultRpcInvoker invoker = this.GetInvoker(methodName);
+
+
+			//No params specified
+			RpcRequest stringRequest = new RpcRequest("1", methodName, parameters: null);
+			RpcResponse? response = await invoker.InvokeRequestAsync(stringRequest);
+
+			RpcResponse resultResponse = Assert.IsType<RpcResponse>(response);
+			Assert.Null(resultResponse.Result);
+			Assert.True(resultResponse.HasError, resultResponse.Error?.Message);
+
+			//Param is empty
+			var parameters = new TopLevelRpcParameters();
+			stringRequest = new RpcRequest("1", methodName, parameters: parameters);
+			response = await invoker.InvokeRequestAsync(stringRequest);
+
+			resultResponse = Assert.IsType<RpcResponse>(response);
+			Assert.Null(resultResponse.Result);
+			Assert.True(resultResponse.HasError, resultResponse.Error?.Message);
+
+
+			// Required param is specified
+			const int value = 1;
+			parameters = new TopLevelRpcParameters(RpcParameter.Number(value));
+			stringRequest = new RpcRequest("1", methodName, parameters: parameters);
+			response = await invoker.InvokeRequestAsync(stringRequest);
+
+			resultResponse = Assert.IsType<RpcResponse>(response);
+			Assert.Equal("tt", resultResponse.Result);
+			Assert.False(resultResponse.HasError);
+
+
+
+			// Both are specified
+			parameters = new TopLevelRpcParameters(
+				RpcParameter.Number(value),
+				RpcParameter.String("tets")
+			);
+			stringRequest = new RpcRequest("1", methodName, parameters: parameters);
+			response = await invoker.InvokeRequestAsync(stringRequest);
+
+			resultResponse = Assert.IsType<RpcResponse>(response);
+			Assert.Equal("tets", resultResponse.Result);
+			Assert.False(resultResponse.HasError);
 		}
 
 		[Fact]
@@ -291,7 +379,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			{
 				["a"] = RpcParameter.Boolean(a),
 				["bb"] = RpcParameter.String(bb),
-				["ccc"] = RpcParameter.Null(),
+				["ccc"] = RpcParameter.Null(true),
 				["dddd"] = RpcParameter.Object(dddd),
 				["eeeee"] = RpcParameter.Number(eeeee)
 			};
@@ -400,6 +488,15 @@ namespace EdjCase.JsonRpc.Router.Tests
 		}
 
 		public string? Optional(string? test = null)
+		{
+			return test;
+		}
+
+		public string DefaultValue(string test = "tezt")
+		{
+			return test;
+		}
+		public string DefaultValue2(int i, string test = "tt")
 		{
 			return test;
 		}

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -71,7 +71,7 @@ namespace Benchmarks
 		[Benchmark]
 		public void NoParamsNoReturn()
 		{
-			this.requestMatcher!.GetMatchingMethod(requestsignature!);
+			_ = this.requestMatcher!.GetMatchingMethod(this.requestsignature!);
 		}
 
 		[IterationSetup(Target = nameof(ComplexParamNoReturn))]
@@ -83,7 +83,7 @@ namespace Benchmarks
 		[Benchmark]
 		public void ComplexParamNoReturn()
 		{
-			this.requestMatcher!.GetMatchingMethod(requestsignature!);
+			_ = this.requestMatcher!.GetMatchingMethod(this.requestsignature!);
 		}
 
 
@@ -102,7 +102,7 @@ namespace Benchmarks
 		[Benchmark]
 		public void SimpleParamsNoReturn()
 		{
-			this.requestMatcher!.GetMatchingMethod(requestsignature!);
+			_ = this.requestMatcher!.GetMatchingMethod(this.requestsignature!);
 		}
 
 
