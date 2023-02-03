@@ -274,8 +274,8 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					return false;
 				}
 			}
-			parameterList = new RpcParameter[requestParameters.Count];
-			for (int i = 0; i < requestParameters.Count; i++)
+			parameterList = new RpcParameter[methodParameters.Count];
+			for (int i = 0; i < methodParameters.Count; i++)
 			{
 				IRpcParameterInfo parameterInfo = methodParameters[i];
 
