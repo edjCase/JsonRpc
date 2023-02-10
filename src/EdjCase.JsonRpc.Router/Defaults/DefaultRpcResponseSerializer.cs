@@ -1,5 +1,6 @@
-﻿using EdjCase.JsonRpc.Common;
+using EdjCase.JsonRpc.Common;
 using EdjCase.JsonRpc.Router.Abstractions;
+using EdjCase.JsonRpc.Router.Utilities;
 using Microsoft.Extensions.Options;
 using System;
 using System.Buffers.Text;
@@ -32,7 +33,8 @@ namespace EdjCase.JsonRpc.Router.Defaults
 
 		private async Task SerializeInternalAsync(IEnumerable<RpcResponse> responses, bool isBulkRequest, Stream stream)
 		{
-			var jsonWriter = new Utf8JsonWriter(stream);
+			JsonWriterOptions options = this.serverConfig.Value.JsonSerializerSettings.ToWriterOptions();
+			var jsonWriter = new Utf8JsonWriter(stream, options);
 			try
 			{
 				if (isBulkRequest)

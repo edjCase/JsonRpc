@@ -157,14 +157,14 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		private static bool TryGetObjectFromObject(Context context, out object? destinationValue,  out Exception? exception)
 		{
 			Dictionary<string, RpcParameter> obj = context.SourceValue.GetObjectValue();
-			string json = JsonStringGeneratorUtil.FromObject(obj);
+			string json = JsonStringGeneratorUtil.FromObject(obj, context.SerializerOptions);
 			return TryDeserializeJson(json, context, out destinationValue, out exception);
 		}
 
 		private static bool TryGetArrayFromArray(Context context, out object? destinationValue, out Exception? exception)
 		{
 			RpcParameter[] array = context.SourceValue.GetArrayValue();
-			string json = JsonStringGeneratorUtil.FromArray(array);
+			string json = JsonStringGeneratorUtil.FromArray(array, context.SerializerOptions);
 			return TryDeserializeJson(json, context, out destinationValue, out exception);
 		}
 

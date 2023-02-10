@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -10,21 +10,22 @@ namespace EdjCase.JsonRpc.Router.Utilities
 	{
 		private delegate void WriteJson<T>(T value, ref Utf8JsonWriter writer);
 
-		public static string FromObject(Dictionary<string, RpcParameter> obj)
+		public static string FromObject(Dictionary<string, RpcParameter> obj, JsonSerializerOptions? options = null)
 		{
-			return JsonStringGeneratorUtil.From(obj, JsonStringGeneratorUtil.WriteObject);
+			return JsonStringGeneratorUtil.From(obj, JsonStringGeneratorUtil.WriteObject, options);
 		}
 
-		public static string FromArray(RpcParameter[] array)
+		public static string FromArray(RpcParameter[] array, JsonSerializerOptions? options = null)
 		{
-			return JsonStringGeneratorUtil.From(array, JsonStringGeneratorUtil.WriteArray);
+			return JsonStringGeneratorUtil.From(array, JsonStringGeneratorUtil.WriteArray, options);
 		}
 
-		private static string From<T>(T value, WriteJson<T> writeJsonFunc)
+		private static string From<T>(T value, WriteJson<T> writeJsonFunc, JsonSerializerOptions? options)
 		{
 			using (var utf8Stream = new MemoryStream())
 			{
-				var writer = new Utf8JsonWriter(utf8Stream);
+				JsonWriterOptions writerOptions = options.ToWriterOptions();
+				var writer = new Utf8JsonWriter(utf8Stream, writerOptions);
 				try
 				{
 					writeJsonFunc(value, ref writer);

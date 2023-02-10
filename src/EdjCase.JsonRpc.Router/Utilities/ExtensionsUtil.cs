@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using System;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace EdjCase.JsonRpc.Router.Utilities
@@ -15,6 +17,17 @@ namespace EdjCase.JsonRpc.Router.Utilities
 		public static bool IsNullableType(this Type type)
 		{
 			return !type.IsValueType || Nullable.GetUnderlyingType(type) != null;
+		}
+
+		public static JsonWriterOptions ToWriterOptions(this JsonSerializerOptions? options)
+		{
+			JsonWriterOptions writerOptions = default;
+			if (options != null)
+			{
+				writerOptions.Encoder = options.Encoder;
+				writerOptions.Indented = options.WriteIndented;
+			}
+			return writerOptions;
 		}
 	}
 
