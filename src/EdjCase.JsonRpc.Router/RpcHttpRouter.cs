@@ -67,13 +67,12 @@ namespace EdjCase.JsonRpc.Router
 
 				IRpcRequestHandler requestHandler = context.HttpContext.RequestServices.GetRequiredService<IRpcRequestHandler>();
 				var routeContext = new RpcContext(context.HttpContext.RequestServices, requestPath);
-				context.HttpContext.RequestServices.GetRequiredService<IRpcContextAccessor>().Set(routeContext);
 				Stream writableStream = this.BuildWritableResponseStream(context.HttpContext);
 				using (var requestBody = new MemoryStream())
 				{
 					await context.HttpContext.Request.Body.CopyToAsync(requestBody);
 					requestBody.Position = 0;
-					bool hasResponse = await requestHandler.HandleRequestAsync(requestBody, writableStream);
+					bool hasResponse = await requestHandler.HandleRequestAsync(routeContext, requestBody, writableStream);
 					if (!hasResponse)
 					{
 						//No response required, but status code must be 204
