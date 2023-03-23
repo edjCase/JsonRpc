@@ -1,4 +1,4 @@
-﻿using EdjCase.JsonRpc.Router;
+using EdjCase.JsonRpc.Router;
 using EdjCase.JsonRpc.Common;
 using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Defaults;
@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EdjCase.JsonRpc.Router
 {
@@ -55,8 +56,9 @@ namespace EdjCase.JsonRpc.Router
 			this.logger = logger;
 		}
 
-		public async Task<bool> HandleRequestAsync(Stream requestBody, Stream responseBody)
+		public async Task<bool> HandleRequestAsync(RpcContext context, Stream requestBody, Stream responseBody)
 		{
+			context.RequestServices.GetRequiredService<IRpcContextAccessor>().Set(context);
 			try
 			{
 				ParsingResult result = this.parser.ParseRequests(requestBody);
