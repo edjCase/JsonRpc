@@ -16,8 +16,8 @@ namespace EdjCase.JsonRpc.Router.Defaults
 {
 	internal class DefaultRequestMatcher : IRpcRequestMatcher
 	{
-		private static ConcurrentDictionary<RpcPath?, ConcurrentDictionary<RpcRequestSignature, IRpcMethodInfo[]>> requestToMethodCache { get; }
-			= new ConcurrentDictionary<RpcPath?, ConcurrentDictionary<RpcRequestSignature, IRpcMethodInfo[]>>();
+		private static ConcurrentDictionary<string, ConcurrentDictionary<RpcRequestSignature, IRpcMethodInfo[]>> requestToMethodCache { get; }
+			= new ConcurrentDictionary<string, ConcurrentDictionary<RpcRequestSignature, IRpcMethodInfo[]>>();
 
 		private ILogger<DefaultRequestMatcher> logger { get; }
 		private IRpcMethodProvider methodProvider { get; }
@@ -47,7 +47,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 				throw new RpcException(RpcErrorCode.MethodNotFound, $"No methods found for route");
 			}
 
-			Span<IRpcMethodInfo> matches = this.FilterAndBuildMethodInfoByRequest(methods, requestSignature);
+			Span<IRpcMethodInfo> matches = this.FilterAndBuildMethodInfoByRequest(context, methods, requestSignature);
 			if (matches.Length == 1)
 			{
 				this.logger.RequestMatchedMethod();
@@ -85,11 +85,11 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			throw new RpcException(RpcErrorCode.MethodNotFound, errorMessage);
 		}
 
-		private IRpcMethodInfo[] FilterAndBuildMethodInfoByRequest(IReadOnlyList<IRpcMethodInfo> methods, RpcRequestSignature requestSignature)
+		private IRpcMethodInfo[] FilterAndBuildMethodInfoByRequest(RpcContext context, IReadOnlyList<IRpcMethodInfo> methods, RpcRequestSignature requestSignature)
 		{
 			//If the request signature is found, it means we have the methods cached already
 
-			var rpcPath = this.contextAccessor.Get()?.Path;
+			string rpcPath = context.Path?.ToString() ?? string.Empty;
 			var rpcPathMethodsCache = DefaultRequestMatcher.requestToMethodCache.GetOrAdd(rpcPath, path => new ConcurrentDictionary<RpcRequestSignature, IRpcMethodInfo[]>());
 			return rpcPathMethodsCache.GetOrAdd(requestSignature, BuildMethodCache);
 			IRpcMethodInfo[] BuildMethodCache(RpcRequestSignature s)

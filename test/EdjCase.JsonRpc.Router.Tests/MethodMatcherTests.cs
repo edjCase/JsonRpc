@@ -1,4 +1,4 @@
-﻿using EdjCase.JsonRpc.Router.Abstractions;
+using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Defaults;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -19,11 +19,16 @@ namespace EdjCase.JsonRpc.Router.Tests
 {
 	public class MethodMatcherTests
 	{
-		private readonly IReadOnlyDictionary<RpcPath, IReadOnlyList<IRpcMethodInfo>> methodData;
+		private readonly StaticRpcMethodDataAccessor methodDataAccessor;
 
 		public MethodMatcherTests()
 		{
-			this.methodData = new Dictionary<RpcPath, IReadOnlyList<IRpcMethodInfo>>
+			var baserouteData = typeof(MethodMatcherThreeController)
+						.GetMethods(BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.Instance)
+						.Select(DefaultRpcMethodInfo.FromMethodInfo)
+						.ToList();
+
+			var routeData = new Dictionary<RpcPath, IReadOnlyList<IRpcMethodInfo>>
 			{
 				[nameof(MethodMatcherController)] = typeof(MethodMatcherController)
 						.GetMethods(BindingFlags.DeclaredOnly | BindingFlags.Public | BindingFlags.Instance)
@@ -34,16 +39,10 @@ namespace EdjCase.JsonRpc.Router.Tests
 						.Select(DefaultRpcMethodInfo.FromMethodInfo)
 						.ToList()
 			};
+			this.methodDataAccessor = new StaticRpcMethodDataAccessor() { Value = new RpcRouteMetaData(baserouteData, routeData)};
 		}
 
-		private StaticRpcMethodDataAccessor GetMethodDataAccessor()
-		{
-			return new StaticRpcMethodDataAccessor()
-			{
-				Value = new RpcRouteMetaData(new List<IRpcMethodInfo>(), this.methodData)
-			};
-		}
-
+ 
 		private DefaultRequestMatcher GetMatcher(RpcPath? path = null)
 		{
 
@@ -64,7 +63,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 #pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
 
 
-			var methodProvider = new StaticRpcMethodProvider(this.GetMethodDataAccessor());
+			var methodProvider = new StaticRpcMethodProvider(this.methodDataAccessor);
 			return new DefaultRequestMatcher(logger.Object, methodProvider, rpcContextAccessor.Object, rpcParameterConverter);
 		}
 
@@ -83,6 +82,10 @@ namespace EdjCase.JsonRpc.Router.Tests
 			IRpcMethodInfo path2Match = path2Matcher.GetMatchingMethod(requestSignature);
 			Assert.NotNull(path2Match);
 			Assert.NotSame(path1Match, path2Match);
+
+			DefaultRequestMatcher path3Matcher = this.GetMatcher(path: null);
+			IRpcMethodInfo path3Match = path3Matcher.GetMatchingMethod(requestSignature);
+			Assert.NotNull(path2Match);
 		}
 
 		[Fact]
@@ -349,6 +352,18 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			Assert.NotNull(methodInfo);
 			Assert.Equal(methodName, methodInfo.Name);
+		}
+
+
+		[Fact]
+		public void GetMatchingMethod_WithoutRpcRoute()
+		{
+			string methodName = nameof(MethodMatcherController.GuidTypeMethod);
+			RpcRequestSignature requestSignature = RpcRequestSignature.Create(methodName, new[] { RpcParameterType.String });
+ 
+			DefaultRequestMatcher path3Matcher = this.GetMatcher(path: null);
+			IRpcMethodInfo path3Match = path3Matcher.GetMatchingMethod(requestSignature);
+			Assert.NotNull(path3Match);
 		}
 	}
 
