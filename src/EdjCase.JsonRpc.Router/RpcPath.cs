@@ -249,9 +249,9 @@ namespace EdjCase.JsonRpc.Router
 			return new RpcPath(newComponents);
 		}
 
-		public static implicit operator string(RpcPath path)
+		public static implicit operator string?(RpcPath path)
 		{
-			return path.ToString();
+			return path?.ToString();
 		}
 
 		public static implicit operator RpcPath(string s)
