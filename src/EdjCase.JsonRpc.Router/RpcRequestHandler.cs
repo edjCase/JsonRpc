@@ -87,8 +87,10 @@ namespace EdjCase.JsonRpc.Router
 					}
 					foreach ((RpcId id, RpcError error) in result.Errors)
 					{
-						if (id == default)
+						if (id == default && error.Code != -32600)
 						{
+							// Dont sent response if there is no id AND the error
+							// is NOT 'Invalid Request'
 							this.logger.ResponseFailedWithNoId(error.Code, error.Message);
 							continue;
 						}
