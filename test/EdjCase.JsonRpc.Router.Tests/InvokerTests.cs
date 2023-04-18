@@ -17,11 +17,18 @@ using System.Text;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using Xunit.Abstractions;
 
 namespace EdjCase.JsonRpc.Router.Tests
 {
 	public class InvokerTests
 	{
+		private readonly ITestOutputHelper _output;
+
+		public InvokerTests(ITestOutputHelper output)
+		{
+			this._output = output;
+		}
 		private DefaultRpcInvoker GetInvoker(string? methodName, RpcPath? path = null,
 			Action<RpcServerConfiguration>? configure = null)
 		{
@@ -37,7 +44,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			Action<RpcServerConfiguration>? configure = null)
 
 		{
-			var logger = new Mock<ILogger<DefaultRpcInvoker>>(MockBehavior.Loose);
+			var logger = new XunitLogger<DefaultRpcInvoker>(this._output);
 			var options = new Mock<IOptions<RpcServerConfiguration>>(MockBehavior.Strict);
 			var matcher = new Mock<IRpcRequestMatcher>(MockBehavior.Strict);
 			var accessor = new Mock<IRpcContextAccessor>(MockBehavior.Strict);
@@ -70,7 +77,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			var logger2 = new Mock<ILogger<DefaultRpcParameterConverter>>();
 			var parameterConverter = new DefaultRpcParameterConverter(options.Object, logger2.Object);
-			return new DefaultRpcInvoker(logger.Object, options.Object, matcher.Object, accessor.Object, authHandler.Object, parameterConverter);
+			return new DefaultRpcInvoker(logger, options.Object, matcher.Object, accessor.Object, authHandler.Object, parameterConverter);
 		}
 
 		private IServiceProvider GetServiceProvider()
@@ -627,5 +634,62 @@ namespace EdjCase.JsonRpc.Router.Tests
 	public class TestInjectionClass
 	{
 
+	}
+
+	public class XunitLogger<T> : ILogger<T>, IDisposable
+	{
+		private ITestOutputHelper _output;
+
+		public XunitLogger(ITestOutputHelper output)
+		{
+			this._output = output;
+		}
+		public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+		{
+			StringBuilder sb = new StringBuilder();
+			sb.AppendLine(formatter(state, exception));
+			foreach (var item in this.context)
+			{
+				if (item is IEnumerable <KeyValuePair<string, object>> col)
+				{
+					foreach(var c in col)
+						sb.AppendLine(c.Key + ": "+ System.Text.Json.JsonSerializer.Serialize(c.Value));
+				} else
+				{
+					sb.AppendLine(System.Text.Json.JsonSerializer.Serialize(item));
+				}
+			}
+			this._output.WriteLine(sb.ToString());
+		}
+
+		public bool IsEnabled(LogLevel logLevel)
+		{
+			return true;
+		}
+		List<object> context = new();
+		public IDisposable BeginScope<TState>(TState state)
+		{
+			this.context.Add(state);
+			return new DisposableAction(() => this.context.Remove(state));
+		}
+
+		public void Dispose()
+		{
+		}
+
+		class DisposableAction: IDisposable
+		{
+			private readonly Action disp;
+
+			public DisposableAction(Action disp)
+			{
+				this.disp = disp;
+			}
+
+			public void Dispose()
+			{
+				disp();
+			}
+		}
 	}
 }
