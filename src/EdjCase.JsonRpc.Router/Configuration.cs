@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text.Json;
 using EdjCase.JsonRpc.Router.Abstractions;
 
@@ -42,6 +42,11 @@ namespace EdjCase.JsonRpc.Router
 		/// If specified the router will call the specified method when the invoker has finished.
 		/// </summary>
 		public Action<RpcInvokeContext, RpcResponse>? OnInvokeEnd { get; set; }
+
+		/// <summary>
+		/// If true will support use Gzip and Deflate compression
+		/// </summary>
+		public bool UseCompression { get; set; } = true;
 	}
 
 	public class ExceptionContext

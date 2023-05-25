@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using EdjCase.JsonRpc.Router;
 using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Defaults;
@@ -43,7 +43,10 @@ namespace Microsoft.AspNetCore.Builder
 			{
 				throw new ArgumentNullException(nameof(serviceCollection));
 			}
-
+			if (configuration == null)
+			{
+				configuration = new RpcServerConfiguration();
+			}
 			serviceCollection.AddSingleton(new RpcServicesMarker());
 			serviceCollection
 				.TryAddScoped<IRpcInvoker, DefaultRpcInvoker>();
@@ -51,8 +54,11 @@ namespace Microsoft.AspNetCore.Builder
 				.TryAddScoped<IRpcParser, DefaultRpcParser>();
 			serviceCollection
 				.TryAddScoped<IRpcRequestHandler, RpcRequestHandler>();
-			serviceCollection
-				.TryAddScoped<IStreamCompressor, DefaultStreamCompressor>();
+			if (configuration.UseCompression)
+			{
+				serviceCollection
+					.TryAddScoped<IStreamCompressor, DefaultStreamCompressor>();
+			}
 			serviceCollection
 				.TryAddScoped<IRpcResponseSerializer, DefaultRpcResponseSerializer>();
 			serviceCollection
@@ -69,10 +75,7 @@ namespace Microsoft.AspNetCore.Builder
 				.TryAddSingleton<StaticRpcMethodDataAccessor>();
 			serviceCollection.AddHttpContextAccessor();
 
-			if (configuration == null)
-			{
-				configuration = new RpcServerConfiguration();
-			}
+			
 			return serviceCollection
 				.AddSingleton(Options.Create(configuration))
 				.AddRouting()
