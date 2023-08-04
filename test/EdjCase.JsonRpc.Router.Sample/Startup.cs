@@ -81,10 +81,6 @@ namespace EdjCase.JsonRpc.Router.Sample
 					{
 						endpoints.MapControllers();
 					})
-					.Use(async (context, next) =>
-					{
-						await next();
-					})
 					.UseJsonRpc(b =>
 					{    
 						b.AddController<NonApiController>();
