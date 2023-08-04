@@ -108,81 +108,87 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			{
 				throw new ArgumentNullException(nameof(request));
 			}
-
-			this.logger.InvokingRequest(request.Id);
-			RpcContext routeContext = this.contextAccessor.Get();
-			RpcInvokeContext? invokeContext = null;
-			if (this.serverConfig.Value.OnInvokeStart != null)
+			using (this.logger.BeginScope(new KeyValuePair<string, object>[] { new("request", new {
+				@id = request.Id.ToString(),
+				@method = request.Method,
+				@params = request.Parameters?.Value
+			}) }))
 			{
-				invokeContext = new RpcInvokeContext(routeContext.RequestServices, request, routeContext.Path);
-				this.serverConfig.Value.OnInvokeStart(invokeContext);
-			}
-			RpcResponse rpcResponse;
-			try
-			{
-				IRpcMethodInfo rpcMethod;
-				using (var requestSignature = RpcRequestSignature.Create(request))
+				this.logger.InvokingRequest(request.Id);
+				RpcContext routeContext = this.contextAccessor.Get();
+				RpcInvokeContext? invokeContext = null;
+				if (this.serverConfig.Value.OnInvokeStart != null)
 				{
-					rpcMethod = this.rpcRequestMatcher.GetMatchingMethod(requestSignature);
+					invokeContext = new RpcInvokeContext(routeContext.RequestServices, request, routeContext.Path);
+					this.serverConfig.Value.OnInvokeStart(invokeContext);
 				}
-
-				bool isAuthorized = await this.authorizationHandler.IsAuthorizedAsync(rpcMethod);
-
-				if (isAuthorized)
+				RpcResponse rpcResponse;
+				try
 				{
-					object[] realParameters = this.ParseParameters(request.Parameters, rpcMethod.Parameters);
-
-					this.logger.InvokeMethod(request.Method);
-					object? result = await this.InvokeAsync(rpcMethod, realParameters, request, routeContext.RequestServices);
-					this.logger.InvokeMethodComplete(request.Method);
-
-					if (result is IRpcMethodResult methodResult)
+					IRpcMethodInfo rpcMethod;
+					using (var requestSignature = RpcRequestSignature.Create(request))
 					{
-						rpcResponse = methodResult.ToRpcResponse(request.Id);
+						rpcMethod = this.rpcRequestMatcher.GetMatchingMethod(requestSignature);
+					}
+
+					bool isAuthorized = await this.authorizationHandler.IsAuthorizedAsync(rpcMethod);
+
+					if (isAuthorized)
+					{
+						object[] realParameters = this.ParseParameters(request.Parameters, rpcMethod.Parameters);
+
+						this.logger.InvokeMethod(request.Method);
+						object? result = await this.InvokeAsync(rpcMethod, realParameters, request, routeContext.RequestServices);
+						this.logger.InvokeMethodComplete(request.Method);
+
+						if (result is IRpcMethodResult methodResult)
+						{
+							rpcResponse = methodResult.ToRpcResponse(request.Id);
+						}
+						else
+						{
+							rpcResponse = new RpcResponse(request.Id, result);
+						}
 					}
 					else
 					{
-						rpcResponse = new RpcResponse(request.Id, result);
+						var authError = new RpcError(RpcErrorCode.InvalidRequest, "Unauthorized");
+						rpcResponse = new RpcResponse(request.Id, authError);
 					}
 				}
-				else
+				catch (Exception ex)
 				{
-					var authError = new RpcError(RpcErrorCode.InvalidRequest, "Unauthorized");
-					rpcResponse = new RpcResponse(request.Id, authError);
+					const string errorMessage = "An Rpc error occurred while trying to invoke request.";
+					this.logger.LogException(ex, errorMessage);
+					RpcError error;
+					if (ex is RpcException rpcException)
+					{
+						error = rpcException.ToRpcError(this.serverConfig.Value.ShowServerExceptions);
+					}
+					else
+					{
+						error = new RpcError(RpcErrorCode.InternalError, errorMessage, ex);
+					}
+					rpcResponse = new RpcResponse(request.Id, error);
 				}
-			}
-			catch (Exception ex)
-			{
-				const string errorMessage = "An Rpc error occurred while trying to invoke request.";
-				this.logger.LogException(ex, errorMessage);
-				RpcError error;
-				if (ex is RpcException rpcException)
+				if (this.serverConfig.Value.OnInvokeEnd != null)
 				{
-					error = rpcException.ToRpcError(this.serverConfig.Value.ShowServerExceptions);
+					if (invokeContext == null)
+					{
+						invokeContext = new RpcInvokeContext(routeContext.RequestServices, request, routeContext.Path);
+					}
+					this.serverConfig.Value.OnInvokeEnd(invokeContext, rpcResponse);
 				}
-				else
+				if (request.Id.HasValue)
 				{
-					error = new RpcError(RpcErrorCode.InternalError, errorMessage, ex);
+					this.logger.FinishedRequest(request.Id.ToString()!);
+					//Only give a response if there is an id
+					return rpcResponse;
 				}
-				rpcResponse = new RpcResponse(request.Id, error);
+				//TODO make no id run in a non-blocking way
+				this.logger.FinishedRequestNoId();
+				return null;
 			}
-			if (this.serverConfig.Value.OnInvokeEnd != null)
-			{
-				if (invokeContext == null)
-				{
-					invokeContext = new RpcInvokeContext(routeContext.RequestServices, request, routeContext.Path);
-				}
-				this.serverConfig.Value.OnInvokeEnd(invokeContext, rpcResponse);
-			}
-			if (request.Id.HasValue)
-			{
-				this.logger.FinishedRequest(request.Id.ToString()!);
-				//Only give a response if there is an id
-				return rpcResponse;
-			}
-			//TODO make no id run in a non-blocking way
-			this.logger.FinishedRequestNoId();
-			return null;
 		}
 
 		private object[] ParseParameters(TopLevelRpcParameters? requestParameters, IReadOnlyList<IRpcParameterInfo> methodParameters)
