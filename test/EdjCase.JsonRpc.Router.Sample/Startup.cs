@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,6 +8,8 @@ using System.Reflection;
 using System.Text.Json;
 using EdjCase.JsonRpc.Router.Swagger.Extensions;
 using Microsoft.Extensions.Configuration;
+using System.Text.Json.Serialization;
+using EdjCase.JsonRpc.Router.Sample.Controllers;
 
 namespace EdjCase.JsonRpc.Router.Sample
 {
@@ -24,10 +26,10 @@ namespace EdjCase.JsonRpc.Router.Sample
 		// Use this method to add services to the container
 		public void ConfigureServices(IServiceCollection services)
 		{
-			var globalJsonSerializerOptions = new System.Text.Json.JsonSerializerOptions
+			var globalJsonSerializerOptions = new JsonSerializerOptions
 			{
 				//Example json config
-				IgnoreNullValues = false,
+				DefaultIgnoreCondition = JsonIgnoreCondition.Never,
 				WriteIndented = true
 			};
 			void ConfigureRpc(RpcServerConfiguration config)
@@ -60,6 +62,8 @@ namespace EdjCase.JsonRpc.Router.Sample
 
 
 			services
+				.AddControllers()
+				.Services
 				.AddJsonRpcWithSwagger(ConfigureRpc, globalJsonSerializerOptions);
 		}
 
@@ -69,6 +73,23 @@ namespace EdjCase.JsonRpc.Router.Sample
 		public void Configure(IApplicationBuilder app)
 		{
 			app
+				.Map("/Mix", b =>
+				{
+					b
+					.UseRouting()
+					.UseEndpoints(endpoints =>
+					{
+						endpoints.MapControllers();
+					})
+					.Use(async (context, next) =>
+					{
+						await next();
+					})
+					.UseJsonRpc(b =>
+					{    
+						b.AddController<NonApiController>();
+					});
+				})
 				.Map("/BaseController", b =>
 				{
 					//Will make all controllers that derived from `ControllerBase` available
