@@ -53,7 +53,7 @@ namespace EdjCase.JsonRpc.Router
 				allowAnonymous = allowAnonymous || typeAllowAnonymous;
 				authorizeDataList.AddRange(typeAuthorizeDataList);
 			}
-			ObjectFactory objectFactory = ActivatorUtilities.CreateFactory(methodInfo.DeclaringType, Array.Empty<Type>());
+			ObjectFactory objectFactory = ActivatorUtilities.CreateFactory(methodInfo.DeclaringType!, Array.Empty<Type>());
 			return new DefaultRpcMethodInfo(methodInfo, parameters, objectFactory, allowAnonymous, authorizeDataList);
 		}
 

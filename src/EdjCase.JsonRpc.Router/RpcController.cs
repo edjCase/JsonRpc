@@ -1,4 +1,4 @@
-﻿using EdjCase.JsonRpc.Router.Abstractions;
+using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Defaults;
 using System;
 using System.Collections.Generic;
@@ -14,9 +14,7 @@ namespace EdjCase.JsonRpc.Router
 		/// </summary>
 		/// <param name="obj">Object to return in response</param>
 		/// <returns>Success result for rpc response</returns>
-#if !NETSTANDARD1_3
 		[NonRpcMethod]
-#endif
 		protected virtual RpcMethodSuccessResult Ok(object? obj = null)
 		{
 			return new RpcMethodSuccessResult(obj);
@@ -30,16 +28,13 @@ namespace EdjCase.JsonRpc.Router
 		/// <param name="message">(Optional)Error message</param>
 		/// <param name="data">(Optional)Error data</param>
 		/// <returns></returns>
-#if !NETSTANDARD1_3
 		[NonRpcMethod]
-#endif
 		protected virtual RpcMethodErrorResult Error(int errorCode, string message, object? data = null)
 		{
 			return new RpcMethodErrorResult(errorCode, message, data);
 		}
 	}
 
-#if !NETSTANDARD1_3
 	/// <summary>
 	/// Attribute to decorate a derived <see cref="RpcController"/> class
 	/// Allows setting a custom route name instead of using the controller name
@@ -69,5 +64,4 @@ namespace EdjCase.JsonRpc.Router
 	{
 
 	}
-#endif
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
@@ -51,7 +51,7 @@ namespace EdjCase.JsonRpc.Router.Abstractions
 			{
 				return metaData.BaseRoute;
 			}
-			if (metaData.PathRoutes.TryGetValue(path, out IReadOnlyList<IRpcMethodInfo> methods))
+			if (metaData.PathRoutes.TryGetValue(path, out IReadOnlyList<IRpcMethodInfo>? methods))
 			{
 				return methods;
 			}

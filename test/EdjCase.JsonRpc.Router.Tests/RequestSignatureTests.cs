@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -121,7 +121,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 				parameterCount++;
 				if (!parameters.TryGetValue(name.ToString(), out RpcParameterType otherType))
 				{
-					throw new Xunit.Sdk.EqualException(name.ToString(), null);
+					throw new Xunit.Sdk.XunitException(name.ToString());
 				}
 				Assert.Equal(otherType, type);
 			}
