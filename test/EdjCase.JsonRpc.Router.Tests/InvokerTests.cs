@@ -644,7 +644,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 		{
 			this._output = output;
 		}
-		public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+		public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
 		{
 			StringBuilder sb = new StringBuilder();
 			sb.AppendLine(formatter(state, exception));
@@ -667,7 +667,8 @@ namespace EdjCase.JsonRpc.Router.Tests
 			return true;
 		}
 		List<object> context = new();
-		public IDisposable BeginScope<TState>(TState state)
+		public IDisposable? BeginScope<TState>(TState state)
+			 where TState : notnull
 		{
 			this.context.Add(state);
 			return new DisposableAction(() => this.context.Remove(state));
@@ -688,7 +689,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 			public void Dispose()
 			{
-				disp();
+				this.disp();
 			}
 		}
 	}

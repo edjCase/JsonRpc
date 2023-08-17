@@ -73,8 +73,8 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			{
 				return AuthorizationResult.Success();
 			}
-			AuthorizationPolicy policy = await AuthorizationPolicy.CombineAsync(this.policyProvider, authorizeDataList);
-			ClaimsPrincipal claimsPrincipal = this.httpContextAccessor.HttpContext.User;
+			AuthorizationPolicy policy = (await AuthorizationPolicy.CombineAsync(this.policyProvider, authorizeDataList))!;
+			ClaimsPrincipal claimsPrincipal = this.httpContextAccessor.HttpContext!.User;
 			return await this.authorizationService.AuthorizeAsync(claimsPrincipal, policy);
 		}
 

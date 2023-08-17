@@ -4,19 +4,6 @@ using System.Net.Http;
 
 namespace EdjCase.JsonRpc.Client
 {
-#if NETSTANDARD1_1
-	internal interface IHttpClientFactory
-	{
-		HttpClient CreateClient(string name);
-	}
-	internal static class HttpClientFactoryExtensions
-	{		
-		public static HttpClient CreateClient(this IHttpClientFactory factory)
-		{
-			return factory.CreateClient("Default");
-		}
-	}
-#endif
 
 	internal class DefaultHttpClientFactory : IHttpClientFactory, IDisposable
 	{

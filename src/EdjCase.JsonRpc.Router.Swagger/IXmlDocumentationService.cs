@@ -23,7 +23,7 @@ namespace EdjCase.JsonRpc.Router.Swagger
 
 		public XmlDocumentationService()
 		{
-			var filePath = Path.Combine(System.AppContext.BaseDirectory, $"{Assembly.GetEntryAssembly().GetName().Name}.xml");
+			var filePath = Path.Combine(System.AppContext.BaseDirectory, $"{Assembly.GetEntryAssembly()!.GetName().Name}.xml");
 			if (File.Exists(filePath))
 			{
 				var xmlComments = File.OpenText(filePath);
@@ -43,7 +43,7 @@ namespace EdjCase.JsonRpc.Router.Swagger
 			var typeNode = this.xpathNavigator.SelectSingleNode(string.Format(XmlDocumentationService.MemberXPath, memberName));
 			if (typeNode == null) return string.Empty;
 			var summaryNode = typeNode.SelectSingleNode(XmlDocumentationService.SummaryTag);
-			return XmlCommentsTextHelper.Humanize(summaryNode.InnerXml);
+			return XmlCommentsTextHelper.Humanize(summaryNode!.InnerXml);
 		}
 
 		public string GetSummaryForMethod(IRpcMethodInfo methodInfo)

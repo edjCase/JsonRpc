@@ -1,4 +1,4 @@
-﻿using EdjCase.JsonRpc.Common;
+using EdjCase.JsonRpc.Common;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
@@ -82,7 +82,7 @@ namespace EdjCase.JsonRpc.Client
 				default:
 					throw new RpcClientParseException("Unable to parse rpc id as string or integer.");
 			}
-			if(!typeMap.TryGetValue(id, out Type type))
+			if(!typeMap.TryGetValue(id, out Type? type) || type == null)
 			{
 				throw new RpcClientParseException("Unable to detect result type, cannot deserialize.");
 			}
@@ -96,7 +96,7 @@ namespace EdjCase.JsonRpc.Client
 				object? data = null;
 				if (dataToken != null)
 				{
-					if (this.errorTypes != null && this.errorTypes.TryGetValue(code, out Type errorCodeType))
+					if (this.errorTypes != null && this.errorTypes.TryGetValue(code, out Type? errorCodeType) && errorCodeType != null)
 					{
 						data = dataToken.ToObject(errorCodeType);
 					}

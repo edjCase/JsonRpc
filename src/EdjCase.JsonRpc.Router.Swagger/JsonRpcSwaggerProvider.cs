@@ -90,7 +90,7 @@ namespace EdjCase.JsonRpc.Router.Swagger
 			{
 				Info = new OpenApiInfo()
 				{
-					Title = Assembly.GetEntryAssembly().GetName().Name,
+					Title = Assembly.GetEntryAssembly()!.GetName().Name,
 					Version = "v1"
 				},
 				Servers = this.swagerOptions.Endpoints.Select(x => new OpenApiServer()

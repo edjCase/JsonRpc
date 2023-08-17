@@ -45,7 +45,7 @@ namespace EdjCase.JsonRpc.Router
 		/// <returns>Task for async routing</returns>
 		public async Task RouteAsync(RouteContext context)
 		{
-			ILogger<RpcHttpRouter> logger = context.HttpContext.RequestServices.GetService<ILogger<RpcHttpRouter>>();
+			ILogger<RpcHttpRouter>? logger = context.HttpContext.RequestServices.GetService<ILogger<RpcHttpRouter>>();
 			try
 			{
 				RpcPath? requestPath;
@@ -98,10 +98,10 @@ namespace EdjCase.JsonRpc.Router
 		private Stream BuildWritableResponseStream(HttpContext httpContext)
 		{
 			httpContext.Response.ContentType = "application/json";
-			string acceptEncoding = httpContext.Request.Headers["Accept-Encoding"];
+			string? acceptEncoding = httpContext.Request.Headers["Accept-Encoding"];
 			if (!string.IsNullOrWhiteSpace(acceptEncoding))
 			{
-				IStreamCompressor compressor = httpContext.RequestServices.GetService<IStreamCompressor>();
+				IStreamCompressor? compressor = httpContext.RequestServices.GetService<IStreamCompressor>();
 				if (compressor != null)
 				{
 					string[] encodings = acceptEncoding.Split(RpcHttpRouter.encodingSeperators, StringSplitOptions.RemoveEmptyEntries);

@@ -6,7 +6,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 {
 	internal class FakeLogger<T> : ILogger<T>
 	{
-		public IDisposable BeginScope<TState>(TState state)
+		public IDisposable? BeginScope<TState>(TState state) where TState : notnull
 		{
 			return new FakeDisposable();
 		}
@@ -16,7 +16,7 @@ namespace EdjCase.JsonRpc.Router.Tests
 			return false;
 		}
 
-		public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
+		public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
 		{
 
 		}

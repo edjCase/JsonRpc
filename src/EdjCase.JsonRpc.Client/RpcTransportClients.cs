@@ -1,4 +1,4 @@
-﻿using EdjCase.JsonRpc.Common;
+using EdjCase.JsonRpc.Common;
 using EdjCase.JsonRpc.Common.Tools;
 using System;
 using System.Collections.Generic;
@@ -11,11 +11,8 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-#if !NETSTANDARD1_1
 using System.Net.WebSockets;
 using Microsoft.Extensions.Options;
-#endif
-
 namespace EdjCase.JsonRpc.Client
 {
 	internal interface IRpcTransportClient
