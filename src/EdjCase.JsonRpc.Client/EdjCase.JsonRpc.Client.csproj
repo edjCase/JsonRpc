@@ -18,8 +18,8 @@
 		<PackageReference Include="System.ValueTuple" Version="4.5.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="System.Net.WebSockets.Client" Version="4.3.2" />
-		<PackageReference Include="Microsoft.Extensions.Options" Version="7.0.1" />
-		<PackageReference Include="Microsoft.Extensions.Http" Version="7.0.0" />
+		<PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
+		<PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
 	</ItemGroup>
 	<Import Project="..\EdjCase.JsonRpc.Common\EdjCase.JsonRpc.Common.projitems" Label="Shared" />
 </Project>
