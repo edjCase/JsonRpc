@@ -52,7 +52,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 					IReadOnlyList<IRpcMethodInfo>? methods = this.methodProvider.GetByPath(context.Path);
 					if (methods == null || !methods.Any())
 					{
-						return [];
+						return Array.Empty<IRpcMethodInfo>();
 					}
 
 					return this.GetMatchingMethods(requestSignature, methods);
@@ -272,9 +272,9 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		{
 			var cacheKey = new RequestCacheKey(path, requestSignature);
 
-			if (this.memoryCache.TryGetValue(cacheKey, out IRpcMethodInfo? result))
+			if (this.memoryCache.TryGetValue(cacheKey, out IRpcMethodInfo[]? result))
 			{
-				return [result!];
+				return result!;
 			}
 
 			IRpcMethodInfo[] matchingMethods = resolveFunc();
@@ -295,8 +295,7 @@ namespace EdjCase.JsonRpc.Router.Defaults
 			{
 				cacheEntryOptions = cacheEntryOptions.SetAbsoluteExpiration(this.options.AbsoluteExpiration.Value);
 			}
-			IRpcMethodInfo method =  this.memoryCache.Set(cacheKey, matchingMethods[0], cacheEntryOptions);
-			return [method];
+			return this.memoryCache.Set(cacheKey, matchingMethods, cacheEntryOptions);
 		}
 	}
 
