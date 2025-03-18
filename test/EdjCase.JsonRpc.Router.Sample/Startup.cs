@@ -64,7 +64,13 @@ namespace EdjCase.JsonRpc.Router.Sample
 			services
 				.AddControllers()
 				.Services
-				.AddJsonRpcWithSwagger(ConfigureRpc, globalJsonSerializerOptions);
+				.AddJsonRpcWithSwagger(ConfigureRpc, globalJsonSerializerOptions)
+				.Configure<RequestCacheOptions>(options =>
+				{
+					options.SizeLimit = 10;
+					options.SlidingExpiration = TimeSpan.FromMinutes(5);
+					options.AbsoluteExpiration = TimeSpan.FromMinutes(90);
+				});
 		}
 
 

@@ -1,10 +1,8 @@
 using System;
 using System.Buffers;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using EdjCase.JsonRpc.Router;
 using EdjCase.JsonRpc.Common;
 using EdjCase.JsonRpc.Router.Abstractions;
 using EdjCase.JsonRpc.Router.Utilities;
@@ -14,90 +12,72 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace EdjCase.JsonRpc.Router.Defaults
 {
+
 	internal class DefaultRequestMatcher : IRpcRequestMatcher
 	{
-		private static ConcurrentDictionary<string, ConcurrentDictionary<RpcRequestSignature, IRpcMethodInfo[]>> requestToMethodCache { get; }
-			= new ConcurrentDictionary<string, ConcurrentDictionary<RpcRequestSignature, IRpcMethodInfo[]>>();
-
 		private ILogger<DefaultRequestMatcher> logger { get; }
 		private IRpcMethodProvider methodProvider { get; }
 		private IRpcContextAccessor contextAccessor { get; }
 		private IRpcParameterConverter rpcParameterConverter { get; }
-
-		public DefaultRequestMatcher(ILogger<DefaultRequestMatcher> logger,
+		private RequestMatcherCache requestMatcherCache { get; }
+		public DefaultRequestMatcher(
+			ILogger<DefaultRequestMatcher> logger,
 			IRpcMethodProvider methodProvider,
 			IRpcContextAccessor contextAccessor,
-			IRpcParameterConverter rpcParameterConverter)
+			IRpcParameterConverter rpcParameterConverter,
+			RequestMatcherCache requestMatcherCache
+		)
 		{
 			this.contextAccessor = contextAccessor;
 			this.logger = logger;
 			this.methodProvider = methodProvider;
-			this.contextAccessor = contextAccessor;
 			this.rpcParameterConverter = rpcParameterConverter;
+			this.requestMatcherCache = requestMatcherCache;
 		}
+
 
 		public IRpcMethodInfo GetMatchingMethod(RpcRequestSignature requestSignature)
 		{
 			this.logger.AttemptingToMatchMethod(new string(requestSignature.GetMethodName().Span));
 
-			RpcContext context = this.contextAccessor.Get();
-			IReadOnlyList<IRpcMethodInfo>? methods = this.methodProvider.GetByPath(context.Path);
-			if (methods == null || !methods.Any())
-			{
-				throw new RpcException(RpcErrorCode.MethodNotFound, $"No methods found for route");
-			}
+			// Create efficient cache key from path and signature
+			string path = this.contextAccessor.Get().Path?.ToString() ?? string.Empty;
 
-			Span<IRpcMethodInfo> matches = this.FilterAndBuildMethodInfoByRequest(context, methods, requestSignature);
+			IRpcMethodInfo[] matchingMethods = this.requestMatcherCache.GetOrAdd(
+				path,
+				requestSignature,
+				() =>
+				{
+					RpcContext context = this.contextAccessor.Get();
+					IReadOnlyList<IRpcMethodInfo>? methods = this.methodProvider.GetByPath(context.Path);
+					if (methods == null || !methods.Any())
+					{
+						return [];
+					}
+
+					return this.GetMatchingMethods(requestSignature, methods);
+				});
+
+
+			return this.HandleMatchResult(matchingMethods);
+		}
+
+		private IRpcMethodInfo HandleMatchResult(IRpcMethodInfo[] matches)
+		{
 			if (matches.Length == 1)
 			{
 				this.logger.RequestMatchedMethod();
 				return matches[0];
 			}
-
-			string errorMessage;
 			if (matches.Length > 1)
 			{
-				var methodInfoList = new List<string>();
-				foreach (IRpcMethodInfo matchedMethod in matches)
-				{
-					var parameterTypeList = new List<string>();
-					foreach (IRpcParameterInfo parameterInfo in matchedMethod.Parameters)
-					{
-						RpcParameterType type = this.rpcParameterConverter.GetRpcParameterType(parameterInfo.RawType);
-						string parameterType = parameterInfo.Name + ": " + type;
-						if (parameterInfo.IsOptional)
-						{
-							parameterType += "(Optional)";
-						}
-						parameterTypeList.Add(parameterType);
-					}
-					string parameterString = string.Join(", ", parameterTypeList);
-					methodInfoList.Add($"{{Name: '{matchedMethod.Name}', Parameters: [{parameterString}]}}");
-				}
-				errorMessage = "More than one method matched the rpc request. Unable to invoke due to ambiguity. Methods that matched the same name: " + string.Join(", ", methodInfoList);
+				// Format the methods for error message
+				string errorMessage = "More than one method matched the rpc request. Unable to invoke due to ambiguity.";
+				throw new RpcException(RpcErrorCode.MethodNotFound, errorMessage);
 			}
-			else
-			{
-				//Log diagnostics 
-				this.logger.MethodsInRoute(methods);
-				errorMessage = "No methods matched request.";
-			}
-			throw new RpcException(RpcErrorCode.MethodNotFound, errorMessage);
+
+			throw new RpcException(RpcErrorCode.MethodNotFound, "No methods matched request.");
 		}
-
-		private IRpcMethodInfo[] FilterAndBuildMethodInfoByRequest(RpcContext context, IReadOnlyList<IRpcMethodInfo> methods, RpcRequestSignature requestSignature)
-		{
-			//If the request signature is found, it means we have the methods cached already
-
-			string rpcPath = context.Path?.ToString() ?? string.Empty;
-			var rpcPathMethodsCache = DefaultRequestMatcher.requestToMethodCache.GetOrAdd(rpcPath, path => new ConcurrentDictionary<RpcRequestSignature, IRpcMethodInfo[]>());
-			return rpcPathMethodsCache.GetOrAdd(requestSignature, BuildMethodCache);
-			IRpcMethodInfo[] BuildMethodCache(RpcRequestSignature s)
-			{
-				return this.GetMatchingMethods(s, methods);
-			}
-		}
-
 
 		private IRpcMethodInfo[] GetMatchingMethods(RpcRequestSignature requestSignature, IReadOnlyList<IRpcMethodInfo> methods)
 		{
@@ -261,6 +241,83 @@ namespace EdjCase.JsonRpc.Router.Defaults
 		}
 
 	}
+
+
+	public class RequestCacheOptions
+	{
+		public long SizeLimit { get; set; } = 100;
+		public TimeSpan? SlidingExpiration { get; set; } = null;
+		public TimeSpan? AbsoluteExpiration { get; set; } = null;
+	}
+
+	internal class RequestMatcherCache
+	{
+		private RequestCacheOptions options { get; }
+		private MemoryCache memoryCache { get; }
+
+		public RequestMatcherCache(IOptions<RequestCacheOptions> options)
+		{
+			this.options = options.Value;
+			this.memoryCache = new MemoryCache(Options.Create(new MemoryCacheOptions
+			{
+				SizeLimit = this.options.SizeLimit
+			}));
+		}
+
+		public IRpcMethodInfo[] GetOrAdd(
+			string path,
+			RpcRequestSignature requestSignature,
+			Func<IRpcMethodInfo[]> resolveFunc
+		)
+		{
+			var cacheKey = new RequestCacheKey(path, requestSignature);
+
+			if (this.memoryCache.TryGetValue(cacheKey, out IRpcMethodInfo? result))
+			{
+				return [result!];
+			}
+
+			IRpcMethodInfo[] matchingMethods = resolveFunc();
+
+			if (matchingMethods.Length != 1)
+			{
+				return matchingMethods; // Don't cache bad matches
+			}
+
+			// Cache with configurable options
+			var cacheEntryOptions = new MemoryCacheEntryOptions()
+				.SetSize(1);
+			if (this.options.SlidingExpiration != null)
+			{
+				cacheEntryOptions = cacheEntryOptions.SetSlidingExpiration(this.options.SlidingExpiration.Value);
+			}
+			if (this.options.AbsoluteExpiration != null)
+			{
+				cacheEntryOptions = cacheEntryOptions.SetAbsoluteExpiration(this.options.AbsoluteExpiration.Value);
+			}
+			IRpcMethodInfo method =  this.memoryCache.Set(cacheKey, matchingMethods[0], cacheEntryOptions);
+			return [method];
+		}
+	}
+
+	internal readonly struct RequestCacheKey : IEquatable<RequestCacheKey>
+	{
+		private readonly string path;
+		private readonly string signatureKey;
+
+		public RequestCacheKey(string path, RpcRequestSignature signature)
+		{
+			this.path = path;
+			this.signatureKey = signature.AsString();
+		}
+
+		public bool Equals(RequestCacheKey other) => this.path == other.path && this.signatureKey == other.signatureKey;
+
+		public override bool Equals(object? obj) => obj is RequestCacheKey other && this.Equals(other);
+
+		public override int GetHashCode() => HashCode.Combine(this.path, this.signatureKey);
+	}
+
 
 	internal class RpcEndpointInfo
 	{

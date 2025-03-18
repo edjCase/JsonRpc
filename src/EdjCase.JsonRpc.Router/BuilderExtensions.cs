@@ -37,7 +37,10 @@ namespace Microsoft.AspNetCore.Builder
 		/// <param name="serviceCollection">IoC serivce container to register JsonRpc dependencies</param>
 		/// <param name="configuration">(Optional) Server wide rpc configuration</param>
 		/// <returns>IoC service container</returns>
-		public static IServiceCollection AddJsonRpc(this IServiceCollection serviceCollection, RpcServerConfiguration? configuration = null)
+		public static IServiceCollection AddJsonRpc(
+			this IServiceCollection serviceCollection,
+			RpcServerConfiguration? configuration = null
+		)
 		{
 			if (serviceCollection == null)
 			{
@@ -63,6 +66,10 @@ namespace Microsoft.AspNetCore.Builder
 				.TryAddScoped<IRpcResponseSerializer, DefaultRpcResponseSerializer>();
 			serviceCollection
 				.TryAddScoped<IRpcRequestMatcher, DefaultRequestMatcher>();
+			serviceCollection
+				.TryAddSingleton<RequestMatcherCache>();
+			serviceCollection
+				.AddOptions<RequestCacheOptions>();
 			serviceCollection
 				.TryAddScoped<IRpcContextAccessor, DefaultContextAccessor>();
 			serviceCollection

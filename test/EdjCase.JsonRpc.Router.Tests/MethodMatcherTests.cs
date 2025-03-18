@@ -64,7 +64,13 @@ namespace EdjCase.JsonRpc.Router.Tests
 
 
 			var methodProvider = new StaticRpcMethodProvider(this.methodDataAccessor);
-			return new DefaultRequestMatcher(logger.Object, methodProvider, rpcContextAccessor.Object, rpcParameterConverter);
+			return new DefaultRequestMatcher(
+				logger.Object,
+				methodProvider,
+				rpcContextAccessor.Object,
+				rpcParameterConverter,
+				new RequestMatcherCache(Options.Create(new RequestCacheOptions()))
+			);
 		}
 
 		[Fact]

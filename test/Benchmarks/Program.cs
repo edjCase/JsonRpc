@@ -57,7 +57,13 @@ namespace Benchmarks
 				JsonSerializerSettings = null
 			});
 			var rpcParameterConverter = new DefaultRpcParameterConverter(options, new FakeLogger<DefaultRpcParameterConverter>());
-			this.requestMatcher = new DefaultRequestMatcher(logger, methodProvider, fakeRpcContextAccessor, rpcParameterConverter);
+			this.requestMatcher = new DefaultRequestMatcher(
+				logger,
+				methodProvider,
+				fakeRpcContextAccessor,
+				rpcParameterConverter,
+				new RequestMatcherCache(Options.Create(new RequestCacheOptions()))
+			);
 		}
 
 		private RpcRequestSignature? requestsignature;
